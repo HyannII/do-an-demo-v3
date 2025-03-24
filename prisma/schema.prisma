@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Camera {
+  cameraId         Int           @id @default(autoincrement())
+  cameraName       String
+  ipAddress        String
+  location         String
+  latitude         Decimal?      @db.Decimal(10, 6)
+  longitude        Decimal?      @db.Decimal(10, 6)
+  model            String?
+  manufacturer     String?
+  installationDate DateTime?
+  isActive         Boolean       @default(true)
+  junctionId       Int?
+  junction         Junction?     @relation(fields: [junctionId], references: [junctionId])
+  trafficData      TrafficData[]
+}
+
+model Junction {
+  junctionId    Int              @id @default(autoincrement())
+  junctionName  String
+  location      String
+  latitude      Decimal?         @db.Decimal(10, 6)
+  longitude     Decimal?         @db.Decimal(10, 6)
+  description   String?
+  cameras       Camera[]
+  trafficLights TrafficLight[]
+  trafficPatterns TrafficPattern[]
+}
+
+model Notification {
+  notificationId   Int      @id @default(autoincrement())
+  notificationType String
+  message          String
+  createdAt        DateTime @default(now())
+  isRead           Boolean  @default(false)
+  userId           Int
+  user             User     @relation(fields: [userId], references: [userId])
+}
+
+model Role {
+  roleId      Int     @id @default(autoincrement())
+  roleName    String  @unique
+  description String?
+  permissions Json?
+  users       User[]
+}
+
+model SystemLog {
+  logId       Int      @id @default(autoincrement())
+  logTime     DateTime @default(now())
+  eventType   String
+  description String
+  userId      Int?
+  ipAddress   String?
+  user        User?    @relation(fields: [userId], references: [userId])
+}
+
+model TrafficData {
+  dataId          Int      @id @default(autoincrement())
+  cameraId        Int
+  captureTime     DateTime @default(now())
+  vehicleCount    Int?
+  pedestrianCount Int?
+  averageSpeed    Decimal? @db.Decimal(5, 2)
+  trafficDensity  String?
+  rawData         Json?
+  camera          Camera   @relation(fields: [cameraId], references: [cameraId])
+}
+
+model TrafficLight {
+  trafficLightId  Int               @id @default(autoincrement())
+  lightName       String
+  ipAddress       String
+  location        String
+  latitude        Decimal?          @db.Decimal(10, 6)
+  longitude       Decimal?          @db.Decimal(10, 6)
+  junctionId      Int
+  status          String
+  lastMaintenance DateTime?
+  isActive        Boolean           @default(true)
+  junction        Junction          @relation(fields: [junctionId], references: [junctionId])
+  trafficLightLogs TrafficLightLog[]
+}
+
+model TrafficLightLog {
+  logId              Int          @id @default(autoincrement())
+  trafficLightId     Int
+  changeTime         DateTime     @default(now())
+  previousStatus     String
+  newStatus          String
+  changeReason       String?
+  triggeredByUserId  Int?
+  trafficLight       TrafficLight @relation(fields: [trafficLightId], references: [trafficLightId])
+  user               User?        @relation(fields: [triggeredByUserId], references: [userId])
+}
+
+model TrafficPattern {
+  patternId           Int      @id @default(autoincrement())
+  junctionId          Int
+  patternName         String
+  description         String?
+  timingConfiguration Json
+  createdAt           DateTime @default(now())
+  createdByUserId     Int
+  user                User     @relation(fields: [createdByUserId], references: [userId])
+  junction            Junction @relation(fields: [junctionId], references: [junctionId])
+}
+
+model User {
+  userId          Int               @id @default(autoincrement())
+  username        String            @unique
+  passwordHash    String
+  email           String
+  fullName        String
+  roleId          Int
+  createdAt       DateTime          @default(now())
+  lastLogin       DateTime?
+  isActive        Boolean           @default(true)
+  notifications   Notification[]
+  systemLogs      SystemLog[]
+  trafficLightLogs TrafficLightLog[]
+  trafficPatterns TrafficPattern[]
+  role            Role              @relation(fields: [roleId], references: [roleId])
+}
