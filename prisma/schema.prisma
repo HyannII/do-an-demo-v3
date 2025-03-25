@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Camera {
-  cameraId         Int           @id @default(autoincrement())
+  cameraId         String        @id @default(uuid())
   cameraName       String
   ipAddress        String
   location         String
@@ -18,13 +18,13 @@ model Camera {
   manufacturer     String?
   installationDate DateTime?
   isActive         Boolean       @default(true)
-  junctionId       Int?
+  junctionId       String?
   junction         Junction?     @relation(fields: [junctionId], references: [junctionId])
   trafficData      TrafficData[]
 }
 
 model Junction {
-  junctionId      Int              @id @default(autoincrement())
+  junctionId      String           @id @default(uuid())
   junctionName    String
   location        String
   latitude        Decimal?         @db.Decimal(10, 6)
@@ -37,17 +37,17 @@ model Junction {
 }
 
 model Notification {
-  notificationId   Int      @id @default(autoincrement())
+  notificationId   String   @id @default(uuid())
   notificationType String
   message          String
   createdAt        DateTime @default(now())
   isRead           Boolean  @default(false)
-  userId           Int
+  userId           String
   user             User     @relation(fields: [userId], references: [userId])
 }
 
 model Role {
-  roleId      Int     @id @default(autoincrement())
+  roleId      String  @id @default(uuid())
   roleName    String  @unique
   description String?
   permissions Json?
@@ -55,18 +55,18 @@ model Role {
 }
 
 model SystemLog {
-  logId       Int      @id @default(autoincrement())
+  logId       String   @id @default(uuid())
   logTime     DateTime @default(now())
   eventType   String
   description String
-  userId      Int?
+  userId      String?
   ipAddress   String?
   user        User?    @relation(fields: [userId], references: [userId])
 }
 
 model TrafficData {
-  dataId          Int      @id @default(autoincrement())
-  cameraId        Int
+  dataId          String   @id @default(uuid())
+  cameraId        String
   captureTime     DateTime @default(now())
   vehicleCount    Int?
   pedestrianCount Int?
@@ -77,51 +77,51 @@ model TrafficData {
 }
 
 model TrafficLight {
-  trafficLightId  Int               @id @default(autoincrement())
-  lightName       String
-  ipAddress       String
-  location        String
-  latitude        Decimal?          @db.Decimal(10, 6)
-  longitude       Decimal?          @db.Decimal(10, 6)
-  junctionId      Int
-  status          String
-  lastMaintenance DateTime?
-  isActive        Boolean           @default(true)
-  junction        Junction          @relation(fields: [junctionId], references: [junctionId])
+  trafficLightId   String            @id @default(uuid())
+  lightName        String
+  ipAddress        String
+  location         String
+  latitude         Decimal?          @db.Decimal(10, 6)
+  longitude        Decimal?          @db.Decimal(10, 6)
+  junctionId       String
+  status           String
+  lastMaintenance  DateTime?
+  isActive         Boolean           @default(true)
+  junction         Junction          @relation(fields: [junctionId], references: [junctionId])
   trafficLightLogs TrafficLightLog[]
 }
 
 model TrafficLightLog {
-  logId              Int          @id @default(autoincrement())
-  trafficLightId     Int
-  changeTime         DateTime     @default(now())
-  previousStatus     String
-  newStatus          String
-  changeReason       String?
-  triggeredByUserId  Int?
-  trafficLight       TrafficLight @relation(fields: [trafficLightId], references: [trafficLightId])
-  user               User?        @relation(fields: [triggeredByUserId], references: [userId])
+  logId             String       @id @default(uuid())
+  trafficLightId    String
+  changeTime        DateTime     @default(now())
+  previousStatus    String
+  newStatus         String
+  changeReason      String?
+  triggeredByUserId String?
+  trafficLight      TrafficLight @relation(fields: [trafficLightId], references: [trafficLightId])
+  user              User?        @relation(fields: [triggeredByUserId], references: [userId])
 }
 
 model TrafficPattern {
-  patternId           Int      @id @default(autoincrement())
-  junctionId          Int
+  patternId           String   @id @default(uuid())
+  junctionId          String
   patternName         String
   description         String?
   timingConfiguration Json
   createdAt           DateTime @default(now())
-  createdByUserId     Int
+  createdByUserId     String
   user                User     @relation(fields: [createdByUserId], references: [userId])
   junction            Junction @relation(fields: [junctionId], references: [junctionId])
 }
 
 model User {
-  userId           Int               @id @default(autoincrement())
+  userId           String            @id @default(uuid())
   username         String            @unique
   passwordHash     String
   email            String
   fullName         String
-  roleId           Int
+  roleId           String
   createdAt        DateTime          @default(now())
   lastLogin        DateTime?
   isActive         Boolean           @default(true)
@@ -136,66 +136,66 @@ model User {
 }
 
 model VMS {
-  vmsId           Int           @id @default(autoincrement())
-  vmsName         String
-  ipAddress       String
-  location        String
-  latitude        Decimal?      @db.Decimal(10, 6)
-  longitude       Decimal?      @db.Decimal(10, 6)
-  message         String?       // Thông báo hiện tại hiển thị trên VMS (có thể bỏ nếu dùng Media)
-  status          String        @default("operational") // "operational", "maintenance", "offline"
+  vmsId            String    @id @default(uuid())
+  vmsName          String
+  ipAddress        String
+  location         String
+  latitude         Decimal?  @db.Decimal(10, 6)
+  longitude        Decimal?  @db.Decimal(10, 6)
+  message          String?   // Thông báo hiện tại hiển thị trên VMS (có thể bỏ nếu dùng Media)
+  status           String    @default("operational") // "operational", "maintenance", "offline"
   installationDate DateTime?
-  lastUpdate      DateTime?     @default(now())
-  isActive        Boolean       @default(true)
-  junctionId      Int?
-  junction        Junction?     @relation(fields: [junctionId], references: [junctionId])
-  vmsLogs         VMSLog[]      // Quan hệ với bảng log
-  medias          Media[]       // Quan hệ với bảng Media để lưu media liên quan
+  lastUpdate       DateTime? @default(now())
+  isActive         Boolean   @default(true)
+  junctionId       String?
+  junction         Junction? @relation(fields: [junctionId], references: [junctionId])
+  vmsLogs          VMSLog[]  // Quan hệ với bảng log
+  medias           Media[]   // Quan hệ với bảng Media để lưu media liên quan
 }
 
 model VMSLog {
-  logId             Int      @id @default(autoincrement())
-  vmsId             Int
+  logId             String   @id @default(uuid())
+  vmsId             String
   changeTime        DateTime @default(now())
   previousMessage   String?
   newMessage        String?
   changeReason      String?
-  triggeredByUserId Int?
+  triggeredByUserId String?
   vms               VMS      @relation(fields: [vmsId], references: [vmsId])
   user              User?    @relation(fields: [triggeredByUserId], references: [userId])
 }
 
 model Media {
-  mediaId          Int           @id @default(autoincrement())
-  mediaName        String        // Tên của media
-  mediaType        String        // Loại media: "image", "video", "text", "unknown"
-  size             Decimal?      @db.Decimal(10, 2) // Kích thước file (MB)
-  ossDir           String?       // Đường dẫn lưu trữ trên OSS
-  thumbnailUrl     String?       // Đường dẫn thumbnail nhỏ
-  bigThumbnailUrl  String?       // Đường dẫn thumbnail lớn
-  defaultImageUrl  String?       // Đường dẫn ảnh mặc định
-  version          String?       // Phiên bản của media
-  uploadPath       String?       // Đường dẫn upload (key)
-  uniqueId         String?       // ID duy nhất của media
-  duration         String?       // Thời lượng (đối với video, định dạng "HH:MM:SS.sss")
-  status           String        @default("pending") // Trạng thái: "pending", "uploaded", "failed", "deleted"
-  content          String?       // Nội dung text (nếu mediaType là "text")
-  createdAt        DateTime      @default(now()) // Thời gian tạo
-  lastUpdatedAt    DateTime?     @updatedAt // Thời gian cập nhật cuối cùng
-  uploadedByUserId Int?          // ID người upload
-  user             User?         @relation(fields: [uploadedByUserId], references: [userId])
-  vmsId            Int?          // Liên kết với VMS
-  vms              VMS?          @relation(fields: [vmsId], references: [vmsId])
-  mediaLogs        MediaLog[]    // Lịch sử thao tác với media
+  mediaId          String     @id @default(uuid())
+  mediaName        String     // Tên của media
+  mediaType        String     // Loại media: "image", "video", "text", "unknown"
+  size             Decimal?   @db.Decimal(10, 2) // Kích thước file (MB)
+  ossDir           String?    // Đường dẫn lưu trữ trên OSS
+  thumbnailUrl     String?    // Đường dẫn thumbnail nhỏ
+  bigThumbnailUrl  String?    // Đường dẫn thumbnail lớn
+  defaultImageUrl  String?    // Đường dẫn ảnh mặc định
+  version          String?    // Phiên bản của media
+  uploadPath       String?    // Đường dẫn upload (key)
+  uniqueId         String?    // ID duy nhất của media
+  duration         String?    // Thời lượng (đối với video, định dạng "HH:MM:SS.sss")
+  status           String     @default("pending") // Trạng thái: "pending", "uploaded", "failed", "deleted"
+  content          String?    // Nội dung text (nếu mediaType là "text")
+  createdAt        DateTime   @default(now())     // Thời gian tạo
+  lastUpdatedAt    DateTime?  @updatedAt          // Thời gian cập nhật cuối cùng
+  uploadedByUserId String?    // ID người upload
+  user             User?      @relation(fields: [uploadedByUserId], references: [userId])
+  vmsId            String?    // Liên kết với VMS
+  vms              VMS?       @relation(fields: [vmsId], references: [vmsId])
+  mediaLogs        MediaLog[] // Lịch sử thao tác với media
 }
 
 model MediaLog {
-  logId             Int      @id @default(autoincrement())
-  mediaId           Int      // ID của media liên quan
+  logId             String   @id @default(uuid())
+  mediaId           String   // ID của media liên quan
   action            String   // Hành động: "created", "uploaded", "deleted", "updated"
   actionTime        DateTime @default(now()) // Thời gian thực hiện hành động
   details           Json?    // Chi tiết hành động (ví dụ: thông tin OSS, lỗi nếu có)
-  triggeredByUserId Int?     // ID người thực hiện hành động
+  triggeredByUserId String?  // ID người thực hiện hành động
   media             Media    @relation(fields: [mediaId], references: [mediaId])
   user              User?    @relation(fields: [triggeredByUserId], references: [userId])
 }

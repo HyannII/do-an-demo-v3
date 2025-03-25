@@ -25,65 +25,49 @@ export default function MapComponent() {
   const mapRef = useRef<MapRef>(null);
   const { collapsed } = useDashboardContext(); // Lấy trạng thái collapsed từ context
 
+  // Animation options for faster flyTo
+  const fastAnimationOptions = {
+    speed: 2.5, // Tăng tốc độ (mặc định là 1.2)
+    curve: 1, // Giảm độ cong (mặc định là 1.42), làm cho animation trực tiếp hơn
+  };
+
   // Lấy vị trí hiện tại khi component được mount
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { longitude, latitude } = position.coords;
-          setCurrentLocation({ longitude, latitude });
-          // Di chuyển bản đồ đến vị trí hiện tại
-          if (mapRef.current) {
-            mapRef.current.flyTo({
-              center: [longitude, latitude],
-              zoom: 14, // Zoom gần hơn một chút để thấy rõ vị trí hiện tại
-            });
-          }
-        },
-        (error) => {
-          console.error("Error getting current location:", error);
-          // Nếu không lấy được vị trí, sử dụng vị trí mặc định
-          setCurrentLocation({
-            longitude: 105.7718272,
-            latitude: 20.9813504,
-          });
-          if (mapRef.current) {
-            mapRef.current.flyTo({
-              center: [105.7718272, 20.9813504],
-              zoom: 10,
-            });
-          }
-        }
+        ({ coords: { longitude, latitude } }) =>
+          setCurrentLocation({ longitude, latitude }),
+        () =>
+          setCurrentLocation({ longitude: 105.7718272, latitude: 20.9813504 }),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-      console.error("Geolocation is not supported by this browser.");
-      // Nếu trình duyệt không hỗ trợ Geolocation, sử dụng vị trí mặc định
-      setCurrentLocation({
-        longitude: 105.7718272,
-        latitude: 20.9813504,
-      });
-      if (mapRef.current) {
-        mapRef.current.flyTo({
-          center: [105.7718272, 20.9813504],
-          zoom: 10,
-        });
-      }
+      setCurrentLocation({ longitude: 105.7718272, latitude: 20.9813504 });
     }
   }, []);
+
+  useEffect(() => {
+    if (mapRef.current && currentLocation) {
+      mapRef.current.flyTo({
+        center: [currentLocation.longitude, currentLocation.latitude],
+        zoom: 10,
+        ...fastAnimationOptions,
+      });
+    }
+  }, [currentLocation, mapRef]);
 
   // Lấy dữ liệu junction khi component được mount
   useEffect(() => {
     const fetchJunctions = async () => {
-      try {
-        const response = await fetch("/api/junctions");
-        if (!response.ok) {
-          throw new Error("Failed to fetch junctions");
-        }
-        const data = await response.json();
-        setJunctions(data);
-      } catch (error) {
-        console.error("Error fetching junctions:", error);
+      const controller = new AbortController();
+      const signal = controller.signal;
+      const response = await fetch("/api/junctions", { signal });
+      if (!response.ok) {
+        throw new Error("Failed to fetch junctions");
       }
+      const data = await response.json();
+      setJunctions(data);
+      controller.abort(); // Abort the request if it's still pending
     };
 
     fetchJunctions();
@@ -107,7 +91,8 @@ export default function MapComponent() {
     if (mapRef.current) {
       mapRef.current.flyTo({
         center: [Number(junction.longitude), Number(junction.latitude)],
-        zoom: 14, // Zoom level 17 khi nhấn vào junction
+        zoom: 14,
+        ...fastAnimationOptions, // Áp dụng animation nhanh
       });
     }
   };
@@ -117,46 +102,45 @@ export default function MapComponent() {
     setShowPopup(null);
   };
 
-  // Hàm kiểm tra xem junctionName có khớp với query theo thứ tự từ trái qua phải
+  // Fast junction name matching
   const matchesQuery = (junctionName: string, query: string): boolean => {
-    const queryWords = query.toLowerCase().trim().split(/\s+/); // Tách query thành các từ
-    const nameWords = junctionName.toLowerCase().trim().split(/\s+/); // Tách junctionName thành các từ
+    const junctionNameLower = junctionName.toLowerCase();
+    const queryLower = query.toLowerCase();
+    const queryWords = queryLower.split(/\s+/);
+    const nameWords = junctionNameLower.split(/\s+/);
 
-    let wordIndex = 0; // Chỉ số của từ trong junctionName
+    let nameIndex = 0;
     for (const queryWord of queryWords) {
-      // Tìm từ tiếp theo trong junctionName bắt đầu bằng queryWord
-      let found = false;
-      while (wordIndex < nameWords.length) {
-        if (nameWords[wordIndex].startsWith(queryWord)) {
-          found = true;
-          wordIndex++; // Chuyển sang từ tiếp theo trong junctionName
-          break;
-        }
-        wordIndex++;
-      }
-      if (!found) {
-        return false; // Nếu không tìm thấy từ nào bắt đầu bằng queryWord, trả về false
-      }
+      nameIndex = nameWords.findIndex(
+        (nameWord, index) =>
+          index >= nameIndex && nameWord.startsWith(queryWord)
+      );
+      if (nameIndex === -1) return false;
+      nameIndex++;
     }
-    return true; // Nếu tất cả từ trong query đều được tìm thấy theo thứ tự, trả về true
+    return true;
   };
 
   // Xử lý tìm kiếm (khi chọn gợi ý từ autocomplete)
-  const handleSearch = (name: string) => {
-    setSearchQuery(name);
-    const junction = junctions.find((j) => j.junctionName === name); // Tìm junction dựa trên tên chính xác
-    if (junction && mapRef.current) {
-      setSelectedJunction(junction);
-      setShowPopup(junction); // Hiển thị popup khi tìm kiếm
-      mapRef.current.flyTo({
-        center: [Number(junction.longitude), Number(junction.latitude)],
-        zoom: 14, // Zoom level 17 khi tìm kiếm
-      });
-    }
-  };
+  const handleSearch = useCallback(
+    (name: string) => {
+      setSearchQuery(name);
+      const junction = junctions.find((j) => j.junctionName === name); // Tìm junction dựa trên tên chính xác
+      if (junction && mapRef.current) {
+        setSelectedJunction(junction);
+        setShowPopup(junction); // Hiển thị popup khi tìm kiếm
+        mapRef.current.flyTo({
+          center: [Number(junction.longitude), Number(junction.latitude)],
+          zoom: 14,
+          ...fastAnimationOptions, // Áp dụng animation nhanh
+        });
+      }
+    },
+    [fastAnimationOptions, junctions, mapRef]
+  );
 
   // Xử lý khi nhấn nút "Xóa"
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setSearchQuery(""); // Xóa từ khóa tìm kiếm
     setSelectedJunction(null); // Xóa junction được chọn
     setShowPopup(null); // Đóng popup
@@ -165,10 +149,10 @@ export default function MapComponent() {
         center: currentLocation
           ? [currentLocation.longitude, currentLocation.latitude]
           : [105.7718272, 20.9813504],
-        zoom: currentLocation ? 14 : 10, // Zoom gần hơn nếu có vị trí hiện tại
+        zoom: currentLocation ? 14 : 10,
       });
     }
-  };
+  }, [currentLocation, mapRef]);
 
   // Lọc junction dựa trên từ khóa tìm kiếm
   const filteredJunctions = junctions.filter((junction) => {
@@ -182,6 +166,7 @@ export default function MapComponent() {
       mapRef.current.flyTo({
         center: [currentLocation.longitude, currentLocation.latitude],
         zoom: 14,
+        ...fastAnimationOptions, // Áp dụng animation nhanh
       });
     }
   }, [currentLocation]);
@@ -198,7 +183,7 @@ export default function MapComponent() {
         initialViewState={{
           longitude: 105.7718272, // Giá trị ban đầu, sẽ được ghi đè bởi vị trí GPS
           latitude: 20.9813504,
-          zoom: 14,
+          zoom: 10,
         }}
         style={{ width: "100%", height: "100vh" }}
         mapStyle="mapbox://styles/mapbox/streets-v12"

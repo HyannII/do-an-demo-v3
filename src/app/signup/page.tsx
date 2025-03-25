@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -15,6 +15,34 @@ export default function SignupPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [adminRoleId, setAdminRoleId] = useState<string | null>(null); // State để lưu roleId của Admin
+  const [fetchError, setFetchError] = useState(""); // State để lưu lỗi khi fetch roles
+
+  // Fetch roles từ API khi component mount
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await fetch("/api/roles");
+        if (!response.ok) {
+          throw new Error("Không thể lấy danh sách roles");
+        }
+
+        const roles = await response.json();
+        // Tìm role có roleName là "Admin"
+        const adminRole = roles.find((role: any) => role.roleName === "Admin");
+
+        if (!adminRole) {
+          throw new Error("Không tìm thấy role Admin");
+        }
+
+        setAdminRoleId(adminRole.roleId); // Lưu roleId của Admin
+      } catch (error: any) {
+        setFetchError(error.message || "Không thể lấy role Admin");
+      }
+    };
+
+    fetchRoles();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -23,6 +51,12 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Kiểm tra xem adminRoleId đã được lấy chưa
+    if (!adminRoleId) {
+      setError("Không thể xác định role Admin. Vui lòng thử lại sau.");
+      return;
+    }
 
     if (
       !formData.username ||
@@ -53,7 +87,7 @@ export default function SignupPage() {
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
-          roleId: 4, // Default role as Viewer
+          roleId: adminRoleId, // Sử dụng roleId của Admin
         }),
       });
 
@@ -80,6 +114,12 @@ export default function SignupPage() {
           </h1>
           <p className="text-gray-600">Tạo tài khoản mới để sử dụng hệ thống</p>
         </div>
+
+        {fetchError && (
+          <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
+            {fetchError}
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
@@ -180,7 +220,7 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !adminRoleId} // Vô hiệu hóa nút nếu chưa lấy được roleId
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
           >
             {loading ? "Đang xử lý..." : "Đăng ký"}

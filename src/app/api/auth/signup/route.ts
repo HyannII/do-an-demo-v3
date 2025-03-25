@@ -26,6 +26,37 @@ export async function POST(req: Request) {
       );
     }
 
+    // Validate roleId
+    let finalRoleId = roleId;
+
+    // Nếu roleId không được cung cấp, lấy roleId mặc định từ bảng Role (ví dụ: role "Admin")
+    if (!finalRoleId) {
+      const defaultRole = await prisma.role.findFirst({
+        where: { roleName: "Admin" }, // Giả sử bạn có một role mặc định là "Admin"
+      });
+
+      if (!defaultRole) {
+        return NextResponse.json(
+          { message: "Không tìm thấy role mặc định" },
+          { status: 400 }
+        );
+      }
+
+      finalRoleId = defaultRole.roleId; // roleId là một chuỗi UUID
+    }
+
+    // Kiểm tra xem roleId có tồn tại trong bảng Role không
+    const roleExists = await prisma.role.findUnique({
+      where: { roleId: finalRoleId },
+    });
+
+    if (!roleExists) {
+      return NextResponse.json(
+        { message: "Role không tồn tại" },
+        { status: 400 }
+      );
+    }
+
     // Hash password
     const hashedPassword = await hash(password, 10);
 
@@ -34,9 +65,9 @@ export async function POST(req: Request) {
       data: {
         username,
         email,
-        passwordHash: hashedPassword, // Use the hashed password here
+        passwordHash: hashedPassword,
         fullName,
-        roleId: roleId || 4,
+        roleId: finalRoleId, // Đảm bảo roleId là một chuỗi UUID
         createdAt: new Date(),
         isActive: true,
       },
