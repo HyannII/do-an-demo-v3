@@ -1,19 +1,11 @@
-// src/components/dashboard/sidebar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { LogOut, ChevronDown, ChevronUp } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { navItems, NavItem } from "@/config/nav-items";
-// import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface SidebarProps {
   user: { name?: string | null; email?: string | null };
@@ -21,15 +13,12 @@ interface SidebarProps {
   setCollapsed: (value: boolean) => void;
 }
 
-export function Sidebar({ user, collapsed, setCollapsed }: SidebarProps) {
+export function Sidebar({ user, collapsed }: SidebarProps) {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
 
+  // Auto-open folders based on active path
   useEffect(() => {
-    setMounted(true);
-
-    // Auto-open folders based on active path
     const initialOpenFolders: Record<string, boolean> = {};
     navItems.forEach((item) => {
       if (item.type === "folder") {
@@ -51,35 +40,19 @@ export function Sidebar({ user, collapsed, setCollapsed }: SidebarProps) {
     }));
   };
 
-  if (!mounted) {
-    return (
-      <div className="w-16 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800" />
-    );
-  }
-
   return (
     <div
       className={`${
         collapsed ? "w-16" : "w-64"
-      } h-screen fixed left-0 top-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col transition-width duration-300 ease-in-out`}
+      } h-screen fixed left-0 top-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out`}
     >
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 h-[6vh]">
         {!collapsed && (
           <h1 className="text-lg font-bold text-gray-900 dark:text-white">
             Dashboard
           </h1>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? (
-            <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          ) : (
-            <ChevronLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          )}
-        </button>
+        {/* Xóa nút đóng/mở sidebar tại đây */}
       </div>
 
       <div className="flex-1 overflow-y-auto py-4">

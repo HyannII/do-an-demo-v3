@@ -1,8 +1,9 @@
-// src/components/dashboard/page-header.tsx
 "use client";
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { useDashboardContext } from "./client-layout";
 
 interface PageHeaderProps {
   navItems: Array<any>;
@@ -10,35 +11,35 @@ interface PageHeaderProps {
 
 export function PageHeader({ navItems }: PageHeaderProps) {
   const pathname = usePathname();
+  const { collapsed, setCollapsed } = useDashboardContext();
 
   const pageTitle = useMemo(() => {
-    // Tìm kiếm tiêu đề dựa vào pathname hiện tại
-    // Đầu tiên tìm trong các mục link trực tiếp
-    const directItem = navItems.find(
-      (item) => item.type === "link" && item.href === pathname
-    );
-
-    if (directItem) {
-      return directItem.title;
-    }
-
-    // Nếu không tìm thấy, tìm trong các thư mục con
-    for (const item of navItems) {
-      if (item.type === "folder" && item.children) {
-        const childItem = item.children.find((child) => child.href === pathname);
-        if (childItem) {
-          return childItem.title;
+    const getTitle = (items: Array<any>): string => {
+      for (const item of items) {
+        if (item.type === "link" && item.href === pathname) return item.title;
+        if (item.type === "folder" && item.children) {
+          const childTitle = getTitle(item.children);
+          if (childTitle) return childTitle;
         }
       }
-    }
-
-    // Giá trị mặc định nếu không tìm thấy
-    return "Dashboard";
+      return "";
+    };
+    
+    return getTitle(navItems) || "Dashboard";
   }, [pathname, navItems]);
 
   return (
-    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-      {pageTitle}
-    </h1>
+    <div className="flex items-center h-[6vh] pl-5 pr-4 bg-white dark:bg-gray-900">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800"
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <Menu className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+      </button>
+      <h1 className="ml-5 text-2xl font-bold text-gray-900 dark:text-white">
+        {pageTitle}
+      </h1>
+    </div>
   );
 }

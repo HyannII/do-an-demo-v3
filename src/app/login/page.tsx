@@ -49,7 +49,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/map");
     } catch (error: any) {
       setError("Đã có lỗi xảy ra. Vui lòng thử lại sau.");
     } finally {

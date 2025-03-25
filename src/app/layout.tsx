@@ -17,9 +17,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={inter.className}
-      >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css"
+        />
+      </head>
+      <body className={inter.className}>
         <NextAuthProvider>{children}</NextAuthProvider>
       </body>
     </html>

@@ -1,9 +1,18 @@
-// src/components/dashboard/client-layout.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { Sidebar } from "./sidebar";
-import { navItems } from "@/config/nav-items";
+
+// Tạo Context để chia sẻ trạng thái collapsed
+const DashboardContext = createContext<{
+  collapsed: boolean;
+  setCollapsed: (value: boolean) => void;
+}>({
+  collapsed: false,
+  setCollapsed: () => {},
+});
+
+export const useDashboardContext = () => useContext(DashboardContext);
 
 export default function ClientDashboardLayout({
   user,
@@ -12,40 +21,37 @@ export default function ClientDashboardLayout({
   user: { name?: string | null; email?: string | null };
   children: React.ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // M c  nh sidebar m  (collapsed: false)
 
-  // Add useEffect to set CSS variable for viewport height
   useEffect(() => {
-    // Set the vh CSS variable based on window height
-    const setVh = () => {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty("--vh", `${vh}px`);
-    };
+    const handleResize = () =>
+      document.documentElement.style.setProperty(
+        "--vh",
+        `${window.innerHeight * 0.01}px`
+      );
 
-    // Set initial value
-    setVh();
+    window.addEventListener("resize", handleResize);
+    handleResize();
 
-    // Update on resize
-    window.addEventListener("resize", setVh);
-
-    // Clean up
-    return () => window.removeEventListener("resize", setVh);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-800 ">
-      <Sidebar
-        user={user}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-      />
-      <main
-        className={`flex-1 overflow-y-auto transition-all duration-300 ${
-          collapsed ? "ml-16" : "ml-64"
-        } h-screen`}
-      >
-        <div className="h-full flex flex-col">{children}</div>
-      </main>
-    </div>
+    <DashboardContext.Provider value={{ collapsed, setCollapsed }}>
+      <div className="flex h-screen bg-white dark:bg-gray-800">
+        <Sidebar
+          user={user}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
+        <main
+          className={`flex-1 overflow-y-auto transition-all duration-300 ${
+            collapsed ? "ml-16" : "ml-64"
+          } h-screen`}
+        >
+          <div className="h-full flex flex-col">{children}</div>
+        </main>
+      </div>
+    </DashboardContext.Provider>
   );
 }
