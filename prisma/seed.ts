@@ -1,121 +1,218 @@
 import { PrismaClient } from "@prisma/client";
-import { v4 as uuidv4 } from "uuid";
 
 const prisma = new PrismaClient();
 
 async function main() {
-//   // Xóa dữ liệu cũ (nếu cần)
-//   await prisma.systemLog.deleteMany();
-//   await prisma.notification.deleteMany();
-//   await prisma.vMSLog.deleteMany();
-//   await prisma.mediaLog.deleteMany();
-//   await prisma.media.deleteMany();
-//   await prisma.vMS.deleteMany();
-//   await prisma.trafficPattern.deleteMany();
-//   await prisma.trafficData.deleteMany();
-//   await prisma.trafficLightLog.deleteMany();
-//   await prisma.trafficLight.deleteMany();
-//   await prisma.camera.deleteMany();
-//   await prisma.junction.deleteMany();
-//   await prisma.user.deleteMany();
-//   await prisma.role.deleteMany();
-
-  // 1. Chèn dữ liệu vào bảng Role
-  const adminRole = await prisma.role.create({
+  // Seed dữ liệu cho bảng Role
+  const role1 = await prisma.role.create({
     data: {
-      roleId: uuidv4(),
       roleName: "Admin",
-      description: "Quản trị viên hệ thống, có toàn quyền",
+      description: "Quản trị viên hệ thống",
       permissions: {
-        canManageUsers: true,
-        canManageJunctions: true,
-        canManageVMS: true,
+        canViewUsers: true,
+        canEditUsers: true,
+        canDeleteUsers: true,
+        canViewRoles: true,
+        canEditRoles: true,
+        canDeleteRoles: true,
       },
     },
   });
 
-  const staffRole = await prisma.role.create({
+  const role2 = await prisma.role.create({
     data: {
-      roleId: uuidv4(),
-      roleName: "Staff",
-      description: "Nhân viên, quyền hạn giới hạn",
+      roleName: "Operator",
+      description: "Nhân viên vận hành",
       permissions: {
-        canManageUsers: false,
-        canManageJunctions: true,
-        canManageVMS: false,
+        canViewUsers: true,
+        canEditUsers: false,
+        canDeleteUsers: false,
+        canViewRoles: true,
+        canEditRoles: false,
+        canDeleteRoles: false,
       },
     },
   });
 
-  // Kiểm tra nếu adminRole hoặc staffRole không tồn tại
-  if (!adminRole || !staffRole) {
-    throw new Error("Failed to create roles. Seeding aborted.");
-  }
+  const role3 = await prisma.role.create({
+    data: {
+      roleName: "Technician",
+      description: "Kỹ thuật viên",
+      permissions: {
+        canViewUsers: false,
+        canEditUsers: false,
+        canDeleteUsers: false,
+        canViewRoles: false,
+        canEditRoles: false,
+        canDeleteRoles: false,
+      },
+    },
+  });
 
-  // 2. Chèn dữ liệu vào bảng User
+  const role4 = await prisma.role.create({
+    data: {
+      roleName: "Viewer",
+      description: "Người xem",
+      permissions: {
+        canViewUsers: true,
+        canEditUsers: false,
+        canDeleteUsers: false,
+        canViewRoles: true,
+        canEditRoles: false,
+        canDeleteRoles: false,
+      },
+    },
+  });
+
+  const role5 = await prisma.role.create({
+    data: {
+      roleName: "Guest",
+      description: "Khách",
+      permissions: {
+        canViewUsers: false,
+        canEditUsers: false,
+        canDeleteUsers: false,
+        canViewRoles: false,
+        canEditRoles: false,
+        canDeleteRoles: false,
+      },
+    },
+  });
+
+  console.log("Seeded 5 roles");
+
+  // Seed dữ liệu cho bảng User
   const user1 = await prisma.user.create({
     data: {
-      userId: uuidv4(),
-      username: "admin1",
-      passwordHash: "$2b$10$exampleHash1",
-      email: "admin1@example.com",
-      fullName: "Nguyễn Văn An",
-      roleId: adminRole.roleId,
-      createdAt: new Date("2023-01-01T08:00:00Z"),
-      lastLogin: new Date("2025-03-25T09:00:00Z"),
+      username: "admin",
+      passwordHash: "hashedpassword1",
+      email: "admin@example.com",
+      fullName: "Admin User",
+      roleId: role1.roleId,
+      createdAt: new Date(),
+      lastLogin: new Date(),
       isActive: true,
     },
   });
 
   const user2 = await prisma.user.create({
     data: {
-      userId: uuidv4(),
-      username: "staff1",
-      passwordHash: "$2b$10$exampleHash2",
-      email: "staff1@example.com",
-      fullName: "Trần Thị Bình",
-      roleId: staffRole.roleId,
-      createdAt: new Date("2023-02-01T08:00:00Z"),
-      lastLogin: new Date("2025-03-24T15:00:00Z"),
+      username: "operator1",
+      passwordHash: "hashedpassword2",
+      email: "operator1@example.com",
+      fullName: "Operator One",
+      roleId: role2.roleId,
+      createdAt: new Date(),
+      lastLogin: new Date(),
       isActive: true,
     },
   });
 
-  // 3. Chèn dữ liệu vào bảng Junction
+  const user3 = await prisma.user.create({
+    data: {
+      username: "technician1",
+      passwordHash: "hashedpassword3",
+      email: "technician1@example.com",
+      fullName: "Technician One",
+      roleId: role3.roleId,
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      isActive: true,
+    },
+  });
+
+  const user4 = await prisma.user.create({
+    data: {
+      username: "viewer1",
+      passwordHash: "hashedpassword4",
+      email: "viewer1@example.com",
+      fullName: "Viewer One",
+      roleId: role4.roleId,
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      isActive: true,
+    },
+  });
+
+  const user5 = await prisma.user.create({
+    data: {
+      username: "guest1",
+      passwordHash: "hashedpassword5",
+      email: "guest1@example.com",
+      fullName: "Guest One",
+      roleId: role5.roleId,
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      isActive: true,
+    },
+  });
+
+  console.log("Seeded 5 users");
+
+  // Seed dữ liệu cho bảng Junction
   const junction1 = await prisma.junction.create({
     data: {
-      junctionId: uuidv4(),
-      junctionName: "Ngã tư Kim Mã - Liễu Giai",
-      location: "Quận Ba Đình, Hà Nội",
+      junctionName: "Ngã tư Kim Mã",
+      location: "Hà Nội",
       latitude: 21.0315,
-      longitude: 105.8223,
+      longitude: 105.8213,
       description: "Ngã tư đông đúc ở trung tâm Hà Nội",
     },
   });
 
   const junction2 = await prisma.junction.create({
     data: {
-      junctionId: uuidv4(),
-      junctionName: "Ngã tư Nguyễn Trãi - Khuất Duy Tiến",
-      location: "Quận Thanh Xuân, Hà Nội",
-      latitude: 20.9912,
-      longitude: 105.8015,
-      description: "Ngã tư lớn gần Đại học Quốc gia Hà Nội",
+      junctionName: "Ngã tư Láng Hạ",
+      location: "Hà Nội",
+      latitude: 21.0152,
+      longitude: 105.8205,
+      description: "Ngã tư gần khu văn phòng",
     },
   });
 
-  // 4. Chèn dữ liệu vào bảng Camera
+  const junction3 = await prisma.junction.create({
+    data: {
+      junctionName: "Ngã tư Đại Cồ Việt",
+      location: "Hà Nội",
+      latitude: 21.0087,
+      longitude: 105.8471,
+      description: "Ngã tư gần trường đại học",
+    },
+  });
+
+  const junction4 = await prisma.junction.create({
+    data: {
+      junctionName: "Ngã tư Nguyễn Trãi",
+      location: "Hà Nội",
+      latitude: 20.9943,
+      longitude: 105.8012,
+      description: "Ngã tư đông đúc ở phía nam Hà Nội",
+    },
+  });
+
+  const junction5 = await prisma.junction.create({
+    data: {
+      junctionName: "Ngã tư Giải Phóng",
+      location: "Hà Nội",
+      latitude: 20.9876,
+      longitude: 105.8409,
+      description: "Ngã tư gần bến xe",
+    },
+  });
+
+  console.log("Seeded 5 junctions");
+
+  // Seed dữ liệu cho bảng Camera
   const camera1 = await prisma.camera.create({
     data: {
-      cameraId: uuidv4(),
-      cameraName: "Camera 1 - Kim Mã",
+      cameraName: "Camera 1",
       ipAddress: "192.168.1.101",
-      location: "Góc đông bắc ngã tư Kim Mã",
-      latitude: 21.0317,
-      longitude: 105.8225,
+      location: "Ngã tư Kim Mã - Góc Tây Bắc",
+      latitude: 21.0316,
+      longitude: 105.8214,
       model: "Hikvision DS-2CD2143G0-I",
       manufacturer: "Hikvision",
-      installationDate: new Date("2022-05-10T00:00:00Z"),
+      installationDate: new Date("2023-01-15"),
       isActive: true,
       junctionId: junction1.junctionId,
     },
@@ -123,310 +220,448 @@ async function main() {
 
   const camera2 = await prisma.camera.create({
     data: {
-      cameraId: uuidv4(),
-      cameraName: "Camera 2 - Nguyễn Trãi",
+      cameraName: "Camera 2",
       ipAddress: "192.168.1.102",
-      location: "Góc tây nam ngã tư Nguyễn Trãi",
-      latitude: 20.9914,
-      longitude: 105.8017,
+      location: "Ngã tư Kim Mã - Góc Đông Nam",
+      latitude: 21.0314,
+      longitude: 105.8212,
+      model: "Hikvision DS-2CD2143G0-I",
+      manufacturer: "Hikvision",
+      installationDate: new Date("2023-01-15"),
+      isActive: true,
+      junctionId: junction1.junctionId,
+    },
+  });
+
+  const camera3 = await prisma.camera.create({
+    data: {
+      cameraName: "Camera 3",
+      ipAddress: "192.168.1.103",
+      location: "Ngã tư Láng Hạ - Góc Tây Nam",
+      latitude: 21.0151,
+      longitude: 105.8204,
       model: "Dahua IPC-HFW2431R-ZS",
       manufacturer: "Dahua",
-      installationDate: new Date("2022-06-15T00:00:00Z"),
+      installationDate: new Date("2023-02-10"),
       isActive: true,
       junctionId: junction2.junctionId,
     },
   });
 
-  // 5. Chèn dữ liệu vào bảng TrafficLight
+  const camera4 = await prisma.camera.create({
+    data: {
+      cameraName: "Camera 4",
+      ipAddress: "192.168.1.104",
+      location: "Ngã tư Đại Cồ Việt - Góc Đông Bắc",
+      latitude: 21.0088,
+      longitude: 105.8472,
+      model: "Dahua IPC-HFW2431R-ZS",
+      manufacturer: "Dahua",
+      installationDate: new Date("2023-03-05"),
+      isActive: true,
+      junctionId: junction3.junctionId,
+    },
+  });
+
+  const camera5 = await prisma.camera.create({
+    data: {
+      cameraName: "Camera 5",
+      ipAddress: "192.168.1.105",
+      location: "Ngã tư Nguyễn Trãi - Góc Tây Bắc",
+      latitude: 20.9944,
+      longitude: 105.8013,
+      model: "Axis P3225-LVE",
+      manufacturer: "Axis",
+      installationDate: new Date("2023-04-01"),
+      isActive: true,
+      junctionId: junction4.junctionId,
+    },
+  });
+
+  console.log("Seeded 5 cameras");
+
+  // Seed dữ liệu cho bảng TrafficLight
   const trafficLight1 = await prisma.trafficLight.create({
     data: {
-      trafficLightId: uuidv4(),
-      lightName: "Đèn 1 - Kim Mã",
+      lightName: "Đèn 1",
       ipAddress: "192.168.1.201",
-      location: "Hướng bắc ngã tư Kim Mã",
-      latitude: 21.0316,
-      longitude: 105.8224,
+      location: "Ngã tư Kim Mã - Hướng Bắc",
+      latitude: 21.0317,
+      longitude: 105.8215,
       junctionId: junction1.junctionId,
       status: "green",
-      lastMaintenance: new Date("2024-01-10T00:00:00Z"),
+      lastMaintenance: new Date("2023-06-01"),
       isActive: true,
     },
   });
 
   const trafficLight2 = await prisma.trafficLight.create({
     data: {
-      trafficLightId: uuidv4(),
-      lightName: "Đèn 2 - Nguyễn Trãi",
+      lightName: "Đèn 2",
       ipAddress: "192.168.1.202",
-      location: "Hướng nam ngã tư Nguyễn Trãi",
-      latitude: 20.9913,
-      longitude: 105.8016,
-      junctionId: junction2.junctionId,
-      status: "red",
-      lastMaintenance: new Date("2024-02-15T00:00:00Z"),
-      isActive: true,
-    },
-  });
-
-  // 6. Chèn dữ liệu vào bảng TrafficLightLog
-  await prisma.trafficLightLog.createMany({
-    data: [
-      {
-        logId: uuidv4(),
-        trafficLightId: trafficLight1.trafficLightId,
-        changeTime: new Date("2025-03-25T10:00:00Z"),
-        previousStatus: "red",
-        newStatus: "green",
-        changeReason: "Điều chỉnh theo lịch trình giao thông",
-        triggeredByUserId: user1.userId,
-      },
-      {
-        logId: uuidv4(),
-        trafficLightId: trafficLight2.trafficLightId,
-        changeTime: new Date("2025-03-25T10:05:00Z"),
-        previousStatus: "green",
-        newStatus: "red",
-        changeReason: "Sự cố giao thông tại ngã tư",
-        triggeredByUserId: user2.userId,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 7. Chèn dữ liệu vào bảng TrafficData
-  await prisma.trafficData.createMany({
-    data: [
-      {
-        dataId: uuidv4(),
-        cameraId: camera1.cameraId,
-        captureTime: new Date("2025-03-25T08:00:00Z"),
-        vehicleCount: 150,
-        pedestrianCount: 20,
-        averageSpeed: 35.5,
-        trafficDensity: "medium",
-        rawData: { details: "Giờ cao điểm buổi sáng" },
-      },
-      {
-        dataId: uuidv4(),
-        cameraId: camera2.cameraId,
-        captureTime: new Date("2025-03-25T08:30:00Z"),
-        vehicleCount: 200,
-        pedestrianCount: 30,
-        averageSpeed: 30.0,
-        trafficDensity: "high",
-        rawData: { details: "Giờ cao điểm, ùn tắc nhẹ" },
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 8. Chèn dữ liệu vào bảng TrafficPattern
-  await prisma.trafficPattern.createMany({
-    data: [
-      {
-        patternId: uuidv4(),
-        junctionId: junction1.junctionId,
-        patternName: "Giờ cao điểm sáng",
-        description: "Cấu hình cho giờ cao điểm 7h-9h",
-        timingConfiguration: { green: 60, yellow: 5, red: 30 },
-        createdAt: new Date("2023-03-01T08:00:00Z"),
-        createdByUserId: user1.userId,
-      },
-      {
-        patternId: uuidv4(),
-        junctionId: junction2.junctionId,
-        patternName: "Giờ cao điểm chiều",
-        description: "Cấu hình cho giờ cao điểm 17h-19h",
-        timingConfiguration: { green: 50, yellow: 5, red: 40 },
-        createdAt: new Date("2023-03-02T08:00:00Z"),
-        createdByUserId: user2.userId,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 9. Chèn dữ liệu vào bảng VMS
-  const vms1 = await prisma.vMS.create({
-    data: {
-      vmsId: uuidv4(),
-      vmsName: "VMS 1 - Kim Mã",
-      ipAddress: "192.168.1.301",
-      location: "Cạnh ngã tư Kim Mã",
-      latitude: 21.0318,
-      longitude: 105.8226,
-      message: "Cẩn thận ùn tắc giờ cao điểm",
-      status: "operational",
-      installationDate: new Date("2022-07-01T00:00:00Z"),
-      lastUpdate: new Date("2025-03-25T09:00:00Z"),
-      isActive: true,
+      location: "Ngã tư Kim Mã - Hướng Nam",
+      latitude: 21.0313,
+      longitude: 105.8211,
       junctionId: junction1.junctionId,
-    },
-  });
-
-  const vms2 = await prisma.vMS.create({
-    data: {
-      vmsId: uuidv4(),
-      vmsName: "VMS 2 - Nguyễn Trãi",
-      ipAddress: "192.168.1.302",
-      location: "Cạnh ngã tư Nguyễn Trãi",
-      latitude: 20.9915,
-      longitude: 105.8018,
-      message: "Giảm tốc độ, có công trình phía trước",
-      status: "maintenance",
-      installationDate: new Date("2022-08-01T00:00:00Z"),
-      lastUpdate: new Date("2025-03-25T09:00:00Z"),
+      status: "red",
+      lastMaintenance: new Date("2023-06-01"),
       isActive: true,
+    },
+  });
+
+  const trafficLight3 = await prisma.trafficLight.create({
+    data: {
+      lightName: "Đèn 3",
+      ipAddress: "192.168.1.203",
+      location: "Ngã tư Láng Hạ - Hướng Tây",
+      latitude: 21.015,
+      longitude: 105.8203,
       junctionId: junction2.junctionId,
+      status: "yellow",
+      lastMaintenance: new Date("2023-07-15"),
+      isActive: true,
     },
   });
 
-  // 10. Chèn dữ liệu vào bảng Media
-  const media1 = await prisma.media.create({
+  const trafficLight4 = await prisma.trafficLight.create({
     data: {
-      mediaId: uuidv4(),
-      mediaName: "Hình ảnh cảnh báo ùn tắc",
-      mediaType: "image",
-      size: 2.5,
-      ossDir: "/media/images/traffic_warning.jpg",
-      thumbnailUrl: "/thumbnails/small/traffic_warning.jpg",
-      bigThumbnailUrl: "/thumbnails/big/traffic_warning.jpg",
-      defaultImageUrl: "/default/traffic_warning.jpg",
-      version: "1.0",
-      uploadPath: "/uploads/traffic_warning.jpg",
-      uniqueId: "media_001",
-      duration: null,
-      status: "uploaded",
-      content: null,
-      createdAt: new Date("2025-03-25T08:00:00Z"),
-      lastUpdatedAt: new Date("2025-03-25T08:00:00Z"),
-      uploadedByUserId: user1.userId,
-      vmsId: vms1.vmsId,
+      lightName: "Đèn 4",
+      ipAddress: "192.168.1.204",
+      location: "Ngã tư Đại Cồ Việt - Hướng Đông",
+      latitude: 21.0086,
+      longitude: 105.847,
+      junctionId: junction3.junctionId,
+      status: "green",
+      lastMaintenance: new Date("2023-08-20"),
+      isActive: true,
     },
   });
 
-  const media2 = await prisma.media.create({
+  const trafficLight5 = await prisma.trafficLight.create({
     data: {
-      mediaId: uuidv4(),
-      mediaName: "Video hướng dẫn giao thông",
-      mediaType: "video",
-      size: 15.0,
-      ossDir: "/media/videos/traffic_guide.mp4",
-      thumbnailUrl: "/thumbnails/small/traffic_guide.jpg",
-      bigThumbnailUrl: "/thumbnails/big/traffic_guide.jpg",
-      defaultImageUrl: "/default/traffic_guide.jpg",
-      version: "1.0",
-      uploadPath: "/uploads/traffic_guide.mp4",
-      uniqueId: "media_002",
-      duration: "00:02:30.000",
-      status: "uploaded",
-      content: null,
-      createdAt: new Date("2025-03-25T08:30:00Z"),
-      lastUpdatedAt: new Date("2025-03-25T08:30:00Z"),
-      uploadedByUserId: user2.userId,
-      vmsId: vms2.vmsId,
+      lightName: "Đèn 5",
+      ipAddress: "192.168.1.205",
+      location: "Ngã tư Nguyễn Trãi - Hướng Bắc",
+      latitude: 20.9945,
+      longitude: 105.8014,
+      junctionId: junction4.junctionId,
+      status: "red",
+      lastMaintenance: new Date("2023-09-10"),
+      isActive: true,
     },
   });
 
-  // 11. Chèn dữ liệu vào bảng MediaLog
-  await prisma.mediaLog.createMany({
-    data: [
-      {
-        logId: uuidv4(),
-        mediaId: media1.mediaId,
-        action: "uploaded",
-        actionTime: new Date("2025-03-25T08:00:00Z"),
-        details: { message: "Tải lên thành công" },
-        triggeredByUserId: user1.userId,
-      },
-      {
-        logId: uuidv4(),
-        mediaId: media2.mediaId,
-        action: "uploaded",
-        actionTime: new Date("2025-03-25T08:30:00Z"),
-        details: { message: "Tải lên thành công" },
-        triggeredByUserId: user2.userId,
-      },
-    ],
-    skipDuplicates: true,
+  console.log("Seeded 5 traffic lights");
+
+  // Seed dữ liệu cho bảng TrafficData
+  await prisma.trafficData.create({
+    data: {
+      cameraId: camera1.cameraId,
+      captureTime: new Date(),
+      vehicleCount: 50,
+      pedestrianCount: 20,
+      averageSpeed: 40.5,
+      trafficDensity: "medium",
+      rawData: { additionalInfo: "Sample data 1" },
+    },
   });
 
-  // 12. Chèn dữ liệu vào bảng VMSLog
-  await prisma.vMSLog.createMany({
-    data: [
-      {
-        logId: uuidv4(),
-        vmsId: vms1.vmsId,
-        changeTime: new Date("2025-03-25T09:00:00Z"),
-        previousMessage: "Đường thông thoáng",
-        newMessage: "Cẩn thận ùn tắc giờ cao điểm",
-        changeReason: "Cập nhật thông báo giờ cao điểm",
-        triggeredByUserId: user1.userId,
-      },
-      {
-        logId: uuidv4(),
-        vmsId: vms2.vmsId,
-        changeTime: new Date("2025-03-25T09:00:00Z"),
-        previousMessage: "Đường thông thoáng",
-        newMessage: "Giảm tốc độ, có công trình phía trước",
-        changeReason: "Cảnh báo công trình xây dựng",
-        triggeredByUserId: user2.userId,
-      },
-    ],
-    skipDuplicates: true,
+  await prisma.trafficData.create({
+    data: {
+      cameraId: camera2.cameraId,
+      captureTime: new Date(),
+      vehicleCount: 70,
+      pedestrianCount: 15,
+      averageSpeed: 35.0,
+      trafficDensity: "high",
+      rawData: { additionalInfo: "Sample data 2" },
+    },
   });
 
-  // 13. Chèn dữ liệu vào bảng Notification
-  await prisma.notification.createMany({
-    data: [
-      {
-        notificationId: uuidv4(),
-        notificationType: "alert",
-        message: "Ùn tắc tại ngã tư Kim Mã",
-        createdAt: new Date("2025-03-25T08:00:00Z"),
-        isRead: false,
-        userId: user1.userId,
-      },
-      {
-        notificationId: uuidv4(),
-        notificationType: "warning",
-        message: "Công trình tại ngã tư Nguyễn Trãi",
-        createdAt: new Date("2025-03-25T08:30:00Z"),
-        isRead: false,
-        userId: user2.userId,
-      },
-    ],
-    skipDuplicates: true,
+  await prisma.trafficData.create({
+    data: {
+      cameraId: camera3.cameraId,
+      captureTime: new Date(),
+      vehicleCount: 30,
+      pedestrianCount: 10,
+      averageSpeed: 45.0,
+      trafficDensity: "low",
+      rawData: { additionalInfo: "Sample data 3" },
+    },
   });
 
-  // 14. Chèn dữ liệu vào bảng SystemLog
-  await prisma.systemLog.createMany({
-    data: [
-      {
-        logId: uuidv4(),
-        logTime: new Date("2025-03-25T09:00:00Z"),
-        eventType: "login",
-        description: "Admin đăng nhập hệ thống",
-        userId: user1.userId,
-        ipAddress: "192.168.1.10",
-      },
-      {
-        logId: uuidv4(),
-        logTime: new Date("2025-03-25T09:05:00Z"),
-        eventType: "update",
-        description: "Nhân viên cập nhật thông báo VMS",
-        userId: user2.userId,
-        ipAddress: "192.168.1.11",
-      },
-    ],
-    skipDuplicates: true,
+  await prisma.trafficData.create({
+    data: {
+      cameraId: camera4.cameraId,
+      captureTime: new Date(),
+      vehicleCount: 60,
+      pedestrianCount: 25,
+      averageSpeed: 38.5,
+      trafficDensity: "medium",
+      rawData: { additionalInfo: "Sample data 4" },
+    },
   });
 
-  console.log("Seeding completed successfully!");
+  await prisma.trafficData.create({
+    data: {
+      cameraId: camera5.cameraId,
+      captureTime: new Date(),
+      vehicleCount: 40,
+      pedestrianCount: 30,
+      averageSpeed: 42.0,
+      trafficDensity: "medium",
+      rawData: { additionalInfo: "Sample data 5" },
+    },
+  });
+
+  console.log("Seeded 5 traffic data entries");
+
+  // Seed dữ liệu cho bảng TrafficLightLog
+  await prisma.trafficLightLog.create({
+    data: {
+      trafficLightId: trafficLight1.trafficLightId,
+      changeTime: new Date(),
+      previousStatus: "red",
+      newStatus: "green",
+      changeReason: "Scheduled change",
+      triggeredByUserId: user1.userId,
+    },
+  });
+
+  await prisma.trafficLightLog.create({
+    data: {
+      trafficLightId: trafficLight2.trafficLightId,
+      changeTime: new Date(),
+      previousStatus: "green",
+      newStatus: "red",
+      changeReason: "Scheduled change",
+      triggeredByUserId: user1.userId,
+    },
+  });
+
+  await prisma.trafficLightLog.create({
+    data: {
+      trafficLightId: trafficLight3.trafficLightId,
+      changeTime: new Date(),
+      previousStatus: "yellow",
+      newStatus: "red",
+      changeReason: "Manual override",
+      triggeredByUserId: user2.userId,
+    },
+  });
+
+  await prisma.trafficLightLog.create({
+    data: {
+      trafficLightId: trafficLight4.trafficLightId,
+      changeTime: new Date(),
+      previousStatus: "green",
+      newStatus: "yellow",
+      changeReason: "Scheduled change",
+      triggeredByUserId: user1.userId,
+    },
+  });
+
+  await prisma.trafficLightLog.create({
+    data: {
+      trafficLightId: trafficLight5.trafficLightId,
+      changeTime: new Date(),
+      previousStatus: "red",
+      newStatus: "green",
+      changeReason: "Scheduled change",
+      triggeredByUserId: user1.userId,
+    },
+  });
+
+  console.log("Seeded 5 traffic light logs");
+
+  // Seed dữ liệu cho bảng TrafficPattern
+  await prisma.trafficPattern.create({
+    data: {
+      junctionId: junction1.junctionId,
+      patternName: "Morning Rush",
+      description: "Traffic pattern for morning rush hours",
+      timingConfiguration: {
+        green: 60,
+        yellow: 5,
+        red: 30,
+      },
+      createdAt: new Date(),
+      createdByUserId: user1.userId,
+    },
+  });
+
+  await prisma.trafficPattern.create({
+    data: {
+      junctionId: junction1.junctionId,
+      patternName: "Evening Rush",
+      description: "Traffic pattern for evening rush hours",
+      timingConfiguration: {
+        green: 50,
+        yellow: 5,
+        red: 40,
+      },
+      createdAt: new Date(),
+      createdByUserId: user1.userId,
+    },
+  });
+
+  await prisma.trafficPattern.create({
+    data: {
+      junctionId: junction2.junctionId,
+      patternName: "Normal Day",
+      description: "Traffic pattern for normal daytime",
+      timingConfiguration: {
+        green: 45,
+        yellow: 5,
+        red: 45,
+      },
+      createdAt: new Date(),
+      createdByUserId: user2.userId,
+    },
+  });
+
+  await prisma.trafficPattern.create({
+    data: {
+      junctionId: junction3.junctionId,
+      patternName: "Night Time",
+      description: "Traffic pattern for night time",
+      timingConfiguration: {
+        green: 30,
+        yellow: 5,
+        red: 60,
+      },
+      createdAt: new Date(),
+      createdByUserId: user1.userId,
+    },
+  });
+
+  await prisma.trafficPattern.create({
+    data: {
+      junctionId: junction4.junctionId,
+      patternName: "Weekend",
+      description: "Traffic pattern for weekends",
+      timingConfiguration: {
+        green: 40,
+        yellow: 5,
+        red: 50,
+      },
+      createdAt: new Date(),
+      createdByUserId: user2.userId,
+    },
+  });
+
+  console.log("Seeded 5 traffic patterns");
+
+  // Seed dữ liệu cho bảng Notification
+  await prisma.notification.create({
+    data: {
+      notificationType: "alert",
+      message: "Traffic light 1 changed to green",
+      createdAt: new Date(),
+      isRead: false,
+      userId: user1.userId,
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      notificationType: "info",
+      message: "New traffic pattern applied at Junction 1",
+      createdAt: new Date(),
+      isRead: false,
+      userId: user2.userId,
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      notificationType: "warning",
+      message: "Camera 3 is offline",
+      createdAt: new Date(),
+      isRead: false,
+      userId: user3.userId,
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      notificationType: "alert",
+      message: "Traffic light 4 changed to yellow",
+      createdAt: new Date(),
+      isRead: false,
+      userId: user1.userId,
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      notificationType: "info",
+      message: "System maintenance scheduled",
+      createdAt: new Date(),
+      isRead: false,
+      userId: user4.userId,
+    },
+  });
+
+  console.log("Seeded 5 notifications");
+
+  // Seed dữ liệu cho bảng SystemLog
+  await prisma.systemLog.create({
+    data: {
+      logTime: new Date(),
+      eventType: "user_login",
+      description: "User admin logged in",
+      userId: user1.userId,
+      ipAddress: "192.168.1.10",
+    },
+  });
+
+  await prisma.systemLog.create({
+    data: {
+      logTime: new Date(),
+      eventType: "traffic_light_change",
+      description: "Traffic light 1 changed to green",
+      userId: user1.userId,
+      ipAddress: "192.168.1.10",
+    },
+  });
+
+  await prisma.systemLog.create({
+    data: {
+      logTime: new Date(),
+      eventType: "user_login",
+      description: "User operator1 logged in",
+      userId: user2.userId,
+      ipAddress: "192.168.1.11",
+    },
+  });
+
+  await prisma.systemLog.create({
+    data: {
+      logTime: new Date(),
+      eventType: "camera_offline",
+      description: "Camera 3 went offline",
+      userId: null,
+      ipAddress: null,
+    },
+  });
+
+  await prisma.systemLog.create({
+    data: {
+      logTime: new Date(),
+      eventType: "traffic_pattern_update",
+      description: "Traffic pattern updated at Junction 1",
+      userId: user1.userId,
+      ipAddress: "192.168.1.10",
+    },
+  });
+
+  console.log("Seeded 5 system logs");
 }
 
 main()
   .catch((e) => {
-    console.error("Error during seeding:", e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

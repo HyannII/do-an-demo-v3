@@ -10,8 +10,7 @@ const MapComponent = dynamic(() => import("./mapComponent"), {
 
 export default function Home() {
   return (
-    <div style={{ width: "100%", height: "100vh" }}>
-      <PageHeader navItems={navItems} />
+    <div className="w-full">
       <MapComponent />
     </div>
   );

@@ -33,7 +33,6 @@ model Junction {
   cameras         Camera[]
   trafficLights   TrafficLight[]
   trafficPatterns TrafficPattern[]
-  vmss            VMS[]            // Quan hệ với VMS
 }
 
 model Notification {
@@ -130,72 +129,4 @@ model User {
   trafficLightLogs TrafficLightLog[]
   trafficPatterns  TrafficPattern[]
   role             Role              @relation(fields: [roleId], references: [roleId])
-  uploadedMedias   Media[]           // Quan hệ với Media (media do user upload)
-  mediaLogs        MediaLog[]        // Quan hệ với MediaLog (hành động của user trên media)
-  vmsLogs          VMSLog[]          // Quan hệ với VMSLog (hành động của user trên VMS)
-}
-
-model VMS {
-  vmsId            String    @id @default(uuid())
-  vmsName          String
-  ipAddress        String
-  location         String
-  latitude         Decimal?  @db.Decimal(10, 6)
-  longitude        Decimal?  @db.Decimal(10, 6)
-  message          String?   // Thông báo hiện tại hiển thị trên VMS (có thể bỏ nếu dùng Media)
-  status           String    @default("operational") // "operational", "maintenance", "offline"
-  installationDate DateTime?
-  lastUpdate       DateTime? @default(now())
-  isActive         Boolean   @default(true)
-  junctionId       String?
-  junction         Junction? @relation(fields: [junctionId], references: [junctionId])
-  vmsLogs          VMSLog[]  // Quan hệ với bảng log
-  medias           Media[]   // Quan hệ với bảng Media để lưu media liên quan
-}
-
-model VMSLog {
-  logId             String   @id @default(uuid())
-  vmsId             String
-  changeTime        DateTime @default(now())
-  previousMessage   String?
-  newMessage        String?
-  changeReason      String?
-  triggeredByUserId String?
-  vms               VMS      @relation(fields: [vmsId], references: [vmsId])
-  user              User?    @relation(fields: [triggeredByUserId], references: [userId])
-}
-
-model Media {
-  mediaId          String     @id @default(uuid())
-  mediaName        String     // Tên của media
-  mediaType        String     // Loại media: "image", "video", "text", "unknown"
-  size             Decimal?   @db.Decimal(10, 2) // Kích thước file (MB)
-  ossDir           String?    // Đường dẫn lưu trữ trên OSS
-  thumbnailUrl     String?    // Đường dẫn thumbnail nhỏ
-  bigThumbnailUrl  String?    // Đường dẫn thumbnail lớn
-  defaultImageUrl  String?    // Đường dẫn ảnh mặc định
-  version          String?    // Phiên bản của media
-  uploadPath       String?    // Đường dẫn upload (key)
-  uniqueId         String?    // ID duy nhất của media
-  duration         String?    // Thời lượng (đối với video, định dạng "HH:MM:SS.sss")
-  status           String     @default("pending") // Trạng thái: "pending", "uploaded", "failed", "deleted"
-  content          String?    // Nội dung text (nếu mediaType là "text")
-  createdAt        DateTime   @default(now())     // Thời gian tạo
-  lastUpdatedAt    DateTime?  @updatedAt          // Thời gian cập nhật cuối cùng
-  uploadedByUserId String?    // ID người upload
-  user             User?      @relation(fields: [uploadedByUserId], references: [userId])
-  vmsId            String?    // Liên kết với VMS
-  vms              VMS?       @relation(fields: [vmsId], references: [vmsId])
-  mediaLogs        MediaLog[] // Lịch sử thao tác với media
-}
-
-model MediaLog {
-  logId             String   @id @default(uuid())
-  mediaId           String   // ID của media liên quan
-  action            String   // Hành động: "created", "uploaded", "deleted", "updated"
-  actionTime        DateTime @default(now()) // Thời gian thực hiện hành động
-  details           Json?    // Chi tiết hành động (ví dụ: thông tin OSS, lỗi nếu có)
-  triggeredByUserId String?  // ID người thực hiện hành động
-  media             Media    @relation(fields: [mediaId], references: [mediaId])
-  user              User?    @relation(fields: [triggeredByUserId], references: [userId])
 }

@@ -24,12 +24,12 @@ export function PageHeader({ navItems }: PageHeaderProps) {
       }
       return "";
     };
-    
+
     return getTitle(navItems) || "Dashboard";
   }, [pathname, navItems]);
 
   return (
-    <div className="flex items-center h-[6vh] pl-5 pr-4 bg-white dark:bg-gray-900">
+    <div className="h-[6vh] w-full flex items-center pl-5 pr-4 bg-white dark:bg-gray-900">
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800"

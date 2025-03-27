@@ -2,6 +2,8 @@
 
 import { useState, useEffect, createContext, useContext } from "react";
 import { Sidebar } from "./sidebar";
+import { PageHeader } from "./page-header";
+import { navItems } from "@/config/nav-items";
 
 // Tạo Context để chia sẻ trạng thái collapsed
 const DashboardContext = createContext<{
@@ -49,7 +51,10 @@ export default function ClientDashboardLayout({
             collapsed ? "ml-16" : "ml-64"
           } h-screen`}
         >
-          <div className="h-full flex flex-col">{children}</div>
+          <div className="flex flex-col h-screen">
+            <PageHeader navItems={navItems} />
+            <div className="h-[94vh]">{children}</div>
+          </div>
         </main>
       </div>
     </DashboardContext.Provider>
