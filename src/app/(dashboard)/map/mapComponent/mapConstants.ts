@@ -17,7 +17,6 @@ export const mapStyles = [
 export interface DisplayOptions {
   showJunctions: boolean;
   showCameras: boolean;
-  showVMS: boolean;
 }
 
 export interface CurrentLocation {
@@ -36,26 +35,31 @@ export interface Junction {
   cameras?: Camera[];
 }
 
-export interface VMS {
-  vmsId: string;
-  vmsName: string;
-  longitude: number;
-  latitude: number;
-  location: string;
-  message?: string;
-  status: string;
-}
-
 export interface Camera {
   cameraId: string;
-  longitude: number;
+  cameraName: string;
+  ipAddress: string;
+  location: string;
   latitude: number;
+  longitude: number;
+  model?: string;
+  manufacturer?: string;
+  installationDate?: string; // DateTime trong schema, nhưng chuyển thành string để dễ xử lý
+  isActive: boolean;
+  junctionId?: string;
 }
 
 export interface TrafficLight {
   trafficLightId: string;
-  longitude: number;
+  lightName: string;
+  ipAddress: string;
+  location: string;
   latitude: number;
+  longitude: number;
+  junctionId: string;
+  status: string;
+  lastMaintenance?: string; // DateTime trong schema, nhưng chuyển thành string để dễ xử lý
+  isActive: boolean;
 }
 
 // Hằng số cho màu sắc marker
@@ -63,5 +67,4 @@ export const MARKER_COLORS = {
   JUNCTION: "red",
   CAMERA: "blue",
   TRAFFIC_LIGHT: "green",
-  VMS: "purple",
 };

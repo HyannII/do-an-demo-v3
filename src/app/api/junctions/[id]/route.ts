@@ -1,21 +1,21 @@
+// src/app/api/junctions/[id]/route.ts
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Hàm chuyển đổi dữ liệu từ Prisma sang định dạng phù hợp với mapConstants.ts
 const transformJunctionData = (junction: any) => {
   return {
     ...junction,
-    latitude: junction.latitude ? Number(junction.latitude) : 0, // Chuyển Decimal thành number, mặc định là 0 nếu null
-    longitude: junction.longitude ? Number(junction.longitude) : 0, // Chuyển Decimal thành number, mặc định là 0 nếu null
+    latitude: junction.latitude ? Number(junction.latitude) : 0,
+    longitude: junction.longitude ? Number(junction.longitude) : 0,
     cameras: junction.cameras.map((camera: any) => ({
       ...camera,
       latitude: camera.latitude ? Number(camera.latitude) : 0,
       longitude: camera.longitude ? Number(camera.longitude) : 0,
       installationDate: camera.installationDate
         ? camera.installationDate.toISOString()
-        : undefined, // Chuyển DateTime thành string
+        : undefined,
     })),
     trafficLights: junction.trafficLights.map((trafficLight: any) => ({
       ...trafficLight,
@@ -23,28 +23,37 @@ const transformJunctionData = (junction: any) => {
       longitude: trafficLight.longitude ? Number(trafficLight.longitude) : 0,
       lastMaintenance: trafficLight.lastMaintenance
         ? trafficLight.lastMaintenance.toISOString()
-        : undefined, // Chuyển DateTime thành string
+        : undefined,
     })),
   };
 };
 
-export async function GET() {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const junctions = await prisma.junction.findMany({
+    const junction = await prisma.junction.findUnique({
+      where: { junctionId: params.id },
       include: {
         trafficLights: true,
         cameras: true,
       },
     });
 
-    // Chuyển đổi dữ liệu trước khi trả về
-    const transformedJunctions = junctions.map(transformJunctionData);
+    if (!junction) {
+      return NextResponse.json(
+        { error: "Junction not found" },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json(transformedJunctions, { status: 200 });
+    const transformedJunction = transformJunctionData(junction);
+    return NextResponse.json(transformedJunction, { status: 200 });
   } catch (error) {
-    console.error("Error fetching junctions:", error);
+    console.error("Error fetching junction:", error);
     return NextResponse.json(
-      { error: "Failed to fetch junctions" },
+      { error: "Failed to fetch junction" },
       { status: 500 }
     );
   }

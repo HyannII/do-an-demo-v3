@@ -45,16 +45,6 @@ export default function MapControls({
               Camera & Đèn giao thông
             </span>
           </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              name="showVMS"
-              checked={displayOptions.showVMS}
-              onChange={onDisplayOptionChange}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700">Bảng VMS</span>
-          </label>
         </div>
       </div>
 

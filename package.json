@@ -23,6 +23,7 @@
     "next": "15.2.3",
     "next-auth": "^4.24.11",
     "react": "^19.0.0",
+    "react-arborist": "^3.4.3",
     "react-dom": "^19.0.0",
     "react-map-gl": "^8.0.1",
     "uuid": "^11.1.0"
