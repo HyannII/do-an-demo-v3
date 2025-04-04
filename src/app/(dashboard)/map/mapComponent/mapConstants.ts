@@ -1,5 +1,7 @@
 // src/app/(components)/map/mapConstants.ts
 
+import { TrafficPattern } from "@prisma/client";
+
 // Danh sách các chế độ bản đồ Mapbox
 export const mapStyles = [
   { value: "mapbox://styles/mapbox/streets-v12", label: "Streets" },
@@ -24,17 +26,7 @@ export interface CurrentLocation {
   latitude: number;
 }
 
-export interface Junction {
-  junctionId: string;
-  junctionName: string;
-  longitude: number;
-  latitude: number;
-  location: string;
-  description?: string;
-  trafficLights?: TrafficLight[];
-  cameras?: Camera[];
-}
-
+// src/app/(dashboard)/map/mapComponent/mapConstants.ts
 export interface Camera {
   cameraId: string;
   cameraName: string;
@@ -44,10 +36,24 @@ export interface Camera {
   longitude: number;
   model?: string;
   manufacturer?: string;
-  installationDate?: string; // DateTime trong schema, nhưng chuyển thành string để dễ xử lý
+  installationDate?: string;
   isActive: boolean;
   junctionId?: string;
 }
+
+export interface Junction {
+  junctionId: string;
+  junctionName: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  description?: string;
+  cameras: Camera[];
+  trafficLights: TrafficLight[];
+  trafficPatterns: TrafficPattern[];
+}
+
+// Các interface khác (TrafficLight, TrafficPattern, v.v.) giữ nguyên
 
 export interface TrafficLight {
   trafficLightId: string;

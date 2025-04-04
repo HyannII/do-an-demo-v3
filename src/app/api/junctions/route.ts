@@ -3,19 +3,18 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Hàm chuyển đổi dữ liệu từ Prisma sang định dạng phù hợp với mapConstants.ts
 const transformJunctionData = (junction: any) => {
   return {
     ...junction,
-    latitude: junction.latitude ? Number(junction.latitude) : 0, // Chuyển Decimal thành number, mặc định là 0 nếu null
-    longitude: junction.longitude ? Number(junction.longitude) : 0, // Chuyển Decimal thành number, mặc định là 0 nếu null
+    latitude: junction.latitude ? Number(junction.latitude) : 0,
+    longitude: junction.longitude ? Number(junction.longitude) : 0,
     cameras: junction.cameras.map((camera: any) => ({
       ...camera,
       latitude: camera.latitude ? Number(camera.latitude) : 0,
       longitude: camera.longitude ? Number(camera.longitude) : 0,
       installationDate: camera.installationDate
         ? camera.installationDate.toISOString()
-        : undefined, // Chuyển DateTime thành string
+        : undefined,
     })),
     trafficLights: junction.trafficLights.map((trafficLight: any) => ({
       ...trafficLight,
@@ -23,7 +22,7 @@ const transformJunctionData = (junction: any) => {
       longitude: trafficLight.longitude ? Number(trafficLight.longitude) : 0,
       lastMaintenance: trafficLight.lastMaintenance
         ? trafficLight.lastMaintenance.toISOString()
-        : undefined, // Chuyển DateTime thành string
+        : undefined,
     })),
   };
 };
@@ -37,9 +36,7 @@ export async function GET() {
       },
     });
 
-    // Chuyển đổi dữ liệu trước khi trả về
     const transformedJunctions = junctions.map(transformJunctionData);
-
     return NextResponse.json(transformedJunctions, { status: 200 });
   } catch (error) {
     console.error("Error fetching junctions:", error);

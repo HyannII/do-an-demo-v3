@@ -1,5 +1,4 @@
 // src/app/junction-cameras/[junctionId]/page.tsx
-
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
@@ -151,7 +150,9 @@ const JunctionCamerasPage = ({
             selectedCameras.slice(0, 4).map((camera, index) => (
               <div
                 key={camera.cameraId}
-                ref={(el) => (cameraRefs.current[index] = el)} // Gán ref từ mảng refs
+                ref={(el) => {
+                  cameraRefs.current[index] = el;
+                }}
                 className="border rounded-lg overflow-hidden relative"
               >
                 <div className="flex justify-between items-center p-2 bg-gray-100">
@@ -165,12 +166,12 @@ const JunctionCamerasPage = ({
                   </button>
                 </div>
                 <div className="aspect-video">
-                  {/* Giả lập stream camera bằng iframe hoặc video */}
                   <iframe
-                    src={`rtsp://admin:abcd888A@192.168.1.162:555/Streaming/Channels/102`} // Thay bằng URL stream thực tế
-                    className="w-full h-full"
-                    title={camera.cameraName}
-                    allowFullScreen
+                    src={`http://localhost:3001/stream/${camera.cameraId}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder-camera.jpg"; // Hình ảnh thay thế nếu không tải được
+                    }}
                   />
                 </div>
               </div>

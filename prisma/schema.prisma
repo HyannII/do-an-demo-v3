@@ -10,7 +10,7 @@ datasource db {
 model Camera {
   cameraId         String        @id @default(uuid())
   cameraName       String
-  ipAddress        String
+  cameraAddress    String      
   location         String
   latitude         Decimal?      @db.Decimal(10, 6)
   longitude        Decimal?      @db.Decimal(10, 6)

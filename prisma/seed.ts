@@ -206,7 +206,7 @@ async function main() {
   const camera1 = await prisma.camera.create({
     data: {
       cameraName: "Camera 1",
-      ipAddress: "192.168.1.101",
+      cameraAddress: "192.168.1.101",
       location: "Ngã tư Kim Mã - Góc Tây Bắc",
       latitude: 21.0316,
       longitude: 105.8214,
@@ -221,7 +221,7 @@ async function main() {
   const camera2 = await prisma.camera.create({
     data: {
       cameraName: "Camera 2",
-      ipAddress: "192.168.1.102",
+      cameraAddress: "192.168.1.102",
       location: "Ngã tư Kim Mã - Góc Đông Nam",
       latitude: 21.0314,
       longitude: 105.8212,
@@ -236,7 +236,7 @@ async function main() {
   const camera3 = await prisma.camera.create({
     data: {
       cameraName: "Camera 3",
-      ipAddress: "192.168.1.103",
+      cameraAddress: "192.168.1.103",
       location: "Ngã tư Láng Hạ - Góc Tây Nam",
       latitude: 21.0151,
       longitude: 105.8204,
@@ -251,7 +251,7 @@ async function main() {
   const camera4 = await prisma.camera.create({
     data: {
       cameraName: "Camera 4",
-      ipAddress: "192.168.1.104",
+      cameraAddress: "192.168.1.104",
       location: "Ngã tư Đại Cồ Việt - Góc Đông Bắc",
       latitude: 21.0088,
       longitude: 105.8472,
@@ -266,7 +266,7 @@ async function main() {
   const camera5 = await prisma.camera.create({
     data: {
       cameraName: "Camera 5",
-      ipAddress: "192.168.1.105",
+      cameraAddress: "192.168.1.105",
       location: "Ngã tư Nguyễn Trãi - Góc Tây Bắc",
       latitude: 20.9944,
       longitude: 105.8013,
