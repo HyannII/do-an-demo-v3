@@ -73,15 +73,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // Log the signup
-    await prisma.systemLog.create({
-      data: {
-        eventType: "REGISTRATION",
-        description: "Đăng ký tài khoản mới",
-        userId: user.userId,
-      },
-    });
-
     return NextResponse.json(
       {
         message: "Đăng ký thành công",

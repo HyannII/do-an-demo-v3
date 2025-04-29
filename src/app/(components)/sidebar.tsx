@@ -11,9 +11,15 @@ interface SidebarProps {
   user: { name?: string | null; email?: string | null };
   collapsed: boolean;
   setCollapsed: (value: boolean) => void;
+  junctionId?: string; // Add junctionId as an optional prop
 }
 
-export function Sidebar({ user, collapsed }: SidebarProps) {
+export function Sidebar({
+  user,
+  collapsed,
+  setCollapsed,
+  junctionId,
+}: SidebarProps) {
   const pathname = usePathname();
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
 
@@ -52,13 +58,42 @@ export function Sidebar({ user, collapsed }: SidebarProps) {
             Dashboard
           </h1>
         )}
-        {/* Xóa nút đóng/mở sidebar tại đây */}
       </div>
 
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-1 px-2">
           {navItems.map((item, index) => {
             if (item.type === "link") {
+              // Handle the "Camera" link specifically
+              if (
+                item.title === "Camera" &&
+                item.href.includes("[junctionId]")
+              ) {
+                // If junctionId isn't provided, you can skip rendering or set a fallback href
+                if (!junctionId) {
+                  return null; // Skip rendering the link if junctionId is not available
+                }
+
+                const resolvedHref = `/junctionCameras/${junctionId}`;
+                const isActive = pathname === resolvedHref;
+
+                return (
+                  <Link
+                    key={`link-${index}`}
+                    href={resolvedHref}
+                    className={`${
+                      isActive
+                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    } group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors`}
+                  >
+                    <div className="mr-3 flex-shrink-0">{item.icon}</div>
+                    {!collapsed && <span>{item.title}</span>}
+                  </Link>
+                );
+              }
+
+              // Handle other links normally
               const isActive = pathname === item.href;
               return (
                 <Link
@@ -161,12 +196,7 @@ export function Sidebar({ user, collapsed }: SidebarProps) {
             collapsed ? "justify-center" : "justify-between"
           } items-center mb-4`}
         >
-          {/* {!collapsed && (
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Theme
-            </span>
-          )} */}
-          {/* <ThemeToggle /> */}
+          {/* Theme toggle commented out */}
         </div>
 
         {!collapsed && user && (

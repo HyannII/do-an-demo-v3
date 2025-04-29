@@ -7,7 +7,6 @@ export async function GET() {
       select: {
         roleId: true,
         roleName: true,
-        description: true,
       },
     });
 

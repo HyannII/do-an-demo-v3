@@ -4,6 +4,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { Sidebar } from "./sidebar";
 import { PageHeader } from "./page-header";
 import { navItems } from "@/config/nav-items";
+import { useParams } from "next/navigation";
 
 // Tạo Context để chia sẻ trạng thái collapsed
 const DashboardContext = createContext<{
@@ -24,7 +25,9 @@ export default function ClientDashboardLayout({
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false); // M c  nh sidebar m  (collapsed: false)
-
+  // Inside your parent component
+  const params = useParams();
+  const junctionId = params?.junctionId as string;
   useEffect(() => {
     const handleResize = () =>
       document.documentElement.style.setProperty(
@@ -45,6 +48,7 @@ export default function ClientDashboardLayout({
           user={user}
           collapsed={collapsed}
           setCollapsed={setCollapsed}
+          junctionId={junctionId}
         />
         <main
           className={`flex-1 overflow-y-auto transition-all duration-300 ${

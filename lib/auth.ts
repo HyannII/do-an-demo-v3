@@ -15,6 +15,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
+          console.log("Missing credentials");
           return null;
         }
 
@@ -26,47 +27,29 @@ export const authOptions: NextAuthOptions = {
             role: true,
           },
         });
+        console.log("Found user:", user);
 
         if (!user || !user.isActive) {
+          console.log("User not found or inactive:", user);
           return null;
         }
 
-        // Kiểm tra mật khẩu
         const passwordMatch = await compare(
           credentials.password,
           user.passwordHash
         );
+        console.log("Password match:", passwordMatch);
 
         if (!passwordMatch) {
           return null;
         }
 
-        // Cập nhật thời gian đăng nhập cuối
-        await prisma.user.update({
-          where: {
-            userId: user.userId, // Sửa từ id thành userId theo schema
-          },
-          data: {
-            lastLogin: new Date(),
-          },
-        });
-
-        // Ghi log đăng nhập
-        await prisma.systemLog.create({
-          data: {
-            eventType: "LOGIN",
-            description: "Đăng nhập thành công",
-            userId: user.userId, // Sửa từ id thành userId theo schema
-            ipAddress: "0.0.0.0", // Trong ứng dụng thực tế, lấy IP của client
-          },
-        });
-
         return {
-          id: user.userId.toString(), // Sửa từ id thành userId theo schema
+          id: user.userId.toString(),
           name: user.fullName,
           email: user.email,
           username: user.username,
-          role: user.role.roleName, // Sửa từ name thành roleName theo schema
+          role: user.role.roleName,
           permissions: user.role.permissions,
         };
       },
