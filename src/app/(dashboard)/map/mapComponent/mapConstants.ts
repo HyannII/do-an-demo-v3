@@ -26,17 +26,13 @@ export interface CurrentLocation {
   latitude: number;
 }
 
-// src/app/(dashboard)/map/mapComponent/mapConstants.ts
 export interface Camera {
   cameraId: string;
   cameraName: string;
-  ipAddress: string;
+  cameraAddress: string;
   location: string;
   latitude: number;
   longitude: number;
-  model?: string;
-  manufacturer?: string;
-  installationDate?: string;
   isActive: boolean;
   junctionId?: string;
 }
@@ -47,13 +43,10 @@ export interface Junction {
   location: string;
   latitude: number;
   longitude: number;
-  description?: string;
   cameras: Camera[];
   trafficLights: TrafficLight[];
   trafficPatterns: TrafficPattern[];
 }
-
-// Các interface khác (TrafficLight, TrafficPattern, v.v.) giữ nguyên
 
 export interface TrafficLight {
   trafficLightId: string;
@@ -64,7 +57,6 @@ export interface TrafficLight {
   longitude: number;
   junctionId: string;
   status: string;
-  lastMaintenance?: string; // DateTime trong schema, nhưng chuyển thành string để dễ xử lý
   isActive: boolean;
 }
 

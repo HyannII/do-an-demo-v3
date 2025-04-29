@@ -7,6 +7,9 @@ import {
   BarChart,
   Calendar,
   Map,
+  Video,
+  Cctv,
+  RectangleEllipsis,
 } from "lucide-react";
 
 import React from "react";
@@ -47,6 +50,18 @@ export const navItems: NavItem[] = [
     title: "Bản đồ",
     href: "/map",
     icon: <Map className="w-5 h-5" />,
+  },
+  {
+    type: "link",
+    title: "Camera",
+    href: "/liveCamera",
+    icon: <Cctv className="w-5 h-5" />,
+  },
+  {
+    type: "link",
+    title: "Đèn giao thông",
+    href: "/trafficLight",
+    icon: <RectangleEllipsis className="w-5 h-5" />,
   },
   {
     type: "folder",

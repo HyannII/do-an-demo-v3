@@ -8,19 +8,15 @@ datasource db {
 }
 
 model Camera {
-  cameraId         String        @id @default(uuid())
-  cameraName       String
-  cameraAddress    String      
-  location         String
-  latitude         Decimal?      @db.Decimal(10, 6)
-  longitude        Decimal?      @db.Decimal(10, 6)
-  model            String?
-  manufacturer     String?
-  installationDate DateTime?
-  isActive         Boolean       @default(true)
-  junctionId       String?
-  junction         Junction?     @relation(fields: [junctionId], references: [junctionId])
-  trafficData      TrafficData[]
+  cameraId      String    @id @default(uuid())
+  cameraName    String
+  cameraAddress String
+  location      String
+  latitude      Decimal?  @db.Decimal(10, 6)
+  longitude     Decimal?  @db.Decimal(10, 6)
+  isActive      Boolean   @default(true)
+  junctionId    String?
+  junction      Junction? @relation(fields: [junctionId], references: [junctionId])
 }
 
 model Junction {
@@ -29,84 +25,35 @@ model Junction {
   location        String
   latitude        Decimal?         @db.Decimal(10, 6)
   longitude       Decimal?         @db.Decimal(10, 6)
-  description     String?
   cameras         Camera[]
   trafficLights   TrafficLight[]
   trafficPatterns TrafficPattern[]
 }
 
-model Notification {
-  notificationId   String   @id @default(uuid())
-  notificationType String
-  message          String
-  createdAt        DateTime @default(now())
-  isRead           Boolean  @default(false)
-  userId           String
-  user             User     @relation(fields: [userId], references: [userId])
-}
-
 model Role {
-  roleId      String  @id @default(uuid())
-  roleName    String  @unique
-  description String?
+  roleId      String @id @default(uuid())
+  roleName    String @unique
   permissions Json?
   users       User[]
 }
 
-model SystemLog {
-  logId       String   @id @default(uuid())
-  logTime     DateTime @default(now())
-  eventType   String
-  description String
-  userId      String?
-  ipAddress   String?
-  user        User?    @relation(fields: [userId], references: [userId])
-}
-
-model TrafficData {
-  dataId          String   @id @default(uuid())
-  cameraId        String
-  captureTime     DateTime @default(now())
-  vehicleCount    Int?
-  pedestrianCount Int?
-  averageSpeed    Decimal? @db.Decimal(5, 2)
-  trafficDensity  String?
-  rawData         Json?
-  camera          Camera   @relation(fields: [cameraId], references: [cameraId])
-}
-
 model TrafficLight {
-  trafficLightId   String            @id @default(uuid())
-  lightName        String
-  ipAddress        String
-  location         String
-  latitude         Decimal?          @db.Decimal(10, 6)
-  longitude        Decimal?          @db.Decimal(10, 6)
-  junctionId       String
-  status           String
-  lastMaintenance  DateTime?
-  isActive         Boolean           @default(true)
-  junction         Junction          @relation(fields: [junctionId], references: [junctionId])
-  trafficLightLogs TrafficLightLog[]
-}
-
-model TrafficLightLog {
-  logId             String       @id @default(uuid())
-  trafficLightId    String
-  changeTime        DateTime     @default(now())
-  previousStatus    String
-  newStatus         String
-  changeReason      String?
-  triggeredByUserId String?
-  trafficLight      TrafficLight @relation(fields: [trafficLightId], references: [trafficLightId])
-  user              User?        @relation(fields: [triggeredByUserId], references: [userId])
+  trafficLightId String   @id @default(uuid())
+  lightName      String
+  ipAddress      String
+  location       String
+  latitude       Decimal? @db.Decimal(10, 6)
+  longitude      Decimal? @db.Decimal(10, 6)
+  junctionId     String
+  status         String
+  isActive       Boolean  @default(true)
+  junction       Junction @relation(fields: [junctionId], references: [junctionId])
 }
 
 model TrafficPattern {
   patternId           String   @id @default(uuid())
   junctionId          String
   patternName         String
-  description         String?
   timingConfiguration Json
   createdAt           DateTime @default(now())
   createdByUserId     String
@@ -115,18 +62,14 @@ model TrafficPattern {
 }
 
 model User {
-  userId           String            @id @default(uuid())
-  username         String            @unique
-  passwordHash     String
-  email            String
-  fullName         String
-  roleId           String
-  createdAt        DateTime          @default(now())
-  lastLogin        DateTime?
-  isActive         Boolean           @default(true)
-  notifications    Notification[]
-  systemLogs       SystemLog[]
-  trafficLightLogs TrafficLightLog[]
-  trafficPatterns  TrafficPattern[]
-  role             Role              @relation(fields: [roleId], references: [roleId])
+  userId          String           @id @default(uuid())
+  username        String           @unique
+  passwordHash    String
+  email           String
+  fullName        String
+  roleId          String
+  createdAt       DateTime         @default(now())
+  isActive        Boolean          @default(true)
+  trafficPatterns TrafficPattern[]
+  role            Role             @relation(fields: [roleId], references: [roleId])
 }

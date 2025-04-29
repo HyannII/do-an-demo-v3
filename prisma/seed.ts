@@ -7,7 +7,6 @@ async function main() {
   const role1 = await prisma.role.create({
     data: {
       roleName: "Admin",
-      description: "Quản trị viên hệ thống",
       permissions: {
         canViewUsers: true,
         canEditUsers: true,
@@ -22,7 +21,6 @@ async function main() {
   const role2 = await prisma.role.create({
     data: {
       roleName: "Operator",
-      description: "Nhân viên vận hành",
       permissions: {
         canViewUsers: true,
         canEditUsers: false,
@@ -37,7 +35,6 @@ async function main() {
   const role3 = await prisma.role.create({
     data: {
       roleName: "Technician",
-      description: "Kỹ thuật viên",
       permissions: {
         canViewUsers: false,
         canEditUsers: false,
@@ -52,7 +49,6 @@ async function main() {
   const role4 = await prisma.role.create({
     data: {
       roleName: "Viewer",
-      description: "Người xem",
       permissions: {
         canViewUsers: true,
         canEditUsers: false,
@@ -67,7 +63,6 @@ async function main() {
   const role5 = await prisma.role.create({
     data: {
       roleName: "Guest",
-      description: "Khách",
       permissions: {
         canViewUsers: false,
         canEditUsers: false,
@@ -90,7 +85,6 @@ async function main() {
       fullName: "Admin User",
       roleId: role1.roleId,
       createdAt: new Date(),
-      lastLogin: new Date(),
       isActive: true,
     },
   });
@@ -103,7 +97,6 @@ async function main() {
       fullName: "Operator One",
       roleId: role2.roleId,
       createdAt: new Date(),
-      lastLogin: new Date(),
       isActive: true,
     },
   });
@@ -116,7 +109,6 @@ async function main() {
       fullName: "Technician One",
       roleId: role3.roleId,
       createdAt: new Date(),
-      lastLogin: new Date(),
       isActive: true,
     },
   });
@@ -129,7 +121,6 @@ async function main() {
       fullName: "Viewer One",
       roleId: role4.roleId,
       createdAt: new Date(),
-      lastLogin: new Date(),
       isActive: true,
     },
   });
@@ -142,7 +133,6 @@ async function main() {
       fullName: "Guest One",
       roleId: role5.roleId,
       createdAt: new Date(),
-      lastLogin: new Date(),
       isActive: true,
     },
   });
@@ -156,7 +146,6 @@ async function main() {
       location: "Hà Nội",
       latitude: 21.0315,
       longitude: 105.8213,
-      description: "Ngã tư đông đúc ở trung tâm Hà Nội",
     },
   });
 
@@ -166,7 +155,6 @@ async function main() {
       location: "Hà Nội",
       latitude: 21.0152,
       longitude: 105.8205,
-      description: "Ngã tư gần khu văn phòng",
     },
   });
 
@@ -176,7 +164,6 @@ async function main() {
       location: "Hà Nội",
       latitude: 21.0087,
       longitude: 105.8471,
-      description: "Ngã tư gần trường đại học",
     },
   });
 
@@ -186,7 +173,6 @@ async function main() {
       location: "Hà Nội",
       latitude: 20.9943,
       longitude: 105.8012,
-      description: "Ngã tư đông đúc ở phía nam Hà Nội",
     },
   });
 
@@ -196,7 +182,6 @@ async function main() {
       location: "Hà Nội",
       latitude: 20.9876,
       longitude: 105.8409,
-      description: "Ngã tư gần bến xe",
     },
   });
 
@@ -210,9 +195,6 @@ async function main() {
       location: "Ngã tư Kim Mã - Góc Tây Bắc",
       latitude: 21.0316,
       longitude: 105.8214,
-      model: "Hikvision DS-2CD2143G0-I",
-      manufacturer: "Hikvision",
-      installationDate: new Date("2023-01-15"),
       isActive: true,
       junctionId: junction1.junctionId,
     },
@@ -225,9 +207,6 @@ async function main() {
       location: "Ngã tư Kim Mã - Góc Đông Nam",
       latitude: 21.0314,
       longitude: 105.8212,
-      model: "Hikvision DS-2CD2143G0-I",
-      manufacturer: "Hikvision",
-      installationDate: new Date("2023-01-15"),
       isActive: true,
       junctionId: junction1.junctionId,
     },
@@ -240,9 +219,6 @@ async function main() {
       location: "Ngã tư Láng Hạ - Góc Tây Nam",
       latitude: 21.0151,
       longitude: 105.8204,
-      model: "Dahua IPC-HFW2431R-ZS",
-      manufacturer: "Dahua",
-      installationDate: new Date("2023-02-10"),
       isActive: true,
       junctionId: junction2.junctionId,
     },
@@ -255,9 +231,6 @@ async function main() {
       location: "Ngã tư Đại Cồ Việt - Góc Đông Bắc",
       latitude: 21.0088,
       longitude: 105.8472,
-      model: "Dahua IPC-HFW2431R-ZS",
-      manufacturer: "Dahua",
-      installationDate: new Date("2023-03-05"),
       isActive: true,
       junctionId: junction3.junctionId,
     },
@@ -270,9 +243,6 @@ async function main() {
       location: "Ngã tư Nguyễn Trãi - Góc Tây Bắc",
       latitude: 20.9944,
       longitude: 105.8013,
-      model: "Axis P3225-LVE",
-      manufacturer: "Axis",
-      installationDate: new Date("2023-04-01"),
       isActive: true,
       junctionId: junction4.junctionId,
     },
@@ -290,7 +260,6 @@ async function main() {
       longitude: 105.8215,
       junctionId: junction1.junctionId,
       status: "green",
-      lastMaintenance: new Date("2023-06-01"),
       isActive: true,
     },
   });
@@ -304,7 +273,6 @@ async function main() {
       longitude: 105.8211,
       junctionId: junction1.junctionId,
       status: "red",
-      lastMaintenance: new Date("2023-06-01"),
       isActive: true,
     },
   });
@@ -318,7 +286,6 @@ async function main() {
       longitude: 105.8203,
       junctionId: junction2.junctionId,
       status: "yellow",
-      lastMaintenance: new Date("2023-07-15"),
       isActive: true,
     },
   });
@@ -332,7 +299,6 @@ async function main() {
       longitude: 105.847,
       junctionId: junction3.junctionId,
       status: "green",
-      lastMaintenance: new Date("2023-08-20"),
       isActive: true,
     },
   });
@@ -346,140 +312,17 @@ async function main() {
       longitude: 105.8014,
       junctionId: junction4.junctionId,
       status: "red",
-      lastMaintenance: new Date("2023-09-10"),
       isActive: true,
     },
   });
 
   console.log("Seeded 5 traffic lights");
 
-  // Seed dữ liệu cho bảng TrafficData
-  await prisma.trafficData.create({
-    data: {
-      cameraId: camera1.cameraId,
-      captureTime: new Date(),
-      vehicleCount: 50,
-      pedestrianCount: 20,
-      averageSpeed: 40.5,
-      trafficDensity: "medium",
-      rawData: { additionalInfo: "Sample data 1" },
-    },
-  });
-
-  await prisma.trafficData.create({
-    data: {
-      cameraId: camera2.cameraId,
-      captureTime: new Date(),
-      vehicleCount: 70,
-      pedestrianCount: 15,
-      averageSpeed: 35.0,
-      trafficDensity: "high",
-      rawData: { additionalInfo: "Sample data 2" },
-    },
-  });
-
-  await prisma.trafficData.create({
-    data: {
-      cameraId: camera3.cameraId,
-      captureTime: new Date(),
-      vehicleCount: 30,
-      pedestrianCount: 10,
-      averageSpeed: 45.0,
-      trafficDensity: "low",
-      rawData: { additionalInfo: "Sample data 3" },
-    },
-  });
-
-  await prisma.trafficData.create({
-    data: {
-      cameraId: camera4.cameraId,
-      captureTime: new Date(),
-      vehicleCount: 60,
-      pedestrianCount: 25,
-      averageSpeed: 38.5,
-      trafficDensity: "medium",
-      rawData: { additionalInfo: "Sample data 4" },
-    },
-  });
-
-  await prisma.trafficData.create({
-    data: {
-      cameraId: camera5.cameraId,
-      captureTime: new Date(),
-      vehicleCount: 40,
-      pedestrianCount: 30,
-      averageSpeed: 42.0,
-      trafficDensity: "medium",
-      rawData: { additionalInfo: "Sample data 5" },
-    },
-  });
-
-  console.log("Seeded 5 traffic data entries");
-
-  // Seed dữ liệu cho bảng TrafficLightLog
-  await prisma.trafficLightLog.create({
-    data: {
-      trafficLightId: trafficLight1.trafficLightId,
-      changeTime: new Date(),
-      previousStatus: "red",
-      newStatus: "green",
-      changeReason: "Scheduled change",
-      triggeredByUserId: user1.userId,
-    },
-  });
-
-  await prisma.trafficLightLog.create({
-    data: {
-      trafficLightId: trafficLight2.trafficLightId,
-      changeTime: new Date(),
-      previousStatus: "green",
-      newStatus: "red",
-      changeReason: "Scheduled change",
-      triggeredByUserId: user1.userId,
-    },
-  });
-
-  await prisma.trafficLightLog.create({
-    data: {
-      trafficLightId: trafficLight3.trafficLightId,
-      changeTime: new Date(),
-      previousStatus: "yellow",
-      newStatus: "red",
-      changeReason: "Manual override",
-      triggeredByUserId: user2.userId,
-    },
-  });
-
-  await prisma.trafficLightLog.create({
-    data: {
-      trafficLightId: trafficLight4.trafficLightId,
-      changeTime: new Date(),
-      previousStatus: "green",
-      newStatus: "yellow",
-      changeReason: "Scheduled change",
-      triggeredByUserId: user1.userId,
-    },
-  });
-
-  await prisma.trafficLightLog.create({
-    data: {
-      trafficLightId: trafficLight5.trafficLightId,
-      changeTime: new Date(),
-      previousStatus: "red",
-      newStatus: "green",
-      changeReason: "Scheduled change",
-      triggeredByUserId: user1.userId,
-    },
-  });
-
-  console.log("Seeded 5 traffic light logs");
-
   // Seed dữ liệu cho bảng TrafficPattern
   await prisma.trafficPattern.create({
     data: {
       junctionId: junction1.junctionId,
       patternName: "Morning Rush",
-      description: "Traffic pattern for morning rush hours",
       timingConfiguration: {
         green: 60,
         yellow: 5,
@@ -494,7 +337,6 @@ async function main() {
     data: {
       junctionId: junction1.junctionId,
       patternName: "Evening Rush",
-      description: "Traffic pattern for evening rush hours",
       timingConfiguration: {
         green: 50,
         yellow: 5,
@@ -509,7 +351,6 @@ async function main() {
     data: {
       junctionId: junction2.junctionId,
       patternName: "Normal Day",
-      description: "Traffic pattern for normal daytime",
       timingConfiguration: {
         green: 45,
         yellow: 5,
@@ -524,7 +365,6 @@ async function main() {
     data: {
       junctionId: junction3.junctionId,
       patternName: "Night Time",
-      description: "Traffic pattern for night time",
       timingConfiguration: {
         green: 30,
         yellow: 5,
@@ -539,7 +379,6 @@ async function main() {
     data: {
       junctionId: junction4.junctionId,
       patternName: "Weekend",
-      description: "Traffic pattern for weekends",
       timingConfiguration: {
         green: 40,
         yellow: 5,
@@ -551,112 +390,6 @@ async function main() {
   });
 
   console.log("Seeded 5 traffic patterns");
-
-  // Seed dữ liệu cho bảng Notification
-  await prisma.notification.create({
-    data: {
-      notificationType: "alert",
-      message: "Traffic light 1 changed to green",
-      createdAt: new Date(),
-      isRead: false,
-      userId: user1.userId,
-    },
-  });
-
-  await prisma.notification.create({
-    data: {
-      notificationType: "info",
-      message: "New traffic pattern applied at Junction 1",
-      createdAt: new Date(),
-      isRead: false,
-      userId: user2.userId,
-    },
-  });
-
-  await prisma.notification.create({
-    data: {
-      notificationType: "warning",
-      message: "Camera 3 is offline",
-      createdAt: new Date(),
-      isRead: false,
-      userId: user3.userId,
-    },
-  });
-
-  await prisma.notification.create({
-    data: {
-      notificationType: "alert",
-      message: "Traffic light 4 changed to yellow",
-      createdAt: new Date(),
-      isRead: false,
-      userId: user1.userId,
-    },
-  });
-
-  await prisma.notification.create({
-    data: {
-      notificationType: "info",
-      message: "System maintenance scheduled",
-      createdAt: new Date(),
-      isRead: false,
-      userId: user4.userId,
-    },
-  });
-
-  console.log("Seeded 5 notifications");
-
-  // Seed dữ liệu cho bảng SystemLog
-  await prisma.systemLog.create({
-    data: {
-      logTime: new Date(),
-      eventType: "user_login",
-      description: "User admin logged in",
-      userId: user1.userId,
-      ipAddress: "192.168.1.10",
-    },
-  });
-
-  await prisma.systemLog.create({
-    data: {
-      logTime: new Date(),
-      eventType: "traffic_light_change",
-      description: "Traffic light 1 changed to green",
-      userId: user1.userId,
-      ipAddress: "192.168.1.10",
-    },
-  });
-
-  await prisma.systemLog.create({
-    data: {
-      logTime: new Date(),
-      eventType: "user_login",
-      description: "User operator1 logged in",
-      userId: user2.userId,
-      ipAddress: "192.168.1.11",
-    },
-  });
-
-  await prisma.systemLog.create({
-    data: {
-      logTime: new Date(),
-      eventType: "camera_offline",
-      description: "Camera 3 went offline",
-      userId: null,
-      ipAddress: null,
-    },
-  });
-
-  await prisma.systemLog.create({
-    data: {
-      logTime: new Date(),
-      eventType: "traffic_pattern_update",
-      description: "Traffic pattern updated at Junction 1",
-      userId: user1.userId,
-      ipAddress: "192.168.1.10",
-    },
-  });
-
-  console.log("Seeded 5 system logs");
 }
 
 main()
