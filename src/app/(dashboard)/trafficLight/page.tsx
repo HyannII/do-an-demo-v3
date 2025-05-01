@@ -75,62 +75,20 @@ export default function JunctionMap() {
     return 24; // Static value for now, matching the image
   };
 
-  // Get traffic light phase data from timingConfiguration
+  // Sample data matching the image
   const getPhaseData = () => {
-    if (
-      !selectedJunction ||
-      !selectedJunction.trafficPatterns ||
-      selectedJunction.trafficPatterns.length === 0
-    ) {
-      return [];
-    }
-
-    // Use the first traffic pattern for simplicity
-    const pattern = selectedJunction.trafficPatterns[0];
-    const timing = pattern.timingConfiguration;
-
-    // Assuming timingConfiguration contains green, yellow, red durations for each phase
-    // We'll simulate 4 phases to match the image
     return [
-      {
-        bd: "00",
-        green: timing.green || 25,
-        yellow: timing.yellow || 3,
-        red: timing.red || 2,
-        cycle:
-          (timing.green || 25) + (timing.yellow || 3) + (timing.red || 2) + 2,
-      },
-      {
-        bd: "30",
-        green: timing.green || 25,
-        yellow: timing.yellow || 3,
-        red: timing.red || 2,
-        cycle:
-          (timing.green || 25) + (timing.yellow || 3) + (timing.red || 2) + 2,
-      },
-      {
-        bd: "00",
-        green: timing.green || 25,
-        yellow: timing.yellow || 3,
-        red: timing.red || 2,
-        cycle:
-          (timing.green || 25) + (timing.yellow || 3) + (timing.red || 2) + 2,
-      },
-      {
-        bd: "30",
-        green: timing.green || 25,
-        yellow: timing.yellow || 3,
-        red: timing.red || 2,
-        cycle:
-          (timing.green || 25) + (timing.yellow || 3) + (timing.red || 2) + 2,
-      },
+      { bd: "00", green: 25, yellow: 3, red: 2, cycle: 30 },
+      { bd: "30", green: 25, yellow: 3, red: 2, cycle: 30 },
+      { bd: "00", green: 25, yellow: 3, red: 2, cycle: 30 },
+      { bd: "30", green: 25, yellow: 3, red: 2, cycle: 30 },
     ];
   };
 
   return (
-    <div className="flex flex-col h-[94vh] overflow-hidden bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-[94vh] overflow-hidden bg-gray-900">
       {/* Top Section: Mapbox Map and Table Side by Side */}
-      <div className="flex h-[65vh] bg-gray-100 dark:bg-gray-800">
+      <div className="flex h-[65vh] bg-gray-800">
         {/* Mapbox Map Section (Left Side) */}
         <div className="w-3/4">
           {selectedJunction ? (
@@ -172,34 +130,32 @@ export default function JunctionMap() {
             </Map>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <p className="text-gray-500 dark:text-gray-400">
-                Chọn một ngã tư để xem bản đồ
-              </p>
+              <p className="text-gray-400">Chọn một nút giao để xem bản đồ</p>
             </div>
           )}
         </div>
 
         {/* Traffic Light Phase Table (Right Side) */}
         <div className="w-1/4 p-4 overflow-y-auto">
-          <table className="w-full border-separate border-spacing-0 border-2 border-gray-300 dark:border-gray-700">
+          <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
             <thead>
               <tr>
-                <th className="border-2 border-gray-300 dark:border-gray-700 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800">
+                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
                   Pha
                 </th>
-                <th className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800">
+                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
                   BD
                 </th>
-                <th className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800">
+                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
                   X
                 </th>
-                <th className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800">
+                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
                   V
                 </th>
-                <th className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800">
+                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
                   TD
                 </th>
-                <th className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800">
+                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
                   Chu kỳ
                 </th>
               </tr>
@@ -207,22 +163,22 @@ export default function JunctionMap() {
             <tbody>
               {getPhaseData().map((phase, index) => (
                 <tr key={index}>
-                  <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">
+                  <td className="border-2 border-gray-600 p-2 text-gray-300">
                     Pha {index + 1}
                   </td>
-                  <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
+                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
                     {phase.bd}
                   </td>
-                  <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
+                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
                     {phase.green}
                   </td>
-                  <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
+                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
                     {phase.yellow}
                   </td>
-                  <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
+                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
                     {phase.red}
                   </td>
-                  <td className="border-2 border-gray-300 dark:border-gray-700 p-2 flex items-center justify-between">
+                  <td className="border-2 border-gray-600 p-2 flex items-center justify-between">
                     <div className="flex">
                       <div
                         className="bg-green-500 h-6"
@@ -247,16 +203,14 @@ export default function JunctionMap() {
                         }}
                       />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300 ml-2">
-                      {phase.cycle}
-                    </span>
+                    <span className="text-gray-300 ml-2">{phase.cycle}</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
           {selectedJunction && getPhaseData().length > 0 && (
-            <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+            <div className="mt-2 text-sm text-gray-300">
               Tổng thời gian chu kỳ tính bằng: {getPhaseData()[0].cycle} giây
             </div>
           )}
@@ -264,15 +218,15 @@ export default function JunctionMap() {
       </div>
 
       {/* Bottom Section with Three Columns */}
-      <div className="flex h-[30vh] border-t border-gray-200 dark:border-gray-800">
+      <div className="flex h-[30vh] border-t border-gray-600">
         {/* Junction List */}
-        <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 p-4 overflow-hidden">
-          <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Danh sách ngã tư
+        <div className="w-1/2 border-r border-gray-600 p-4 overflow-hidden">
+          <h2 className="text-lg font-bold mb-2 text-white">
+            Danh sách nút giao
           </h2>
           <div className="h-[calc(100%-2rem)] overflow-y-auto">
             {loading ? (
-              <p className="text-gray-700 dark:text-gray-300">Đang tải...</p>
+              <p className="text-gray-300">Đang tải...</p>
             ) : junctions.length > 0 ? (
               <ul>
                 {junctions.map((junction) => (
@@ -280,8 +234,8 @@ export default function JunctionMap() {
                     key={junction.junctionId}
                     className={`p-2 cursor-pointer rounded ${
                       selectedJunction?.junctionId === junction.junctionId
-                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        ? "bg-blue-900/30 text-blue-400"
+                        : "text-gray-300 hover:bg-gray-800"
                     } transition-colors`}
                     onClick={() => handleJunctionSelect(junction)}
                   >
@@ -290,82 +244,43 @@ export default function JunctionMap() {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-700 dark:text-gray-300">
-                Không có ngã tư nào
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Camera List (Optional, can be removed if not needed) */}
-        <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 p-4 overflow-hidden">
-          <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Danh sách camera
-          </h2>
-          <div className="h-[calc(100%-2rem)] overflow-y-auto">
-            {selectedJunction &&
-            selectedJunction.cameras &&
-            selectedJunction.cameras.length > 0 ? (
-              <ul>
-                {selectedJunction.cameras.map((camera) => (
-                  <li
-                    key={camera.cameraId}
-                    className="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded"
-                  >
-                    {camera.cameraName}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-700 dark:text-gray-300">
-                Không có camera nào cho ngã tư này
-              </p>
+              <p className="text-gray-300">Không có nút giao nào</p>
             )}
           </div>
         </div>
 
         {/* Junction Details */}
-        <div className="w-1/3 p-4 overflow-hidden">
-          <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Thông tin ngã tư
+        <div className="w-1/2 p-4 overflow-hidden">
+          <h2 className="text-lg font-bold mb-2 text-white">
+            Thông tin nút giao
           </h2>
           <div className="h-[calc(100%-2rem)] overflow-y-auto">
             {selectedJunction ? (
-              <div className="text-gray-700 dark:text-gray-300">
+              <div className="text-gray-300">
                 <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Tên ngã tư:
-                  </strong>{" "}
+                  <strong className="text-white">Tên nút giao:</strong>{" "}
                   {selectedJunction.junctionName}
                 </p>
                 <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Vị trí:
-                  </strong>{" "}
+                  <strong className="text-white">Vị trí:</strong>{" "}
                   {selectedJunction.location}
                 </p>
                 <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Kinh độ:
-                  </strong>{" "}
+                  <strong className="text-white">Kinh độ:</strong>{" "}
                   {selectedJunction.longitude}
                 </p>
                 <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Vĩ độ:
-                  </strong>{" "}
+                  <strong className="text-white">Vĩ độ:</strong>{" "}
                   {selectedJunction.latitude}
                 </p>
                 <Link href={`/junctions/${selectedJunction.junctionId}`}>
-                  <button className="mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                  <button className="mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors">
                     Xem chi tiết
                   </button>
                 </Link>
               </div>
             ) : (
-              <p className="text-gray-700 dark:text-gray-300">
-                Chọn một ngã tư để xem thông tin
-              </p>
+              <p className="text-gray-300">Chọn một nút giao để xem thông tin</p>
             )}
           </div>
         </div>

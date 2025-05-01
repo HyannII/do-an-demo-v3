@@ -10,6 +10,10 @@ import {
   Video,
   Cctv,
   RectangleEllipsis,
+  ListTree,
+  ContactRound,
+  FolderKey,
+  KeyRound,
 } from "lucide-react";
 
 import React from "react";
@@ -64,23 +68,16 @@ export const navItems: NavItem[] = [
     icon: <RectangleEllipsis className="w-5 h-5" />,
   },
   {
-    type: "folder",
+    type: "link",
     title: "Báo cáo",
-    icon: <FileText className="w-5 h-5" />,
-    children: [
-      {
-        type: "link",
-        title: "Báo cáo hàng ngày",
-        href: "/reports/daily",
-        icon: <Calendar className="w-4 h-4" />,
-      },
-      {
-        type: "link",
-        title: "Báo cáo tháng",
-        href: "/reports/monthly",
-        icon: <BarChart className="w-4 h-4" />,
-      },
-    ],
+    href: "/reports",
+    icon: <BarChart className="w-5 h-5" />,
+  },
+  {
+    type: "link",
+    title: "Quản lí danh mục",
+    href: "/objectManagement",
+    icon: <ListTree className="w-5 h-5" />,
   },
   {
     type: "folder",
@@ -91,21 +88,15 @@ export const navItems: NavItem[] = [
         type: "link",
         title: "Danh sách người dùng",
         href: "/users/list",
-        icon: <Users className="w-4 h-4" />,
+        icon: <ContactRound className="w-4 h-4" />,
       },
       {
         type: "link",
         title: "Phân quyền",
         href: "/users/roles",
-        icon: <Settings className="w-4 h-4" />,
+        icon: <KeyRound className="w-4 h-4" />,
       },
     ],
-  },
-  {
-    type: "button",
-    title: "Xuất dữ liệu",
-    icon: <FileText className="w-5 h-5" />,
-    onClick: handleExportData,
   },
   {
     type: "link",

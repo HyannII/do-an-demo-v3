@@ -31,7 +31,7 @@ export default function MapControls({
               onChange={onDisplayOptionChange}
               className="mr-2"
             />
-            <span className="text-sm text-gray-700">Ngã tư</span>
+            <span className="text-sm text-gray-700">Nút giao</span>
           </label>
           <label className="flex items-center">
             <input

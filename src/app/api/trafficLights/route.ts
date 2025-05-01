@@ -5,14 +5,14 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const cameras = await prisma.camera.findMany({
+    const trafficLights = await prisma.trafficLight.findMany({
       include: { junction: true },
     });
-    return NextResponse.json(cameras, { status: 200 });
+    return NextResponse.json(trafficLights, { status: 200 });
   } catch (error) {
-    console.error("Error fetching cameras:", error);
+    console.error("Error fetching traffic lights:", error);
     return NextResponse.json(
-      { error: "Failed to fetch cameras" },
+      { error: "Failed to fetch traffic lights" },
       { status: 500 }
     );
   }
@@ -22,33 +22,35 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      cameraName,
-      cameraAddress,
+      lightName,
+      ipAddress,
       location,
       latitude,
       longitude,
-      isActive,
       junctionId,
+      status,
+      isActive,
     } = body;
 
-    const camera = await prisma.camera.create({
+    const trafficLight = await prisma.trafficLight.create({
       data: {
-        cameraName,
-        cameraAddress,
+        lightName,
+        ipAddress,
         location,
         latitude,
         longitude,
+        junctionId,
+        status,
         isActive: isActive ?? true,
-        junctionId: junctionId || null,
       },
       include: { junction: true },
     });
 
-    return NextResponse.json(camera, { status: 201 });
+    return NextResponse.json(trafficLight, { status: 201 });
   } catch (error) {
-    console.error("Error creating camera:", error);
+    console.error("Error creating traffic light:", error);
     return NextResponse.json(
-      { error: "Failed to create camera" },
+      { error: "Failed to create traffic light" },
       { status: 500 }
     );
   }

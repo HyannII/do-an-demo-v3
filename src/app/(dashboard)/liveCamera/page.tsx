@@ -217,7 +217,7 @@ export default function LiveCamera() {
         {/* Junction List */}
         <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 p-4 overflow-hidden">
           <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Danh sách ngã tư
+            Danh sách nút giao
           </h2>
           <div className="h-[calc(100%-2rem)] overflow-y-auto">
             {loading ? (
@@ -240,7 +240,7 @@ export default function LiveCamera() {
               </ul>
             ) : (
               <p className="text-gray-700 dark:text-gray-300">
-                Không có ngã tư nào
+                Không có nút giao nào
               </p>
             )}
           </div>
@@ -272,7 +272,7 @@ export default function LiveCamera() {
               </ul>
             ) : (
               <p className="text-gray-700 dark:text-gray-300">
-                Không có camera nào cho ngã tư này
+                Không có camera nào cho nút giao này
               </p>
             )}
           </div>
