@@ -1,0 +1,108 @@
+import { NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const junctionId = searchParams.get("junctionId");
+
+    const trafficPatterns = await prisma.trafficPattern.findMany({
+      where: junctionId ? { junctionId } : undefined,
+      include: {
+        user: true,
+        junction: true,
+      },
+    });
+
+    return NextResponse.json(trafficPatterns, { status: 200 });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách mẫu giao thông:", error);
+    return NextResponse.json(
+      { error: "Không thể lấy danh sách mẫu giao thông" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { junctionId, patternName, timingConfiguration, createdByUserId } =
+      body;
+
+    // Validate required fields
+    if (
+      !junctionId ||
+      !patternName ||
+      !timingConfiguration ||
+      !createdByUserId
+    ) {
+      return NextResponse.json(
+        { error: "Thiếu các trường bắt buộc" },
+        { status: 400 }
+      );
+    }
+
+    // Validate junction exists
+    const junction = await prisma.junction.findUnique({
+      where: { junctionId },
+    });
+    if (!junction) {
+      return NextResponse.json(
+        { error: "Không tìm thấy nút giao" },
+        { status: 400 }
+      );
+    }
+
+    // Validate user exists
+    const user = await prisma.user.findUnique({
+      where: { userId: createdByUserId },
+    });
+    if (!user) {
+      return NextResponse.json(
+        { error: "Không tìm thấy người dùng" },
+        { status: 400 }
+      );
+    }
+
+    // Validate timingConfiguration structure (basic validation)
+    if (
+      !timingConfiguration.activeTime ||
+      !timingConfiguration.cycleTime ||
+      !Array.isArray(timingConfiguration.phases)
+    ) {
+      return NextResponse.json(
+        { error: "Cấu trúc timingConfiguration không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    const trafficPattern = await prisma.trafficPattern.create({
+      data: {
+        junctionId,
+        patternName,
+        timingConfiguration,
+        createdByUserId,
+        createdAt: new Date(),
+      },
+      include: {
+        user: true,
+        junction: true,
+      },
+    });
+
+    return NextResponse.json(trafficPattern, { status: 201 });
+  } catch (error) {
+    console.error("Lỗi khi tạo mẫu giao thông:", error);
+    return NextResponse.json(
+      { error: "Không thể tạo mẫu giao thông" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}

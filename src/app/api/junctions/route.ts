@@ -1,48 +1,66 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
-
-const transformJunctionData = (junction: any) => {
-  return {
-    ...junction,
-    latitude: junction.latitude ? Number(junction.latitude) : 0,
-    longitude: junction.longitude ? Number(junction.longitude) : 0,
-    cameras: junction.cameras.map((camera: any) => ({
-      ...camera,
-      latitude: camera.latitude ? Number(camera.latitude) : 0,
-      longitude: camera.longitude ? Number(camera.longitude) : 0,
-      installationDate: camera.installationDate
-        ? camera.installationDate.toISOString()
-        : undefined,
-    })),
-    trafficLights: junction.trafficLights.map((trafficLight: any) => ({
-      ...trafficLight,
-      latitude: trafficLight.latitude ? Number(trafficLight.latitude) : 0,
-      longitude: trafficLight.longitude ? Number(trafficLight.longitude) : 0,
-      lastMaintenance: trafficLight.lastMaintenance
-        ? trafficLight.lastMaintenance.toISOString()
-        : undefined,
-    })),
-  };
-};
 
 export async function GET() {
   try {
     const junctions = await prisma.junction.findMany({
       include: {
-        trafficLights: true,
         cameras: true,
+        trafficLights: true,
+        trafficPatterns: true,
       },
     });
 
-    const transformedJunctions = junctions.map(transformJunctionData);
-    return NextResponse.json(transformedJunctions, { status: 200 });
+    return NextResponse.json(junctions, { status: 200 });
   } catch (error) {
-    console.error("Error fetching junctions:", error);
+    console.error("Lỗi khi lấy danh sách nút giao:", error);
     return NextResponse.json(
-      { error: "Failed to fetch junctions" },
+      { error: "Không thể lấy danh sách nút giao" },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { junctionName, location, latitude, longitude } = body;
+
+    // Validate required fields
+    if (!junctionName || !location) {
+      return NextResponse.json(
+        { error: "Thiếu các trường bắt buộc" },
+        { status: 400 }
+      );
+    }
+
+    // Create the junction
+    const junction = await prisma.junction.create({
+      data: {
+        junctionName,
+        location,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
+      },
+      include: {
+        cameras: true,
+        trafficLights: true,
+        trafficPatterns: true,
+      },
+    });
+
+    return NextResponse.json(junction, { status: 201 });
+  } catch (error) {
+    console.error("Lỗi khi tạo nút giao:", error);
+    return NextResponse.json(
+      { error: "Không thể tạo nút giao" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
   }
 }

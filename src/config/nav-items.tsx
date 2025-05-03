@@ -14,6 +14,7 @@ import {
   ContactRound,
   FolderKey,
   KeyRound,
+  ScrollText,
 } from "lucide-react";
 
 import React from "react";
@@ -69,8 +70,8 @@ export const navItems: NavItem[] = [
   },
   {
     type: "link",
-    title: "Báo cáo",
-    href: "/reports",
+    title: "Thống kê",
+    href: "/statistics",
     icon: <BarChart className="w-5 h-5" />,
   },
   {
@@ -78,6 +79,12 @@ export const navItems: NavItem[] = [
     title: "Quản lí danh mục",
     href: "/objectManagement",
     icon: <ListTree className="w-5 h-5" />,
+  },
+  {
+    type: "link",
+    title: "Báo cáo",
+    href: "/reports",
+    icon: <ScrollText className="w-5 h-5" />,
   },
   {
     type: "folder",

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Map, { MapRef, Marker } from "react-map-gl/mapbox";
+import Map, { MapRef, Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Camera, Junction } from "../../../../types/interface";
 import { mapStyles } from "../../(dashboard)/map/mapComponent/mapConstants";
@@ -43,6 +43,33 @@ export default function CameraManagement({
   const filteredCameras = filterJunctionId
     ? cameras.filter((camera) => camera.junctionId === filterJunctionId)
     : cameras;
+
+  // Fly to junction coordinates when junctionId changes in the form
+  useEffect(() => {
+    if (isModalOpen && formData.junctionId && mapRef.current) {
+      const selectedJunction = junctions.find(
+        (junction) => junction.junctionId === formData.junctionId
+      );
+      if (
+        selectedJunction &&
+        selectedJunction.latitude &&
+        selectedJunction.longitude
+      ) {
+        mapRef.current.flyTo({
+          center: [selectedJunction.longitude, selectedJunction.latitude],
+          zoom: 18,
+          duration: 1000, // Smooth transition duration in milliseconds
+        });
+      } else {
+        // Reset to default coordinates if no junction is selected or coordinates are missing
+        mapRef.current.flyTo({
+          center: [105.7718272, 20.9813504],
+          zoom: 18,
+          duration: 1000,
+        });
+      }
+    }
+  }, [formData.junctionId, isModalOpen, junctions]);
 
   // Handle checkbox selection
   const handleSelectItem = (id: string) => {
@@ -312,7 +339,7 @@ export default function CameraManagement({
             {loading ? (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={6}
                   className="border-2 border-gray-600 p-2 text-center text-gray-300"
                 >
                   Đang tải...
@@ -355,7 +382,7 @@ export default function CameraManagement({
             ) : (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={6}
                   className="border-2 border-gray-600 p-2 text-center text-gray-300"
                 >
                   Không có camera nào
@@ -477,7 +504,7 @@ export default function CameraManagement({
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">nút giao</label>
+                    <label className="block text-gray-300 mb-1">Nút giao</label>
                     <select
                       name="junctionId"
                       value={formData.junctionId}
@@ -543,7 +570,7 @@ export default function CameraManagement({
                     latitude: formData.latitude
                       ? parseFloat(formData.latitude)
                       : 20.9813504,
-                    zoom: 14,
+                    zoom: 18,
                   }}
                   style={{ width: "100%", height: "100%" }}
                   mapStyle={modalMapStyle}
@@ -559,6 +586,7 @@ export default function CameraManagement({
                       color="red"
                     />
                   )}
+                  <NavigationControl position="top-right" />
                 </Map>
               </div>
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Map, { MapRef, Marker } from "react-map-gl/mapbox";
+import Map, { MapRef, Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Camera, Junction } from "../../../../types/interface";
 import { mapStyles } from "../../(dashboard)/map/mapComponent/mapConstants";
@@ -448,7 +448,7 @@ export default function JunctionManagement({
                     latitude: formData.latitude
                       ? parseFloat(formData.latitude)
                       : 20.9813504,
-                    zoom: 14,
+                    zoom: 18,
                   }}
                   style={{ width: "100%", height: "100%" }}
                   mapStyle={modalMapStyle}
@@ -464,6 +464,7 @@ export default function JunctionManagement({
                       color="red"
                     />
                   )}
+                  <NavigationControl position="top-right" />
                 </Map>
               </div>
             </div>
