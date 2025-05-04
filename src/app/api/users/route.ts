@@ -1,92 +1,97 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../../../lib/auth";
+import prisma from "../../../../lib/prisma";
+import { hash } from "bcrypt";
 
 export async function GET() {
-  try {
-    const users = await prisma.user.findMany({
-      include: {
-        role: true,
-        trafficPatterns: true,
-      },
-    });
-
-    return NextResponse.json(users, { status: 200 });
-  } catch (error) {
-    console.error("L?i khi l?y danh sách ngu?i dùng:", error);
-    return NextResponse.json(
-      { error: "Không th? l?y danh sách ngu?i dùng" },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+
+  const users = await prisma.user.findMany({
+    include: { role: true },
+  });
+
+  return NextResponse.json(
+    users.map((user) => ({
+      userId: user.userId,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      roleId: user.roleId,
+      role: {
+        roleId: user.role.roleId,
+        roleName: user.role.roleName,
+        permissions: user.role.permissions,
+      },
+      isActive: user.isActive,
+      createdAt: user.createdAt.toISOString(),
+      trafficPatterns: user.trafficPatterns,
+    }))
+  );
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { username, email, fullName, roleId, isActive, password } = body;
-
-    // Validate required fields
-    if (!username || !email || !fullName || !roleId || !password) {
-      return NextResponse.json(
-        { error: "Thi?u các tru?ng b?t bu?c" },
-        { status: 400 }
-      );
-    }
-
-    // Validate role exists
-    const role = await prisma.role.findUnique({ where: { roleId } });
-    if (!role) {
-      return NextResponse.json(
-        { error: "Không tìm th?y vai trò" },
-        { status: 400 }
-      );
-    }
-
-    // Check for existing username or email
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ username }, { email }],
-      },
-    });
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Tên ngu?i dùng ho?c email dã t?n t?i" },
-        { status: 400 }
-      );
-    }
-
-    // Hash the password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        username,
-        email,
-        fullName,
-        roleId,
-        isActive: isActive ?? true,
-        passwordHash,
-        createdAt: new Date(),
-      },
-      include: {
-        role: true,
-        trafficPatterns: true,
-      },
-    });
-
-    return NextResponse.json(user, { status: 201 });
-  } catch (error) {
-    console.error("L?i khi t?o ngu?i dùng:", error);
-    return NextResponse.json(
-      { error: "Không th? t?o ngu?i dùng" },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+
+  if (session.user.role !== "Admin") {
+    return NextResponse.json(
+      { message: "Only admins can create users" },
+      { status: 403 }
+    );
+  }
+
+  const { username, email, fullName, roleId, isActive, password } =
+    await request.json();
+  if (!username || !email || !fullName || !roleId || !password) {
+    return NextResponse.json(
+      { message: "Missing required fields" },
+      { status: 400 }
+    );
+  }
+
+  // Validate that the role exists
+  const role = await prisma.role.findUnique({
+    where: { roleId: roleId }, // roleId is a string (UUID)
+  });
+  if (!role) {
+    return NextResponse.json({ message: "Role not found" }, { status: 400 });
+  }
+
+  const passwordHash = await hash(password, 10);
+  const user = await prisma.user.create({
+    data: {
+      username,
+      email,
+      fullName,
+      roleId: roleId,
+      isActive,
+      passwordHash,
+    },
+    include: { role: true },
+  });
+
+  return NextResponse.json(
+    {
+      userId: user.userId,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      roleId: user.roleId,
+      role: {
+        roleId: user.role.roleId,
+        roleName: user.role.roleName,
+        permissions: user.role.permissions,
+      },
+      isActive: user.isActive,
+      createdAt: user.createdAt.toISOString(),
+      trafficPatterns: user.trafficPatterns,
+    },
+    { status: 201 }
+  );
 }

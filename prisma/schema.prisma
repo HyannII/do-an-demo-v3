@@ -8,15 +8,27 @@ datasource db {
 }
 
 model Camera {
-  cameraId      String    @id @default(uuid())
+  cameraId      String         @id @default(uuid())
   cameraName    String
   cameraAddress String
   location      String
-  latitude      Decimal?  @db.Decimal(10, 6)
-  longitude     Decimal?  @db.Decimal(10, 6)
-  isActive      Boolean   @default(true)
+  latitude      Decimal?       @db.Decimal(10, 6)
+  longitude     Decimal?       @db.Decimal(10, 6)
+  isActive      Boolean        @default(true)
   junctionId    String?
-  junction      Junction? @relation(fields: [junctionId], references: [junctionId])
+  junction      Junction?      @relation(fields: [junctionId], references: [junctionId])
+  cameraData    CameraData[]   // Quan hệ 1-nhiều với CameraData
+}
+
+model CameraData {
+  dataId        String   @id @default(uuid())
+  cameraId      String
+  timestamp     DateTime
+  motorcycleCount Int    // Số lượng xe máy
+  carCount      Int    // Số lượng xe con
+  truckCount    Int    // Số lượng xe tải
+  busCount      Int    // Số lượng xe khách
+  camera        Camera @relation(fields: [cameraId], references: [cameraId])
 }
 
 model Junction {

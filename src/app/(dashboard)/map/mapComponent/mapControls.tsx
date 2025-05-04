@@ -33,18 +33,6 @@ export default function MapControls({
             />
             <span className="text-sm text-gray-700">Nút giao</span>
           </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              name="showCameras"
-              checked={displayOptions.showCameras}
-              onChange={onDisplayOptionChange}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700">
-              Camera & Đèn giao thông
-            </span>
-          </label>
         </div>
       </div>
 

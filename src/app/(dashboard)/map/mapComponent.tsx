@@ -1,4 +1,3 @@
-// src/app/(components)/map/MapComponent.tsx
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
@@ -29,13 +28,19 @@ interface SearchHistoryItem {
   timestamp: number; // Thời gian tìm kiếm (Unix timestamp)
 }
 
+// Định nghĩa interface cho trạng thái popup
+interface PopupState {
+  id: string; // Unique ID của item (junctionId, trafficLightId, cameraId, etc.)
+  type: "junction" | "trafficLight" | "camera" | "currentLocation"; // Loại item
+}
+
 export default function MapComponent() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
   const [selectedJunction, setSelectedJunction] = useState<Junction | null>(
     null
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [showPopup, setShowPopup] = useState<any | null>(null);
+  const [showPopup, setShowPopup] = useState<PopupState | null>(null); // Thay đổi showPopup để lưu ID và type
   const [currentLocation, setCurrentLocation] =
     useState<CurrentLocation | null>(null);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>(
@@ -143,7 +148,7 @@ export default function MapComponent() {
 
   const handleJunctionClick = (junction: Junction) => {
     setSelectedJunction(junction);
-    setShowPopup(junction);
+    setShowPopup({ id: junction.junctionId, type: "junction" }); // Chỉ lưu ID và type
     if (mapRef.current) {
       mapRef.current.flyTo({
         center: [Number(junction.longitude), Number(junction.latitude)],
@@ -151,6 +156,18 @@ export default function MapComponent() {
         ...fastAnimationOptions,
       });
     }
+  };
+
+  const handleTrafficLightClick = (trafficLight: TrafficLight) => {
+    setShowPopup({ id: trafficLight.trafficLightId, type: "trafficLight" });
+  };
+
+  const handleCameraClick = (camera: Camera) => {
+    setShowPopup({ id: camera.cameraId, type: "camera" });
+  };
+
+  const handleCurrentLocationClick = () => {
+    setShowPopup({ id: "currentLocation", type: "currentLocation" });
   };
 
   const closePopup = () => {
@@ -177,7 +194,7 @@ export default function MapComponent() {
       const junction = junctions.find((j) => j.junctionName === name);
       if (junction && mapRef.current) {
         setSelectedJunction(junction);
-        setShowPopup(junction);
+        setShowPopup({ id: junction.junctionId, type: "junction" });
         mapRef.current.flyTo({
           center: [Number(junction.longitude), Number(junction.latitude)],
           zoom: 14,
@@ -249,12 +266,14 @@ export default function MapComponent() {
       <p>
         <strong>Location:</strong> {junction.location}
       </p>
-      <p>
-        <strong>Description:</strong> {junction.description || "N/A"}
-      </p>
-      <Link href={`/junctionCameras/${junction.junctionId}`}>
-        <button className="mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+      <Link href={`/liveCamera`}>
+        <button className="w-full mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
           Xem camera
+        </button>
+      </Link>
+      <Link href={`/trafficLight`}>
+        <button className="w-full mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+          Xem đèn giao thông
         </button>
       </Link>
     </div>
@@ -288,8 +307,12 @@ export default function MapComponent() {
             item={currentLocation}
             longitude={currentLocation.longitude}
             latitude={currentLocation.latitude}
-            showPopup={showPopup}
+            showPopup={
+              showPopup?.id === "currentLocation" &&
+              showPopup?.type === "currentLocation"
+            }
             popupKey="currentLocation"
+            onClick={handleCurrentLocationClick}
             onClosePopup={closePopup}
             renderPopupContent={renderEmptyPopup}
             isCurrentLocation={true}
@@ -304,7 +327,10 @@ export default function MapComponent() {
               longitude={Number(junction.longitude)}
               latitude={Number(junction.latitude)}
               color={MARKER_COLORS.JUNCTION}
-              showPopup={showPopup}
+              showPopup={
+                showPopup?.id === junction.junctionId &&
+                showPopup?.type === "junction"
+              }
               popupKey="junctionId"
               onClick={handleJunctionClick}
               onClosePopup={closePopup}
@@ -321,8 +347,12 @@ export default function MapComponent() {
               longitude={Number(trafficLight.longitude)}
               latitude={Number(trafficLight.latitude)}
               color={MARKER_COLORS.TRAFFIC_LIGHT}
-              showPopup={showPopup}
+              showPopup={
+                showPopup?.id === trafficLight.trafficLightId &&
+                showPopup?.type === "trafficLight"
+              }
               popupKey="trafficLightId"
+              onClick={handleTrafficLightClick}
               onClosePopup={closePopup}
               renderPopupContent={renderEmptyPopup}
             />
@@ -337,8 +367,12 @@ export default function MapComponent() {
               longitude={Number(camera.longitude)}
               latitude={Number(camera.latitude)}
               color={MARKER_COLORS.CAMERA}
-              showPopup={showPopup}
+              showPopup={
+                showPopup?.id === camera.cameraId &&
+                showPopup?.type === "camera"
+              }
               popupKey="cameraId"
+              onClick={handleCameraClick}
               onClosePopup={closePopup}
               renderPopupContent={renderEmptyPopup}
             />

@@ -11,8 +11,9 @@ import {
 } from "../../../../types/interface";
 
 interface TrafficLightState {
-  status: string;
-  countdown: number | null;
+  lights_state: { [key: string]: string };
+  countdowns: { [key: string]: number | null };
+  current_time: number;
 }
 
 interface Phase {
@@ -21,16 +22,9 @@ interface Phase {
   greenTime: number;
 }
 
-interface TimingConfiguration {
-  activeTime: { startHour: number; endHour: number };
-  cycleTime: number;
-  yellowTime: number;
-  allRedTime: number;
-  phases: Phase[];
-}
-
 export default function JunctionMap() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
+  const [filteredJunctions, setFilteredJunctions] = useState<Junction[]>([]);
   const [selectedJunction, setSelectedJunction] = useState<Junction | null>(
     null
   );
@@ -38,8 +32,12 @@ export default function JunctionMap() {
   const [activePattern, setActivePattern] = useState<TrafficPattern | null>(
     null
   );
-  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [trafficLightState, setTrafficLightState] =
+    useState<TrafficLightState | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>(""); // State for search query
+  const [connectionFailed, setConnectionFailed] = useState<boolean>(false); // State for connection status
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const mapRef = useRef<MapRef>(null);
 
   // Fetch junctions on component mount
@@ -53,9 +51,7 @@ export default function JunctionMap() {
         }
         const data = await response.json();
         setJunctions(data);
-        if (data.length > 0) {
-          setSelectedJunction(data[0]);
-        }
+        setFilteredJunctions(data); // Initialize filtered junctions
       } catch (error) {
         console.error("Error fetching junctions:", error);
       } finally {
@@ -65,6 +61,14 @@ export default function JunctionMap() {
 
     fetchJunctions();
   }, []);
+
+  // Filter junctions based on search query
+  useEffect(() => {
+    const filtered = junctions.filter((junction) =>
+      junction.junctionName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredJunctions(filtered);
+  }, [searchQuery, junctions]);
 
   // Fetch traffic patterns for the selected junction
   useEffect(() => {
@@ -82,17 +86,14 @@ export default function JunctionMap() {
         const data = await response.json();
         setTrafficPatterns(data);
 
-        // Select the active pattern based on the current time
         const currentHour = new Date().getHours();
         const matchingPattern = data.find((pattern: TrafficPattern) => {
           const { startHour, endHour } = pattern.timingConfiguration.activeTime;
           return currentHour >= startHour && currentHour < endHour;
         });
 
-        // Fallback to the first pattern if no match is found
         const selectedPattern = matchingPattern || data[0] || null;
         setActivePattern(selectedPattern);
-        setCurrentTime(0); // Reset simulation time
       } catch (error) {
         console.error("Error fetching traffic patterns:", error);
       }
@@ -101,17 +102,38 @@ export default function JunctionMap() {
     fetchTrafficPatterns();
   }, [selectedJunction]);
 
-  // Simulate traffic light timing
+  // Fetch traffic light state from Python API only when a junction is selected
   useEffect(() => {
-    if (!activePattern) return;
+    if (!selectedJunction) {
+      setTrafficLightState(null); // Reset traffic light state when no junction is selected
+      setConnectionFailed(false); // Reset connection status
+      return;
+    }
 
-    const cycleTime = activePattern.timingConfiguration.cycleTime;
-    const interval = setInterval(() => {
-      setCurrentTime((prev) => (prev + 1) % cycleTime);
-    }, 1000);
+    const fetchTrafficLightState = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8000/traffic-light-state"
+        );
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch traffic light state: ${response.status}`
+          );
+        }
+        const data = await response.json();
+        setTrafficLightState(data);
+        setConnectionFailed(false); // Connection succeeded
+      } catch (error) {
+        console.error("Error fetching traffic light state:", error);
+        setConnectionFailed(true); // Connection failed
+      }
+    };
+
+    fetchTrafficLightState();
+    const interval = setInterval(fetchTrafficLightState, 1000); // Fetch every second
 
     return () => clearInterval(interval);
-  }, [activePattern]);
+  }, [selectedJunction]);
 
   // Center the map on the selected junction
   useEffect(() => {
@@ -128,126 +150,225 @@ export default function JunctionMap() {
     }
   }, [selectedJunction]);
 
-  // Get the current traffic light state and countdown
-  const getTrafficLightState = (
-    trafficLight: TrafficLight
-  ): TrafficLightState => {
-    if (!activePattern || !selectedJunction) {
-      return { status: "red", countdown: null };
-    }
+  // Draw the simulation on the canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !trafficLightState) return;
 
-    // Extract direction from location
-    const directionMatch = trafficLight.location.match(/hướng\s+([^\s]+)/);
-    const direction = directionMatch ? directionMatch[1] : null;
-    if (!direction) {
-      return { status: "red", countdown: null };
-    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    const cycleTime = activePattern.timingConfiguration.cycleTime;
-    const yellowTime = activePattern.timingConfiguration.yellowTime;
-    const allRedTime = activePattern.timingConfiguration.allRedTime || 0;
-    const phases = activePattern.timingConfiguration.phases;
+    // Fixed canvas size
+    const WINDOW_WIDTH = 375;
+    const WINDOW_HEIGHT = 375;
+    const LIGHT_RADIUS = 16; // Scaled from 15 * (375/350)
+    const LIGHT_POSITIONS = {
+      Bắc: {
+        red: [WINDOW_WIDTH / 2, 64], // 60 * (375/350)
+        yellow: [WINDOW_WIDTH / 2, 96], // 90 * (375/350)
+        green: [WINDOW_WIDTH / 2, 128], // 120 * (375/350)
+      },
+      Nam: {
+        red: [WINDOW_WIDTH / 2, WINDOW_HEIGHT - 128], // (350 - 120) * (375/350)
+        yellow: [WINDOW_WIDTH / 2, WINDOW_HEIGHT - 96], // (350 - 90) * (375/350)
+        green: [WINDOW_WIDTH / 2, WINDOW_HEIGHT - 64], // (350 - 60) * (375/350)
+      },
+      Đông: {
+        red: [WINDOW_WIDTH - 64, WINDOW_HEIGHT / 2 - 32], // 60 * (375/350), 30 * (375/350)
+        yellow: [WINDOW_WIDTH - 64, WINDOW_HEIGHT / 2], // 60 * (375/350)
+        green: [WINDOW_WIDTH - 64, WINDOW_HEIGHT / 2 + 32], // 60 * (375/350), 30 * (375/350)
+      },
+      Tây: {
+        red: [64, WINDOW_HEIGHT / 2 - 32], // 60 * (375/350), 30 * (375/350)
+        yellow: [64, WINDOW_HEIGHT / 2], // 60 * (375/350)
+        green: [64, WINDOW_HEIGHT / 2 + 32], // 60 * (375/350), 30 * (375/350)
+      },
+    };
 
-    // Find the phase for this direction
-    const phase = phases.find((p: Phase) => p.direction === direction);
-    if (!phase) {
-      return { status: "red", countdown: null };
-    }
+    const COUNTDOWN_POSITIONS = {
+      Bắc: [WINDOW_WIDTH / 2 + 43, 96], // (WINDOW_WIDTH / 2 + 40) * (375/350), 90 * (375/350)
+      Nam: [WINDOW_WIDTH / 2 + 43, WINDOW_HEIGHT - 96], // (WINDOW_WIDTH / 2 + 40) * (375/350), (350 - 90) * (375/350)
+      Đông: [WINDOW_WIDTH - 30, WINDOW_HEIGHT / 2], // (375 - 40) * (375/350)
+      Tây: [100, WINDOW_HEIGHT / 2], // 100 * (375/350)
+    };
 
-    const startTime = phase.startTime;
-    const greenTime = phase.greenTime;
-    const greenEnd = startTime + greenTime;
-    const yellowEnd = greenEnd + yellowTime;
+    // Colors
+    const RED = "rgb(255, 0, 0)";
+    const YELLOW = "rgb(255, 255, 0)";
+    const GREEN = "rgb(0, 255, 0)";
+    const DIM_RED = "rgb(150, 0, 0)";
+    const DIM_YELLOW = "rgb(150, 150, 0)";
+    const DIM_GREEN = "rgb(0, 150, 0)";
+    const WHITE = "rgb(255, 255, 255)";
+    const BLACK = "rgb(0, 0, 0)";
 
-    let status = "red";
-    let countdown: number | null = null;
+    // Clear the canvas
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    // Determine the state based on currentTime
-    if (currentTime >= startTime && currentTime < greenEnd) {
-      status = "green";
-      countdown = greenEnd - currentTime;
-    } else if (currentTime >= greenEnd && currentTime < yellowEnd) {
-      status = "yellow";
-      countdown = yellowEnd - currentTime;
-    } else {
-      status = "red";
-      // Calculate the time until the next green phase starts
-      let timeToNextGreen = 0;
-      if (currentTime >= yellowEnd) {
-        // After yellow, calculate remaining time in the cycle plus the time to the next start
-        timeToNextGreen = cycleTime - currentTime + startTime;
-      } else {
-        // Before the phase starts, countdown to the start time
-        timeToNextGreen = startTime - currentTime;
+    // Draw labels
+    const labels = ["Bắc", "Nam", "Đông", "Tây"];
+    const labelPositions = [
+      [WINDOW_WIDTH / 2, 32], // 30 * (375/350)
+      [WINDOW_WIDTH / 2, WINDOW_HEIGHT - 160], // (350 - 150) * (375/350)
+      [WINDOW_WIDTH - 32, WINDOW_HEIGHT / 2 - 64], // (350 - 30) * (375/350), 60 * (375/350)
+      [32, WINDOW_HEIGHT / 2 - 64], // 30 * (375/350), 60 * (375/350)
+    ];
+
+    ctx.font = "17px 'Cascadia Code'"; // Scaled from 16 * (375/350)
+    ctx.fillStyle = BLACK;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    labels.forEach((label, index) => {
+      ctx.fillText(label, labelPositions[index][0], labelPositions[index][1]);
+    });
+
+    // Draw traffic lights and countdowns
+    for (const direction in LIGHT_POSITIONS) {
+      const positions = LIGHT_POSITIONS[direction];
+      const state = trafficLightState.lights_state[direction] || "red";
+
+      // Draw the lights
+      ctx.beginPath();
+      ctx.arc(positions.red[0], positions.red[1], LIGHT_RADIUS, 0, 2 * Math.PI);
+      ctx.fillStyle = state === "red" ? RED : DIM_RED;
+      ctx.fill();
+      ctx.strokeStyle = BLACK;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(
+        positions.yellow[0],
+        positions.yellow[1],
+        LIGHT_RADIUS,
+        0,
+        2 * Math.PI
+      );
+      ctx.fillStyle = state === "yellow" ? YELLOW : DIM_YELLOW;
+      ctx.fill();
+      ctx.strokeStyle = BLACK;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(
+        positions.green[0],
+        positions.green[1],
+        LIGHT_RADIUS,
+        0,
+        2 * Math.PI
+      );
+      ctx.fillStyle = state === "green" ? GREEN : DIM_GREEN;
+      ctx.fill();
+      ctx.strokeStyle = BLACK;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw countdown
+      const countdown = trafficLightState.countdowns[direction];
+      if (countdown !== null) {
+        ctx.fillStyle = BLACK;
+        ctx.fillText(
+          String(countdown),
+          COUNTDOWN_POSITIONS[direction][0],
+          COUNTDOWN_POSITIONS[direction][1]
+        );
       }
-
-      // Adjust for negative values (e.g., when currentTime is near the end of the cycle)
-      if (timeToNextGreen <= 0) {
-        timeToNextGreen += cycleTime;
-      }
-
-      countdown = timeToNextGreen;
     }
-
-    return { status, countdown };
-  };
+  }, [trafficLightState]);
 
   const handleJunctionSelect = (junction: Junction) => {
     setSelectedJunction(junction);
   };
 
-  // Get color based on traffic light status
-  const getTrafficLightColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "green":
-        return "bg-green-500";
-      case "yellow":
-        return "bg-yellow-500";
-      case "red":
-      default:
-        return "bg-red-500";
-    }
-  };
-
   // Get phase data for the table
   const getPhaseData = () => {
-    if (!activePattern) {
+    // If no junction is selected or no active pattern exists, return placeholder data
+    if (!selectedJunction || !activePattern) {
       return [
-        { bd: "00", green: 25, yellow: 3, red: 2, cycle: 30 },
-        { bd: "30", green: 25, yellow: 3, red: 2, cycle: 30 },
-        { bd: "00", green: 25, yellow: 3, red: 2, cycle: 30 },
-        { bd: "30", green: 25, yellow: 3, red: 2, cycle: 30 },
+        { bd: "-", green: "-", yellow: "-", red: "-", redDuration: "-" },
+        { bd: "-", green: "-", yellow: "-", red: "-", redDuration: "-" },
+        { bd: "-", green: "-", yellow: "-", red: "-", redDuration: "-" },
+        { bd: "-", green: "-", yellow: "-", red: "-", redDuration: "-" },
       ];
     }
 
     const phases = activePattern.timingConfiguration.phases;
     const yellowTime = activePattern.timingConfiguration.yellowTime;
     const allRedTime = activePattern.timingConfiguration.allRedTime || 0;
+    const cycleTime = activePattern.timingConfiguration.cycleTime;
 
     return phases.map((phase: Phase, index: number) => {
       const greenTime = phase.greenTime;
-      // Calculate the phase duration as the time until the next phase starts
-      const nextPhaseStartTime =
-        index + 1 < phases.length
-          ? phases[index + 1].startTime
-          : activePattern.timingConfiguration.cycleTime;
-      const cycle = nextPhaseStartTime - phase.startTime;
+      const startTime = phase.startTime;
+
+      // Calculate red duration as cycleTime - greenTime - yellowTime - allRedTime
+      const redDuration = cycleTime - greenTime - yellowTime - allRedTime;
+
       return {
         bd: String(phase.startTime).padStart(2, "0"),
         green: greenTime,
         yellow: yellowTime,
         red: allRedTime,
-        cycle: cycle,
+        redDuration: redDuration >= 0 ? redDuration : 0, // Ensure non-negative
       };
     });
   };
 
+  // Determine the current phase based on current_time
+  const getCurrentPhase = () => {
+    if (!activePattern || !trafficLightState) {
+      return {
+        phaseName: "Không xác định",
+        direction: "N/A",
+        timeRange: "N/A",
+      };
+    }
+
+    const currentTime = trafficLightState.current_time;
+    const phases = activePattern.timingConfiguration.phases;
+    const yellowTime = activePattern.timingConfiguration.yellowTime;
+    const allRedTime = activePattern.timingConfiguration.allRedTime || 0;
+
+    let currentPhase = null;
+    for (let i = 0; i < phases.length; i++) {
+      const phase = phases[i];
+      const startTime = phase.startTime;
+      const greenEnd = startTime + phase.greenTime;
+      const yellowEnd = greenEnd + yellowTime;
+      const phaseEnd = yellowEnd + allRedTime;
+
+      if (currentTime >= startTime && currentTime < phaseEnd) {
+        currentPhase = phase;
+        break;
+      }
+    }
+
+    if (!currentPhase) {
+      // If no phase matches, assume we're in the all-red period at the end of the cycle
+      // Use the last phase for display purposes
+      currentPhase = phases[phases.length - 1];
+    }
+
+    const { startHour, endHour } = activePattern.timingConfiguration.activeTime;
+    const timeRange = `${String(startHour).padStart(2, "0")}:00–${String(
+      endHour
+    ).padStart(2, "0")}:00`;
+
+    return {
+      phaseName: activePattern.patternName,
+      direction: currentPhase.direction,
+      timeRange: timeRange,
+    };
+  };
+
   return (
     <div className="flex flex-col h-[94vh] overflow-hidden bg-gray-900">
-      {/* Top Section: Mapbox Map and Table Side by Side */}
-      <div className="flex h-[65vh] bg-gray-800">
+      {/* Top Section: Mapbox Map and Simulation/Table Side by Side */}
+      <div className="flex h-[68vh] bg-gray-800">
         {/* Mapbox Map Section (Left Side) */}
-        <div className="w-3/4">
+        <div className="w-3/5">
           {selectedJunction ? (
             <Map
               ref={mapRef}
@@ -263,24 +384,26 @@ export default function JunctionMap() {
             >
               {selectedJunction.trafficLights.map(
                 (trafficLight: TrafficLight) => {
-                  const { status, countdown } =
-                    getTrafficLightState(trafficLight);
+                  // Extract direction from location
+                  const directionMatch =
+                    trafficLight.location.match(/hướng\s+([^\s]+)/);
+                  const direction = directionMatch
+                    ? directionMatch[1]
+                    : "Unknown";
                   return (
                     <Marker
                       key={trafficLight.trafficLightId}
                       longitude={Number(trafficLight.longitude)}
                       latitude={Number(trafficLight.latitude)}
-                      anchor="center"
+                      anchor="bottom" // Anchor the bottom of the speech bubble to the coordinates
                     >
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full ${getTrafficLightColor(
-                            status
-                          )} border-2 border-white shadow-md`}
-                        />
-                        <div className="mt-1 text-white font-bold text-sm bg-black bg-opacity-50 rounded px-1">
-                          {countdown !== null ? countdown : "-"}
+                      <div className="relative">
+                        {/* Speech Bubble Rectangle */}
+                        <div className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-md text-center min-w-[40px] max-w-[100px] break-words">
+                          {direction}
                         </div>
+                        {/* Speech Bubble Pointer (Triangle) */}
+                        <div className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6px] w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-blue-500" />
                       </div>
                     </Marker>
                   );
@@ -293,101 +416,163 @@ export default function JunctionMap() {
             </div>
           )}
         </div>
-        {/* Traffic Light Phase Table (Right Side) */}
-        <div className="w-1/4 p-4 overflow-y-auto">
-          <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
-            <thead>
-              <tr>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
-                  Pha
-                </th>
-                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
-                  BD
-                </th>
-                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
-                  X
-                </th>
-                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
-                  V
-                </th>
-                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
-                  TĐ
-                </th>
-                <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
-                  Chu kỳ
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {getPhaseData().map((phase, index) => (
-                <tr key={index}>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
-                    Pha {index + 1}
-                  </td>
-                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
-                    {phase.bd}
-                  </td>
-                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
-                    {phase.green}
-                  </td>
-                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
-                    {phase.yellow}
-                  </td>
-                  <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
-                    {phase.red}
-                  </td>
-                  <td className="border-2 border-gray-600 p-2 flex items-center justify-between">
-                    <div className="flex">
-                      <div
-                        className="bg-green-500 h-6"
-                        style={{
-                          width: `${(phase.green / phase.cycle) * 100}%`,
-                        }}
-                      />
-                      <div
-                        className="bg-yellow-500 h-6"
-                        style={{
-                          width: `${(phase.yellow / phase.cycle) * 100}%`,
-                        }}
-                      />
-                      <div
-                        className="bg-red-500 h-6"
-                        style={{
-                          width: `${
-                            ((phase.cycle - phase.green - phase.yellow) /
-                              phase.cycle) *
-                            100
-                          }%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-gray-300 ml-2">{phase.cycle}</span>
-                  </td>
+        {/* Simulation and Phase Table Section (Right Side) */}
+        <div className="w-2/5 p-4 flex flex-col overflow-y-auto custom-scrollbar">
+          {/* Traffic Light Simulation */}
+          <div className="mb-4 flex-1 flex items-center justify-center">
+            {selectedJunction ? (
+              connectionFailed ? (
+                <p className="text-red-400 text-center">
+                  Mất kết nối, đang thử lại...
+                </p>
+              ) : trafficLightState ? (
+                <canvas
+                  ref={canvasRef}
+                  width={375}
+                  height={375}
+                  className="border border-gray-600 mx-auto"
+                />
+              ) : (
+                <p className="text-gray-400 text-center">
+                  Đang tải trạng thái đèn giao thông...
+                </p>
+              )
+            ) : (
+              <p className="text-gray-400 text-center">
+                Chọn một nút giao để xem trạng thái đèn giao thông
+              </p>
+            )}
+          </div>
+          {/* Traffic Light Phase Table */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
+              <thead>
+                <tr>
+                  <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                    Pha
+                  </th>
+                  <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
+                    Bắt đầu
+                  </th>
+                  <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
+                    Xanh
+                  </th>
+                  <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
+                    Vàng
+                  </th>
+                  <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
+                    Đỏ chung
+                  </th>
+                  <th className="border-2 border-gray-600 p-2 text-center text-white bg-gray-700">
+                    Đỏ
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {selectedJunction && getPhaseData().length > 0 && (
-            <div className="mt-2 text-sm text-gray-300">
-              Tổng thời gian chu kỳ tính bằng:{" "}
-              {activePattern?.timingConfiguration.cycleTime} giây
-            </div>
-          )}
+              </thead>
+              <tbody>
+                {getPhaseData().map((phase, index) => (
+                  <tr key={index}>
+                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                      Pha {index + 1}
+                    </td>
+                    <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
+                      {phase.bd}
+                    </td>
+                    <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
+                      {phase.green}
+                    </td>
+                    <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
+                      {phase.yellow}
+                    </td>
+                    <td className="border-2 border-gray-600 p-2 text-center text-gray-300">
+                      {phase.red}
+                    </td>
+                    <td className="border-2 border-gray-600 p-2 flex items-center justify-between">
+                      {phase.redDuration === "-" ? (
+                        <span className="text-gray-300 w-full text-center">
+                          -
+                        </span>
+                      ) : (
+                        <>
+                          <div className="flex">
+                            <div
+                              className="bg-green-500 h-6"
+                              style={{
+                                width: `${
+                                  (Number(phase.green) /
+                                    (Number(phase.green) +
+                                      Number(phase.yellow) +
+                                      Number(phase.redDuration))) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                            <div
+                              className="bg-yellow-500 h-6"
+                              style={{
+                                width: `${
+                                  (Number(phase.yellow) /
+                                    (Number(phase.green) +
+                                      Number(phase.yellow) +
+                                      Number(phase.redDuration))) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                            <div
+                              className="bg-red-500 h-6"
+                              style={{
+                                width: `${
+                                  (Number(phase.redDuration) /
+                                    (Number(phase.green) +
+                                      Number(phase.yellow) +
+                                      Number(phase.redDuration))) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-gray-300 ml-2">
+                            {phase.redDuration}
+                          </span>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {selectedJunction && activePattern && getPhaseData().length > 0 && (
+              <div className="mt-2 text-sm text-gray-300">
+                Tổng thời gian chu kỳ:{" "}
+                {activePattern?.timingConfiguration.cycleTime} giây
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      {/* Bottom Section with Three Columns */}
-      <div className="flex h-[30vh] border-t border-gray-600">
+      {/* Bottom Section with Two Columns */}
+      <div className="flex h-[27vh] border-t border-gray-600">
         {/* Junction List */}
         <div className="w-1/2 border-r border-gray-600 p-4 overflow-hidden">
-          <h2 className="text-lg font-bold mb-2 text-white">
-            Danh sách nút giao
-          </h2>
-          <div className="h-[calc(100%-2rem)] overflow-y-auto">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-lg font-bold text-white">Danh sách nút giao</h2>
+            {/* Search Bar */}
+            <div className="w-[60%]">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm nút giao..."
+                className="w-full px-3 py-2 text-gray-300 bg-gray-800 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 placeholder-gray-500"
+              />
+            </div>
+          </div>
+          <div className="h-[calc(100%-2rem)] overflow-y-auto custom-scrollbar">
             {loading ? (
               <p className="text-gray-300">Đang tải...</p>
-            ) : junctions.length > 0 ? (
+            ) : filteredJunctions.length > 0 ? (
               <ul>
-                {junctions.map((junction) => (
+                {filteredJunctions.map((junction) => (
                   <li
                     key={junction.junctionId}
                     className={`p-2 cursor-pointer rounded ${
@@ -402,7 +587,7 @@ export default function JunctionMap() {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-300">Không có nút giao nào</p>
+              <p className="text-gray-300">Không tìm thấy nút giao phù hợp</p>
             )}
           </div>
         </div>
@@ -411,7 +596,7 @@ export default function JunctionMap() {
           <h2 className="text-lg font-bold mb-2 text-white">
             Thông tin nút giao
           </h2>
-          <div className="h-[calc(100%-2rem)] overflow-y-auto">
+          <div className="h-[calc(100%-2rem)] overflow-y-auto custom-scrollbar">
             {selectedJunction ? (
               <div className="text-gray-300">
                 <p>
@@ -430,11 +615,22 @@ export default function JunctionMap() {
                   <strong className="text-white">Vĩ độ: </strong>
                   {selectedJunction.latitude}
                 </p>
-                <Link href={`/junctions/${selectedJunction.junctionId}`}>
+                {/* Current Traffic Light Phase Information */}
+                <div className="mt-2">
+                  <p>
+                    <strong className="text-white">Pha đèn hiện tại: </strong>
+                    {getCurrentPhase().phaseName}
+                  </p>
+                  <p>
+                    <strong className="text-white">Khung giờ áp dụng: </strong>
+                    {getCurrentPhase().timeRange}
+                  </p>
+                </div>
+                {/* <Link href={`/junctions/${selectedJunction.junctionId}`}>
                   <button className="mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors">
                     Xem chi tiết
                   </button>
-                </Link>
+                </Link> */}
               </div>
             ) : (
               <p className="text-gray-300">
@@ -444,6 +640,15 @@ export default function JunctionMap() {
           </div>
         </div>
       </div>
+
+      {/* Custom Scrollbar Styles */}
+      <style jsx>{`
+        .custom-scrollbar {
+          /* Firefox */
+          scrollbar-width: thin;
+          scrollbar-color: #3b82f6 #101828;
+        }
+      `}</style>
     </div>
   );
 }

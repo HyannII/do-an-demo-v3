@@ -1,127 +1,105 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../../../../lib/auth";
+import prisma from "../../../../../lib/prisma";
 
 export async function PUT(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-  if (!id) {
+  const userId = params.id;
+  if (!userId) {
+    return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
+  }
+
+  if (session.user.role !== "Admin" && userId !== session.user.id) {
     return NextResponse.json(
-      { error: "ID người dùng không hợp lệ" },
+      { message: "Unauthorized to update this user" },
+      { status: 403 }
+    );
+  }
+
+  const { username, email, fullName, roleId, isActive } = await request.json();
+  if (!username || !email || !fullName) {
+    return NextResponse.json(
+      { message: "Missing required fields" },
       { status: 400 }
     );
   }
 
-  try {
-    const body = await request.json();
-    const { username, email, fullName, roleId, isActive } = body;
-
-    // Validate required fields
-    if (!username || !email || !fullName || !roleId) {
-      return NextResponse.json(
-        { error: "Thiếu các trường bắt buộc" },
-        { status: 400 }
-      );
+  const updateData: any = { username, email, fullName };
+  if (session.user.role === "Admin") {
+    if (roleId) {
+      const role = await prisma.role.findUnique({
+        where: { roleId: roleId },
+      });
+      if (!role) {
+        return NextResponse.json(
+          { message: "Role not found" },
+          { status: 400 }
+        );
+      }
+      updateData.roleId = roleId;
     }
-
-    // Validate user exists
-    const user = await prisma.user.findUnique({ where: { userId: id } });
-    if (!user) {
-      return NextResponse.json(
-        { error: "Không tìm thấy người dùng" },
-        { status: 400 }
-      );
-    }
-
-    // Validate role exists
-    const role = await prisma.role.findUnique({ where: { roleId } });
-    if (!role) {
-      return NextResponse.json(
-        { error: "Không tìm thấy vai trò" },
-        { status: 400 }
-      );
-    }
-
-    // Check for duplicate username or email (excluding current user)
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ username }, { email }],
-        NOT: { userId: id },
-      },
-    });
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Tên người dùng hoặc email đã tồn tại" },
-        { status: 400 }
-      );
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { userId: id },
-      data: {
-        username,
-        email,
-        fullName,
-        roleId,
-        isActive,
-      },
-      include: {
-        role: true,
-        trafficPatterns: true,
-      },
-    });
-
-    return NextResponse.json(updatedUser, { status: 200 });
-  } catch (error) {
-    console.error("Lỗi khi cập nhật người dùng:", error);
-    return NextResponse.json(
-      { error: "Không thể cập nhật người dùng" },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+    updateData.isActive = isActive !== undefined ? isActive : undefined;
   }
+
+  const user = await prisma.user.update({
+    where: { userId },
+    data: updateData,
+    include: { role: true },
+  });
+
+  return NextResponse.json({
+    userId: user.userId,
+    username: user.username,
+    email: user.email,
+    fullName: user.fullName,
+    roleId: user.roleId,
+    role: {
+      roleId: user.role.roleId,
+      roleName: user.role.roleName,
+      permissions: user.role.permissions,
+    },
+    isActive: user.isActive,
+    createdAt: user.createdAt.toISOString(),
+    trafficPatterns: user.trafficPatterns,
+  });
 }
 
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-  if (!id) {
+  const userId = params.id;
+  if (!userId) {
+    return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
+  }
+
+  if (session.user.role !== "Admin") {
     return NextResponse.json(
-      { error: "ID người dùng không hợp lệ" },
-      { status: 400 }
+      { message: "Only admins can delete users" },
+      { status: 403 }
     );
   }
 
-  try {
-    const user = await prisma.user.findUnique({ where: { userId: id } });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Không tìm thấy người dùng" },
-        { status: 400 }
-      );
-    }
-
-    await prisma.user.delete({
-      where: { userId: id },
-    });
-
-    return new NextResponse(null, { status: 204 });
-  } catch (error) {
-    console.error("Lỗi khi xóa người dùng:", error);
+  if (userId === session.user.id) {
     return NextResponse.json(
-      { error: "Không thể xóa người dùng" },
-      { status: 500 }
+      { message: "Cannot delete logged-in user" },
+      { status: 403 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
+
+  await prisma.user.delete({ where: { userId } });
+  return new NextResponse(null, { status: 204 });
 }

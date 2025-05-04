@@ -3,45 +3,88 @@
 import React, { useState, useEffect } from "react";
 import { User, Role } from "../../../../../types/interface";
 
+interface PasswordFormData {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+  adminPassword?: string;
+}
+
+interface CreateFormData {
+  username: string;
+  email: string;
+  fullName: string;
+  roleId: string;
+  isActive: boolean;
+  password?: string;
+}
+
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] =
+    useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [formData, setFormData] = useState({
+  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [formData, setFormData] = useState<CreateFormData>({
     username: "",
     email: "",
     fullName: "",
     roleId: "",
     isActive: true,
+    password: "",
+  });
+  const [passwordFormData, setPasswordFormData] = useState<PasswordFormData>({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+    adminPassword: "",
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
 
-  // Fetch users and roles on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersResponse, rolesResponse] = await Promise.all([
-          fetch("/api/users"),
-          fetch("/api/roles"),
-        ]);
+        const [loggedInUserResponse, usersResponse, rolesResponse] =
+          await Promise.all([
+            fetch("/api/auth/me"),
+            fetch("/api/users"),
+            fetch("/api/roles"),
+          ]);
 
-        if (!usersResponse.ok || !rolesResponse.ok) {
-          console.error("Failed to fetch data");
-          return;
+        if (
+          !loggedInUserResponse.ok ||
+          !usersResponse.ok ||
+          !rolesResponse.ok
+        ) {
+          throw new Error("Failed to fetch data");
         }
 
-        const usersData = await usersResponse.json();
-        const rolesData = await rolesResponse.json();
+        const loggedInUserData: User = await loggedInUserResponse.json();
+        const usersData: User[] = await usersResponse.json();
+        const rolesData: Role[] = await rolesResponse.json();
 
-        setUsers(usersData);
+        setLoggedInUser(loggedInUserData);
         setRoles(rolesData);
-      } catch (error) {
+
+        // Map roleId to roleName for filtering
+        const loggedInUserRole = rolesData.find(
+          (role) => role.roleId === loggedInUserData.roleId
+        );
+        const isAdmin = loggedInUserRole?.roleName === "Admin";
+        const filteredUsers = isAdmin
+          ? usersData
+          : usersData.filter((user) => user.roleId === loggedInUserData.roleId);
+        setUsers(filteredUsers);
+      } catch (error: any) {
         console.error("Error fetching data:", error);
+        alert(error.message);
       } finally {
         setLoading(false);
       }
@@ -50,14 +93,23 @@ export default function UserManagementPage() {
     fetchData();
   }, []);
 
-  // Handle checkbox selection
-  const handleSelectItem = (id: string) => {
+  const isAdmin = () => {
+    if (!loggedInUser || !roles.length) return false;
+    const userRole = roles.find((role) => role.roleId === loggedInUser.roleId);
+    return userRole?.roleName === "Admin";
+  };
+
+  const getRoleName = (roleId: string) => {
+    const role = roles.find((r) => r.roleId === roleId);
+    return role?.roleName || "N/A";
+  };
+
+  const handleSelectItem = (id: number) => {
     setSelectedItems((prev) =>
       prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
     );
   };
 
-  // Handle select all checkboxes
   const handleSelectAll = () => {
     const currentItems = users.slice(
       (currentPage - 1) * itemsPerPage,
@@ -66,12 +118,12 @@ export default function UserManagementPage() {
     if (selectedItems.length === currentItems.length) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(currentItems.map((item) => item.userId));
+      setSelectedItems(currentItems.map((item) => parseInt(item.userId)));
     }
   };
 
-  // Open modal for creating a new user
   const openCreateModal = () => {
+    if (!isAdmin()) return;
     setIsEditMode(false);
     setFormData({
       username: "",
@@ -79,16 +131,24 @@ export default function UserManagementPage() {
       fullName: "",
       roleId: "",
       isActive: true,
+      password: "",
     });
     setIsModalOpen(true);
   };
 
-  // Open modal for editing an existing user
   const openEditModal = () => {
     if (selectedItems.length !== 1) return;
 
-    const user = users.find((u) => u.userId === selectedItems[0]);
+    const user = users.find((u) => parseInt(u.userId) === selectedItems[0]);
     if (!user) return;
+
+    if (
+      !isAdmin() &&
+      parseInt(user.userId) !== parseInt(loggedInUser?.userId || "0")
+    ) {
+      alert("Bạn chỉ có thể chỉnh sửa thông tin của chính mình.");
+      return;
+    }
 
     setIsEditMode(true);
     setCurrentUser(user);
@@ -98,11 +158,35 @@ export default function UserManagementPage() {
       fullName: user.fullName,
       roleId: user.roleId,
       isActive: user.isActive,
+      password: "",
     });
     setIsModalOpen(true);
   };
 
-  // Handle form input changes
+  const openPasswordModal = () => {
+    if (selectedItems.length !== 1) return;
+
+    const user = users.find((u) => parseInt(u.userId) === selectedItems[0]);
+    if (!user) return;
+
+    if (
+      !isAdmin() &&
+      parseInt(user.userId) !== parseInt(loggedInUser?.userId || "0")
+    ) {
+      alert("Bạn chỉ có thể thay đổi mật khẩu của chính mình.");
+      return;
+    }
+
+    setCurrentUser(user);
+    setPasswordFormData({
+      oldPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+      adminPassword: "",
+    });
+    setIsPasswordModalOpen(true);
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -114,11 +198,27 @@ export default function UserManagementPage() {
     }));
   };
 
-  // Handle form submission for create/update
+  const handlePasswordInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setPasswordFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const method = isEditMode ? "PUT" : "POST";
     const url = isEditMode ? `/api/users/${currentUser?.userId}` : `/api/users`;
+
+    if (!isEditMode && !formData.password) {
+      alert("Vui lòng nhập mật khẩu cho người dùng mới.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch(url, {
@@ -130,15 +230,19 @@ export default function UserManagementPage() {
           fullName: formData.fullName,
           roleId: formData.roleId,
           isActive: formData.isActive,
-          // Note: passwordHash would typically be handled separately (e.g., during user creation)
+          ...(method === "POST" && { password: formData.password }),
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${isEditMode ? "update" : "create"} user`);
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message ||
+            `Failed to ${isEditMode ? "update" : "create"} user`
+        );
       }
 
-      const updatedUser = await response.json();
+      const updatedUser: User = await response.json();
       if (isEditMode) {
         setUsers(
           users.map((u) => (u.userId === updatedUser.userId ? updatedUser : u))
@@ -149,13 +253,67 @@ export default function UserManagementPage() {
 
       setIsModalOpen(false);
       setSelectedItems([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error saving user:`, error);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Handle delete selected users
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    if (passwordFormData.newPassword !== passwordFormData.confirmNewPassword) {
+      alert("Mật khẩu mới và xác nhận mật khẩu mới không khớp.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/users/${currentUser?.userId}/changePassword`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            oldPassword: isAdmin() ? undefined : passwordFormData.oldPassword,
+            newPassword: passwordFormData.newPassword,
+            adminPassword: isAdmin()
+              ? passwordFormData.adminPassword
+              : undefined,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to change password");
+      }
+
+      alert("Đổi mật khẩu thành công!");
+      setIsPasswordModalOpen(false);
+      setSelectedItems([]);
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDelete = async () => {
+    if (!isAdmin()) {
+      alert("Chỉ admin mới có quyền xóa người dùng.");
+      return;
+    }
+
+    if (selectedItems.includes(parseInt(loggedInUser?.userId || "0"))) {
+      alert("Không thể xóa tài khoản đang đăng nhập.");
+      return;
+    }
+
     if (
       !confirm(
         `Are you sure you want to delete ${selectedItems.length} selected users?`
@@ -163,6 +321,7 @@ export default function UserManagementPage() {
     )
       return;
 
+    setIsSubmitting(true);
     try {
       await Promise.all(
         selectedItems.map(async (id) => {
@@ -170,19 +329,26 @@ export default function UserManagementPage() {
             method: "DELETE",
           });
           if (!response.ok) {
-            throw new Error(`Failed to delete user with ID ${id}`);
+            const errorData = await response.json();
+            throw new Error(
+              errorData.message || `Failed to delete user with ID ${id}`
+            );
           }
         })
       );
 
-      setUsers(users.filter((u) => !selectedItems.includes(u.userId)));
+      setUsers(
+        users.filter((u) => !selectedItems.includes(parseInt(u.userId)))
+      );
       setSelectedItems([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error deleting users:`, error);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Pagination logic
   const totalItems = users.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -191,20 +357,20 @@ export default function UserManagementPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
-      {/* Main Content */}
       <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
         <h1 className="text-xl font-semibold text-white mb-4">
           Quản lý người dùng
         </h1>
 
-        {/* Action Buttons */}
         <div className="flex gap-2 mb-4">
-          <button
-            onClick={openCreateModal}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-          >
-            Thêm mới
-          </button>
+          {isAdmin() && (
+            <button
+              onClick={openCreateModal}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+            >
+              Thêm mới
+            </button>
+          )}
           <button
             onClick={openEditModal}
             className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
@@ -217,19 +383,31 @@ export default function UserManagementPage() {
             Chỉnh sửa
           </button>
           <button
-            onClick={handleDelete}
+            onClick={openPasswordModal}
             className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
-              selectedItems.length === 0
+              selectedItems.length !== 1
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:bg-blue-600"
             }`}
-            disabled={selectedItems.length === 0}
+            disabled={selectedItems.length !== 1}
           >
-            Xóa bỏ
+            Đổi mật khẩu
           </button>
+          {isAdmin() && (
+            <button
+              onClick={handleDelete}
+              className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+                selectedItems.length === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-blue-600"
+              }`}
+              disabled={selectedItems.length === 0 || isSubmitting}
+            >
+              Xóa bỏ
+            </button>
+          )}
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
             <thead>
@@ -283,8 +461,8 @@ export default function UserManagementPage() {
                     <td className="border-2 border-gray-600 p-2">
                       <input
                         type="checkbox"
-                        checked={selectedItems.includes(user.userId)}
-                        onChange={() => handleSelectItem(user.userId)}
+                        checked={selectedItems.includes(parseInt(user.userId))}
+                        onChange={() => handleSelectItem(parseInt(user.userId))}
                       />
                     </td>
                     <td className="border-2 border-gray-600 p-2 text-gray-300">
@@ -292,6 +470,8 @@ export default function UserManagementPage() {
                     </td>
                     <td className="border-2 border-gray-600 p-2 text-gray-300">
                       {user.username}
+                      {parseInt(user.userId) ===
+                        parseInt(loggedInUser?.userId || "0") && " (Bạn)"}
                     </td>
                     <td className="border-2 border-gray-600 p-2 text-gray-300">
                       {user.fullName}
@@ -300,8 +480,7 @@ export default function UserManagementPage() {
                       {user.email}
                     </td>
                     <td className="border-2 border-gray-600 p-2 text-gray-300">
-                      {roles.find((r) => r.roleId === user.roleId)?.roleName ||
-                        "N/A"}
+                      {getRoleName(user.roleId)}
                     </td>
                     <td className="border-2 border-gray-600 p-2 text-gray-300">
                       <span
@@ -331,7 +510,6 @@ export default function UserManagementPage() {
           </table>
         </div>
 
-        {/* Pagination */}
         <div className="flex justify-between items-center mt-4">
           <div className="flex gap-2">
             <button
@@ -361,7 +539,6 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      {/* Modal for Create/Edit User */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md">
@@ -404,6 +581,21 @@ export default function UserManagementPage() {
                   required
                 />
               </div>
+              {!isEditMode && (
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-1">
+                    Mật khẩu ban đầu
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+              )}
               <div className="mb-4">
                 <label className="block text-gray-300 mb-1">Vai trò</label>
                 <select
@@ -412,6 +604,7 @@ export default function UserManagementPage() {
                   onChange={handleInputChange}
                   className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
                   required
+                  disabled={!isAdmin()}
                 >
                   <option value="">Chọn vai trò</option>
                   {roles.map((role) => (
@@ -432,6 +625,7 @@ export default function UserManagementPage() {
                     checked={formData.isActive}
                     onChange={handleInputChange}
                     className="mr-2"
+                    disabled={!isAdmin()}
                   />
                   Hoạt động
                 </label>
@@ -446,9 +640,97 @@ export default function UserManagementPage() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                  disabled={isSubmitting}
+                  className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors ${
+                    isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  {isEditMode ? "Cập nhật" : "Thêm"}
+                  {isSubmitting
+                    ? "Đang xử lý..."
+                    : isEditMode
+                    ? "Cập nhật"
+                    : "Thêm"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold text-white mb-4">Đổi mật khẩu</h2>
+            <form onSubmit={handlePasswordSubmit}>
+              {!isAdmin() && (
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-1">
+                    Mật khẩu cũ
+                  </label>
+                  <input
+                    type="password"
+                    name="oldPassword"
+                    value={passwordFormData.oldPassword}
+                    onChange={handlePasswordInputChange}
+                    className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+              )}
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-1">Mật khẩu mới</label>
+                <input
+                  type="password"
+                  name="newPassword"
+                  value={passwordFormData.newPassword}
+                  onChange={handlePasswordInputChange}
+                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-1">
+                  Xác nhận mật khẩu mới
+                </label>
+                <input
+                  type="password"
+                  name="confirmNewPassword"
+                  value={passwordFormData.confirmNewPassword}
+                  onChange={handlePasswordInputChange}
+                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+              {isAdmin() && (
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-1">
+                    Mật khẩu admin
+                  </label>
+                  <input
+                    type="password"
+                    name="adminPassword"
+                    value={passwordFormData.adminPassword}
+                    onChange={handlePasswordInputChange}
+                    className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              )}
+              <div className="flex justify-end mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="mr-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors ${
+                    isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {isSubmitting ? "Đang xử lý..." : "Cập nhật"}
                 </button>
               </div>
             </form>
