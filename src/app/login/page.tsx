@@ -9,6 +9,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
+  const pending = searchParams.get("pending");
 
   const [formData, setFormData] = useState({
     username: "",
@@ -16,7 +17,11 @@ export default function LoginPage() {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(
-    registered ? "Đăng ký thành công. Vui lòng đăng nhập." : ""
+    registered
+      ? pending
+        ? "Đăng ký thành công. Tài khoản của bạn đang chờ quản trị viên phê duyệt. Bạn sẽ nhận được thông báo khi tài khoản được kích hoạt."
+        : "Đăng ký thành công. Vui lòng đăng nhập."
+      : ""
   );
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +50,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Tên đăng nhập hoặc mật khẩu không chính xác");
+        if (result.error === "PENDING_APPROVAL") {
+          setError("Tài khoản của bạn đang chờ phê duyệt từ quản trị viên.");
+        } else {
+          setError("Tên đăng nhập hoặc mật khẩu không chính xác");
+        }
         return;
       }
 

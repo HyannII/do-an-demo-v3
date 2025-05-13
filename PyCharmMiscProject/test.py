@@ -258,7 +258,7 @@ COUNTDOWN_POSITIONS = {
 }
 
 # Font chữ cho thời gian và nhãn
-FONT = pygame.font.SysFont("Cascadia Code", 20)
+FONT = pygame.font.SysFont("Arial", 30)
 
 # Hàm vẽ đèn giao thông
 def draw_traffic_light(positions, active_color):

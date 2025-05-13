@@ -82,6 +82,9 @@ model User {
   roleId          String
   createdAt       DateTime         @default(now())
   isActive        Boolean          @default(true)
+  isPending       Boolean          @default(true)
+  pendingApproval DateTime?
+  approvedBy      String?
   trafficPatterns TrafficPattern[]
   role            Role             @relation(fields: [roleId], references: [roleId])
 }

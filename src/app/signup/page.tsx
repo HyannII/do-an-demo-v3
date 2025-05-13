@@ -15,7 +15,7 @@ export default function SignupPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [adminRoleId, setAdminRoleId] = useState<string | null>(null); // State để lưu roleId của Admin
+  const [defaultRoleId, setDefaultRoleId] = useState<string | null>(null); // State for default role
   const [fetchError, setFetchError] = useState(""); // State để lưu lỗi khi fetch roles
 
   // Fetch roles từ API khi component mount
@@ -28,16 +28,21 @@ export default function SignupPage() {
         }
 
         const roles = await response.json();
-        // Tìm role có roleName là "Admin"
-        const adminRole = roles.find((role: any) => role.roleName === "Admin");
-
-        if (!adminRole) {
-          throw new Error("Không tìm thấy role Admin");
+        // Try to find the Guest role first (as it's typically for new users)
+        let defaultRole = roles.find((role: any) => role.roleName === "Guest");
+        
+        // If no Guest role exists, try to find any role
+        if (!defaultRole && roles.length > 0) {
+          defaultRole = roles[0];
         }
 
-        setAdminRoleId(adminRole.roleId); // Lưu roleId của Admin
+        if (!defaultRole) {
+          throw new Error("Không tìm thấy role mặc định");
+        }
+
+        setDefaultRoleId(defaultRole.roleId); // Set default role ID
       } catch (error: any) {
-        setFetchError(error.message || "Không thể lấy role Admin");
+        setFetchError(error.message || "Không thể lấy role mặc định");
       }
     };
 
@@ -52,9 +57,9 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Kiểm tra xem adminRoleId đã được lấy chưa
-    if (!adminRoleId) {
-      setError("Không thể xác định role Admin. Vui lòng thử lại sau.");
+    // Kiểm tra xem defaultRoleId đã được lấy chưa
+    if (!defaultRoleId) {
+      setError("Không thể xác định role mặc định. Vui lòng thử lại sau.");
       return;
     }
 
@@ -87,7 +92,7 @@ export default function SignupPage() {
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
-          roleId: adminRoleId, // Sử dụng roleId của Admin
+          roleId: defaultRoleId, // Use default role ID
         }),
       });
 
@@ -97,7 +102,7 @@ export default function SignupPage() {
         throw new Error(data.message || "Đăng ký thất bại");
       }
 
-      router.push("/login?registered=true");
+      router.push("/login?registered=true&pending=true");
     } catch (error: any) {
       setError(error.message || "Đã có lỗi xảy ra. Vui lòng thử lại sau.");
     } finally {
@@ -220,7 +225,7 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            disabled={loading || !adminRoleId} // Vô hiệu hóa nút nếu chưa lấy được roleId
+            disabled={loading || !defaultRoleId} // Vô hiệu hóa nút nếu chưa lấy được roleId
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
           >
             {loading ? "Đang xử lý..." : "Đăng ký"}

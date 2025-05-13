@@ -57,5 +57,27 @@ export interface User {
   roleId: string;
   createdAt: Date;
   isActive: boolean;
+  isPending: boolean;
+  pendingApproval?: Date | string;
+  approvedBy?: string;
   trafficPatterns: TrafficPattern[];
+}
+
+export interface CameraData {
+  dataId: string;
+  cameraId: string;
+  timestamp: Date;
+  motorcycleCount: number;
+  carCount: number;
+  truckCount: number;
+  busCount: number;
+}
+
+export interface CameraDataSummary {
+  cameraId: string;
+  totalMotorcycleCount: number;
+  totalCarCount: number;
+  totalTruckCount: number;
+  totalBusCount: number;
+  entries: CameraData[];
 }

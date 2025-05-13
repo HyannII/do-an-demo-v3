@@ -99,6 +99,12 @@ export const navItems: NavItem[] = [
       },
       {
         type: "link",
+        title: "Phê duyệt người dùng",
+        href: "/users/pending",
+        icon: <FileText className="w-4 h-4" />,
+      },
+      {
+        type: "link",
         title: "Phân quyền",
         href: "/users/roles",
         icon: <KeyRound className="w-4 h-4" />,

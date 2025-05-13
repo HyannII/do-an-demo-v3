@@ -33,6 +33,12 @@ export const authOptions: NextAuthOptions = {
           console.log("User not found or inactive:", user);
           return null;
         }
+        
+        // Check if user is pending approval
+        if (user.isPending) {
+          console.log("User is pending approval:", user.username);
+          throw new Error("PENDING_APPROVAL");
+        }
 
         const passwordMatch = await compare(
           credentials.password,

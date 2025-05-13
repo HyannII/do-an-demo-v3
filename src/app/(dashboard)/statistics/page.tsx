@@ -25,67 +25,64 @@ ChartJS.register(
   Legend
 );
 
-// Vehicle types
-const vehicleTypes = ["Xe máy", "Xe thô sơ", "Xe con", "Xe tải", "Xe khách"];
-
-// Colors for different vehicle types
+// Vehicle types and colors
+const vehicleTypes = ["Xe máy", "Xe con", "Xe tải", "Xe khách"];
 const vehicleColors = [
   "rgba(255, 99, 132, 0.8)", // Xe máy
-  "rgba(54, 162, 235, 0.8)", // Xe thô sơ
   "rgba(255, 206, 86, 0.8)", // Xe con
   "rgba(75, 192, 192, 0.8)", // Xe tải
   "rgba(153, 102, 255, 0.8)", // Xe khách
 ];
 
-// Sample data for hourly vehicle stats
-const sampleHourlyStats = Array.from({ length: 24 }, (_, i) => ({
-  time: `${i.toString().padStart(2, "0")}:00`,
-  motorbike: Math.floor(Math.random() * 50) + 20, // Random data for motorbikes (20-70)
-  bicycle: Math.floor(Math.random() * 10) + 5, // Random data for bicycles (5-15)
-  car: Math.floor(Math.random() * 30) + 10, // Random data for cars (10-40)
-  truck: Math.floor(Math.random() * 20) + 5, // Random data for trucks (5-25)
-  bus: Math.floor(Math.random() * 15) + 3, // Random data for buses (3-18)
-}));
+// Period options for data display
+const periodOptions = [
+  { value: "today", label: "Hôm nay" },
+  { value: "week", label: "Tuần này" },
+  { value: "month", label: "Tháng này" },
+  { value: "year", label: "Năm nay" },
+];
 
-// Sample data for total vehicle stats
-const sampleTotalStats = sampleHourlyStats.reduce(
-  (acc, stat) => ({
-    motorbike: acc.motorbike + stat.motorbike,
-    bicycle: acc.bicycle + stat.bicycle,
-    car: acc.car + stat.car,
-    truck: acc.truck + stat.truck,
-    bus: acc.bus + stat.bus,
-  }),
-  { motorbike: 0, bicycle: 0, car: 0, truck: 0, bus: 0 }
-);
+// Interface for our statistics data
+interface StatisticsData {
+  cameraId: string;
+  period: string;
+  totalMotorcycleCount: number;
+  totalCarCount: number;
+  totalTruckCount: number;
+  totalBusCount: number;
+  hourlyData: {
+    time: string;
+    motorcycleCount: number;
+    carCount: number;
+    truckCount: number;
+    busCount: number;
+  }[];
+  dailyData: {
+    date: string;
+    motorcycleCount: number;
+    carCount: number;
+    truckCount: number;
+    busCount: number;
+  }[];
+}
 
-// Sample data structure for vehicle stats (commented out dynamic fields)
-// interface HourlyVehicleStats {
-//   time: string; // e.g., "00:00", "01:00", ..., "23:00"
-//   motorbike: number; // Number of motorbikes at this time
-//   bicycle: number; // Number of bicycles at this time
-//   car: number; // Number of cars at this time
-//   truck: number; // Number of trucks at this time
-//   bus: number; // Number of buses at this time
-// }
-
-// interface TotalVehicleStats {
-//   motorbike: number; // Total motorbikes in the day
-//   bicycle: number; // Total bicycles in the day
-//   car: number; // Total cars in the day
-//   truck: number; // Total trucks in the day
-//   bus: number; // Total buses in the day
-// }
+// Get GMT+7 date
+const getGMT7Date = (date = new Date()) => {
+  // Create date with GMT+7 offset (7 hours * 60 minutes * 60 seconds * 1000 milliseconds)
+  const gmtOffset = 7 * 60 * 60 * 1000;
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
+  return new Date(utc + gmtOffset);
+};
 
 export default function StatisticsPage() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
-  const [selectedJunction, setSelectedJunction] = useState<Junction | null>(
-    null
-  );
+  const [selectedJunction, setSelectedJunction] = useState<Junction | null>(null);
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
   const [loading, setLoading] = useState<boolean>(true);
-  const [hourlyStats, setHourlyStats] = useState<any[]>(sampleHourlyStats);
-  const [totalStats, setTotalStats] = useState<any | null>(sampleTotalStats);
+  const [dataLoading, setDataLoading] = useState<boolean>(false);
+  const [statisticsData, setStatisticsData] = useState<StatisticsData | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(getGMT7Date());
 
   // Fetch junctions on component mount
   useEffect(() => {
@@ -111,79 +108,277 @@ export default function StatisticsPage() {
     fetchJunctions();
   }, []);
 
+  // Function to fetch statistics data
+  const fetchStatisticsData = async (cameraId: string, period: string) => {
+    setDataLoading(true);
+    try {
+      // Add timestamp parameter to bust cache
+      const timestamp = Date.now();
+      const response = await fetch(`/api/cameras/${cameraId}/statistics?period=${period}&timestamp=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error("Failed to fetch statistics data", response.status);
+        return;
+      }
+      const data = await response.json();
+      setStatisticsData(data);
+      setLastUpdated(getGMT7Date());
+      
+      console.log(`Statistics data updated at ${getGMT7Date().toISOString()} (GMT+7) for period ${period}`);
+      if (data && data.totalMotorcycleCount !== undefined) {
+        console.log(`Total counts - Motorcycles: ${data.totalMotorcycleCount}, Cars: ${data.totalCarCount}, Trucks: ${data.totalTruckCount}, Buses: ${data.totalBusCount}`);
+      }
+    } catch (error) {
+      console.error("Error fetching statistics data:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  // Manually force refresh data
+  const handleForceRefresh = () => {
+    if (selectedCamera) {
+      fetchStatisticsData(selectedCamera.cameraId, selectedPeriod);
+    }
+  };
+
+  // Fetch statistics data when camera or period changes
+  useEffect(() => {
+    if (!selectedCamera) {
+      setStatisticsData(null);
+      return;
+    }
+
+    fetchStatisticsData(selectedCamera.cameraId, selectedPeriod);
+  }, [selectedCamera, selectedPeriod]);
+
   // Handle junction selection
   const handleJunctionSelect = (junction: Junction) => {
     setSelectedJunction(junction);
     setSelectedCamera(null); // Reset selected camera when changing junctions
+    setStatisticsData(null);  // Clear statistics data
   };
 
   // Handle camera selection
   const handleCameraSelect = (camera: Camera) => {
     setSelectedCamera(camera);
-    setHourlyStats(sampleHourlyStats);
-    setTotalStats(sampleTotalStats);
   };
 
-  // Prepare data for the line chart
-  const lineChartData = {
-    labels: hourlyStats.map((stat) => stat.time),
-    datasets: vehicleTypes.map((type, index) => ({
-      label: type,
-      data: hourlyStats.map((stat) => {
-        switch (type) {
-          case "Xe máy":
-            return stat.motorbike;
-          case "Xe thô sơ":
-            return stat.bicycle;
-          case "Xe con":
-            return stat.car;
-          case "Xe tải":
-            return stat.truck;
-          case "Xe khách":
-            return stat.bus;
-          default:
-            return 0;
-        }
+  // Handle period selection
+  const handlePeriodChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedPeriod(event.target.value);
+  };
+
+  // Determine chart data based on selected period
+  const getChartData = () => {
+    if (!statisticsData) return null;
+
+    // For today, use hourly data
+    if (selectedPeriod === "today") {
+      return {
+        labels: statisticsData.hourlyData.map((data) => data.time),
+        datasets: [
+          {
+            label: "Xe máy",
+            data: statisticsData.hourlyData.map((data) => data.motorcycleCount),
+            borderColor: vehicleColors[0],
+            backgroundColor: vehicleColors[0],
+            fill: false,
+          },
+          {
+            label: "Xe con",
+            data: statisticsData.hourlyData.map((data) => data.carCount),
+            borderColor: vehicleColors[1],
+            backgroundColor: vehicleColors[1],
+            fill: false,
+          },
+          {
+            label: "Xe tải",
+            data: statisticsData.hourlyData.map((data) => data.truckCount),
+            borderColor: vehicleColors[2],
+            backgroundColor: vehicleColors[2],
+            fill: false,
+          },
+          {
+            label: "Xe khách",
+            data: statisticsData.hourlyData.map((data) => data.busCount),
+            borderColor: vehicleColors[3],
+            backgroundColor: vehicleColors[3],
+            fill: false,
+          },
+        ],
+      };
+    }
+    
+    // For week, month, year, use daily data
+    return {
+      labels: statisticsData.dailyData.map((data) => {
+        // Format the date more nicely for display
+        const date = new Date(data.date);
+        return date.toLocaleDateString('vi-VN');
       }),
-      borderColor: vehicleColors[index],
-      backgroundColor: vehicleColors[index],
-      fill: false,
-    })),
+      datasets: [
+        {
+          label: "Xe máy",
+          data: statisticsData.dailyData.map((data) => data.motorcycleCount),
+          borderColor: vehicleColors[0],
+          backgroundColor: vehicleColors[0],
+          fill: false,
+        },
+        {
+          label: "Xe con",
+          data: statisticsData.dailyData.map((data) => data.carCount),
+          borderColor: vehicleColors[1],
+          backgroundColor: vehicleColors[1],
+          fill: false,
+        },
+        {
+          label: "Xe tải",
+          data: statisticsData.dailyData.map((data) => data.truckCount),
+          borderColor: vehicleColors[2],
+          backgroundColor: vehicleColors[2],
+          fill: false,
+        },
+        {
+          label: "Xe khách",
+          data: statisticsData.dailyData.map((data) => data.busCount),
+          borderColor: vehicleColors[3],
+          backgroundColor: vehicleColors[3],
+          fill: false,
+        },
+      ],
+    };
   };
 
   // Prepare data for the pie chart
-  const pieChartData = totalStats
-    ? {
-        labels: vehicleTypes,
-        datasets: [
-          {
-            data: [
-              totalStats.motorbike,
-              totalStats.bicycle,
-              totalStats.car,
-              totalStats.truck,
-              totalStats.bus,
-            ],
-            backgroundColor: vehicleColors,
-            borderColor: vehicleColors.map((color) =>
-              color.replace("0.8", "1")
-            ),
-            borderWidth: 1,
-          },
-        ],
-      }
-    : { labels: [], datasets: [] };
+  const getPieChartData = () => {
+    if (!statisticsData) return null;
+
+    return {
+      labels: vehicleTypes,
+      datasets: [
+        {
+          data: [
+            statisticsData.totalMotorcycleCount,
+            statisticsData.totalCarCount,
+            statisticsData.totalTruckCount,
+            statisticsData.totalBusCount,
+          ],
+          backgroundColor: vehicleColors,
+          borderColor: vehicleColors.map((color) => color.replace("0.8", "1")),
+          borderWidth: 1,
+        },
+      ],
+    };
+  };
+
+  // Get chart title based on period
+  const getChartTitle = () => {
+    switch (selectedPeriod) {
+      case "today":
+        return "Số lượng xe theo giờ trong ngày";
+      case "week":
+        return "Số lượng xe theo ngày trong tuần này";
+      case "month":
+        return "Số lượng xe theo ngày trong tháng này";
+      case "year":
+        return "Số lượng xe theo ngày trong năm nay";
+      default:
+        return "Số lượng xe theo thời gian";
+    }
+  };
+
+  // Get period label for pie chart
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case "today":
+        return "hôm nay";
+      case "week":
+        return "tuần này";
+      case "month":
+        return "tháng này";
+      case "year":
+        return "năm nay";
+      default:
+        return "hôm nay";
+    }
+  };
+
+  // Format time for the last updated timestamp
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('vi-VN', { 
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'Asia/Bangkok' // Use GMT+7 timezone
+    });
+  };
+
+  const lineChartData = getChartData();
+  const pieChartData = getPieChartData();
 
   return (
     <div className="flex flex-col h-[94vh] overflow-hidden bg-white dark:bg-gray-900">
+      {/* Header with period selector */}
+      <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Thống kê giao thông
+          </h1>
+          <div className="flex items-center gap-4">
+            {selectedCamera && (
+              <>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Chọn thời gian:
+                </span>
+                <select
+                  className="p-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  value={selectedPeriod}
+                  onChange={handlePeriodChange}
+                >
+                  {periodOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  onClick={handleForceRefresh}
+                  className="p-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Làm mới dữ liệu"
+                  disabled={dataLoading}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className={dataLoading ? "animate-spin" : ""}>
+                    <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                  </svg>
+                </button>
+              </>
+            )}
+            {dataLoading && (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Đang tải...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Charts Section */}
-      <div className="flex h-[64vh] bg-gray-100 dark:bg-gray-800">
+      <div className="flex h-[60vh] bg-gray-100 dark:bg-gray-800">
         {/* Line Chart: Vehicle Count Over Time */}
         <div className="w-3/5 p-12 border-r border-gray-200 dark:border-gray-800">
           <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Số lượng xe theo thời gian trong ngày
+            {getChartTitle()}
           </h2>
-          {hourlyStats.length > 0 ? (
+          {lineChartData ? (
             <Line
               data={lineChartData}
               options={{
@@ -193,7 +388,7 @@ export default function StatisticsPage() {
                   x: {
                     title: {
                       display: true,
-                      text: "Thời gian",
+                      text: selectedPeriod === "today" ? "Giờ" : "Ngày",
                       color: "white",
                     },
                     ticks: {
@@ -228,18 +423,24 @@ export default function StatisticsPage() {
               height={400}
             />
           ) : (
-            <p className="text-gray-700 dark:text-gray-300">
-              Chọn một camera để xem thống kê
-            </p>
+            <div className="flex justify-center items-center h-full">
+              <p className="text-gray-700 dark:text-gray-300">
+                {!selectedCamera 
+                  ? "Chọn một camera để xem thống kê"
+                  : dataLoading 
+                    ? "Đang tải dữ liệu..."
+                    : "Không có dữ liệu cho giai đoạn này"}
+              </p>
+            </div>
           )}
         </div>
 
         {/* Pie Chart: Vehicle Type Distribution */}
         <div className="w-2/5 p-12">
           <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Tỉ lệ loại xe trong ngày
+            Tỉ lệ loại xe {getPeriodLabel()}
           </h2>
-          {totalStats ? (
+          {pieChartData ? (
             <Pie
               data={pieChartData}
               options={{
@@ -254,20 +455,76 @@ export default function StatisticsPage() {
                   },
                 },
               }}
-              height={400}
+              height={300}
             />
           ) : (
-            <p className="text-gray-700 dark:text-gray-300">
-              Chọn một camera để xem thống kê
-            </p>
+            <div className="flex justify-center items-center h-full">
+              <p className="text-gray-700 dark:text-gray-300">
+                {!selectedCamera 
+                  ? "Chọn một camera để xem thống kê"
+                  : dataLoading 
+                    ? "Đang tải dữ liệu..."
+                    : "Không có dữ liệu cho giai đoạn này"}
+              </p>
+            </div>
+          )}
+
+          {statisticsData && (
+            <div className="mt-6">
+              <h3 className="text-md font-semibold mb-2 text-gray-900 dark:text-white">
+                Tổng số phương tiện {getPeriodLabel()}
+              </h3>
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Xe máy</p>
+                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {statisticsData.totalMotorcycleCount.toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Xe con</p>
+                    <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {statisticsData.totalCarCount.toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Xe tải</p>
+                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                      {statisticsData.totalTruckCount.toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Xe khách</p>
+                    <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                      {statisticsData.totalBusCount.toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 border-t pt-2 text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Tổng số</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {(
+                      statisticsData.totalMotorcycleCount +
+                      statisticsData.totalCarCount +
+                      statisticsData.totalTruckCount +
+                      statisticsData.totalBusCount
+                    ).toLocaleString('vi-VN')}
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs text-right text-gray-500 dark:text-gray-400 mt-2">
+                Cập nhật lúc: {formatTime(lastUpdated)}
+              </div>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Camera Selection Section */}
-      <div className="flex h-[30vh] border-t border-gray-200 dark:border-gray-800">
+      {/* Bottom Section with Two Columns */}
+      <div className="flex h-[29vh] border-t border-gray-200 dark:border-gray-800">
         {/* Junction List */}
-        <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 p-4 overflow-hidden">
+        <div className="w-1/2 border-r border-gray-200 dark:border-gray-800 p-4 overflow-hidden">
           <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
             Danh sách nút giao
           </h2>
@@ -299,7 +556,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Camera List */}
-        <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 p-4 overflow-hidden">
+        <div className="w-1/2 p-4 overflow-hidden">
           <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
             Danh sách camera
           </h2>
@@ -324,54 +581,9 @@ export default function StatisticsPage() {
               </ul>
             ) : (
               <p className="text-gray-700 dark:text-gray-300">
-                Không có camera nào cho nút giao này
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Camera Details */}
-        <div className="w-1/3 p-4 overflow-hidden">
-          <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Thông tin camera
-          </h2>
-          <div className="h-[calc(100%-2rem)] overflow-y-auto">
-            {selectedCamera ? (
-              <div className="text-gray-700 dark:text-gray-300">
-                <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Tên camera:
-                  </strong>{" "}
-                  {selectedCamera.cameraName}
-                </p>
-                <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Vị trí:
-                  </strong>{" "}
-                  {selectedCamera.location}
-                </p>
-                <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Kinh độ:
-                  </strong>{" "}
-                  {selectedCamera.longitude}
-                </p>
-                <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Vĩ độ:
-                  </strong>{" "}
-                  {selectedCamera.latitude}
-                </p>
-                <p>
-                  <strong className="text-gray-900 dark:text-white">
-                    Trạng thái:
-                  </strong>{" "}
-                  {selectedCamera.isActive ? "Hoạt động" : "Không hoạt động"}
-                </p>
-              </div>
-            ) : (
-              <p className="text-gray-700 dark:text-gray-300">
-                Chọn một camera để xem thông tin
+                {selectedJunction
+                  ? "Không có camera nào cho nút giao này"
+                  : "Chọn một nút giao để xem danh sách camera"}
               </p>
             )}
           </div>

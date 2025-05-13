@@ -24,7 +24,7 @@ export async function PUT(
     );
   }
 
-  const { username, email, fullName, roleId, isActive } = await request.json();
+  const { username, email, fullName, roleId, isActive, isPending } = await request.json();
   if (!username || !email || !fullName) {
     return NextResponse.json(
       { message: "Missing required fields" },
@@ -47,6 +47,16 @@ export async function PUT(
       updateData.roleId = roleId;
     }
     updateData.isActive = isActive !== undefined ? isActive : undefined;
+    
+    // Handle approval status changes
+    if (isPending !== undefined) {
+      updateData.isPending = isPending;
+      
+      // If admin is approving the user
+      if (isPending === false) {
+        updateData.approvedBy = session.user.id;
+      }
+    }
   }
 
   const user = await prisma.user.update({
@@ -67,6 +77,9 @@ export async function PUT(
       permissions: user.role.permissions,
     },
     isActive: user.isActive,
+    isPending: user.isPending,
+    pendingApproval: user.pendingApproval?.toISOString(),
+    approvedBy: user.approvedBy,
     createdAt: user.createdAt.toISOString(),
     trafficPatterns: user.trafficPatterns,
   });

@@ -27,6 +27,9 @@ export async function GET() {
         permissions: user.role.permissions,
       },
       isActive: user.isActive,
+      isPending: user.isPending,
+      pendingApproval: user.pendingApproval?.toISOString(),
+      approvedBy: user.approvedBy,
       createdAt: user.createdAt.toISOString(),
       trafficPatterns: user.trafficPatterns,
     }))
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { username, email, fullName, roleId, isActive, password } =
+  const { username, email, fullName, roleId, isActive, password, isPending } =
     await request.json();
   if (!username || !email || !fullName || !roleId || !password) {
     return NextResponse.json(
@@ -72,6 +75,10 @@ export async function POST(request: Request) {
       roleId: roleId,
       isActive,
       passwordHash,
+      // Set approval status (default to false if isPending is undefined)
+      isPending: isPending ?? false,
+      pendingApproval: isPending ? new Date() : null,
+      approvedBy: isPending ? null : session.user.id,
     },
     include: { role: true },
   });
@@ -89,6 +96,9 @@ export async function POST(request: Request) {
         permissions: user.role.permissions,
       },
       isActive: user.isActive,
+      isPending: user.isPending,
+      pendingApproval: user.pendingApproval?.toISOString(),
+      approvedBy: user.approvedBy,
       createdAt: user.createdAt.toISOString(),
       trafficPatterns: user.trafficPatterns,
     },
