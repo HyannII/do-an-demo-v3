@@ -14,11 +14,13 @@ export default function LiveCamera() {
   const [cameraData, setCameraData] = useState<CameraDataSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [dataLoading, setDataLoading] = useState<boolean>(false);
+  const [videoLoading, setVideoLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [streamError, setStreamError] = useState<string | null>(null);
   const [isAutoQuality, setIsAutoQuality] = useState<boolean>(true);
   const [qualityLevels, setQualityLevels] = useState<{ height: number; bitrate: number; level: number }[]>([]);
   const [wasDocumentHidden, setWasDocumentHidden] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,6 +98,8 @@ export default function LiveCamera() {
       hlsRef.current.destroy();
     }
 
+    setVideoLoading(true);
+    
     try {
       // Create new HLS instance with optimized config
       const hls = new Hls(hlsConfig);
@@ -172,12 +176,14 @@ export default function LiveCamera() {
         }
         // Reset recovery attempts counter when fragments are successfully buffered
         recoveryAttempts.current = 0;
+        setVideoLoading(false);
       });
 
       return hls;
     } catch (error) {
       console.error("Error initializing HLS:", error);
       setStreamError("Lỗi khởi tạo trình phát video.");
+      setVideoLoading(false);
       return null;
     }
   }, [streamError]);
@@ -221,6 +227,7 @@ export default function LiveCamera() {
           // Reset stream error and recovery attempts
           setStreamError(null);
           recoveryAttempts.current = 0;
+          setVideoLoading(true); // Set video as loading while we reinitialize
           
           // Re-initialize the HLS player
           const hls = initializeHlsPlayer(video, selectedCamera.cameraAddress);
@@ -269,6 +276,8 @@ export default function LiveCamera() {
         return;
       }
       const data = await response.json();
+      
+      // Update data without showing loading state
       setCameraData(data);
       setLastUpdated(getGMT7Date());
 
@@ -323,11 +332,22 @@ export default function LiveCamera() {
   const handleJunctionSelect = (junction: Junction) => {
     setSelectedJunction(junction);
     setSelectedCamera(null); // Reset selected camera when changing junctions
-    setCameraData(null);     // Clear camera data
+    setCameraData(null);     // Clear camera data when junction changes
   };
 
   const handleCameraSelect = (camera: Camera) => {
+    // Keep any previous data if changing to a camera of the same type
+    // This prevents the table from disappearing during camera switch
+    const keepingPreviousData = selectedCamera && cameraData;
+    
     setSelectedCamera(camera);
+    setVideoLoading(true); // Set video as loading when a new camera is selected
+    
+    // Don't clear camera data immediately when switching between cameras
+    // Let the data update naturally with the next fetch instead
+    if (!keepingPreviousData) {
+      setCameraData(null);
+    }
   };
 
   // Format time for the last updated timestamp in GMT+7
@@ -339,6 +359,48 @@ export default function LiveCamera() {
       timeZone: 'Asia/Bangkok' // Use GMT+7 timezone
     });
   };
+
+  // Add a new function to toggle play/pause
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused || video.ended) {
+      video.play().then(() => setIsPlaying(true)).catch(e => console.error("Error playing video:", e));
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  // Function to toggle fullscreen
+  const toggleFullscreen = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(err => console.error("Error exiting fullscreen:", err));
+    } else {
+      video.requestFullscreen().catch(err => console.error("Error requesting fullscreen:", err));
+    }
+  };
+
+  // Update isPlaying state when video plays or pauses
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+    };
+  }, [selectedCamera]);
 
   return (
     <div className="flex flex-col h-[94vh] overflow-hidden bg-white dark:bg-gray-900">
@@ -352,7 +414,6 @@ export default function LiveCamera() {
                 <video
                   ref={videoRef}
                   id="hls-video"
-                  controls
                   autoPlay
                   muted
                   playsInline
@@ -360,6 +421,37 @@ export default function LiveCamera() {
                 >
                   Your browser does not support the video tag.
                 </video>
+                
+                {/* Custom Video Controls - Play Button at bottom left */}
+                <div className="absolute bottom-4 left-4">
+                  <button 
+                    onClick={togglePlay}
+                    className="text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors focus:outline-none"
+                  >
+                    {isPlaying ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                
+                {/* Fullscreen Button at bottom right */}
+                <div className="absolute bottom-4 right-4">
+                  <button 
+                    onClick={toggleFullscreen}
+                    className="text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors focus:outline-none"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
+                    </svg>
+                  </button>
+                </div>
+                
                 {streamError && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
                     <div className="text-white text-center p-4">
@@ -370,6 +462,7 @@ export default function LiveCamera() {
                           if (selectedCamera && videoRef.current) {
                             setStreamError(null);
                             recoveryAttempts.current = 0;
+                            setVideoLoading(true); // Show loading indicator when retrying
                             const hls = initializeHlsPlayer(videoRef.current, selectedCamera.cameraAddress);
                             if (hls) {
                               hlsRef.current = hls;
@@ -383,7 +476,7 @@ export default function LiveCamera() {
                     </div>
                   </div>
                 )}
-                {!streamError && dataLoading && (
+                {!streamError && videoLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
                     <div className="text-white text-center">
                       <div className="inline-block w-8 h-8 border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent rounded-full animate-spin mb-2"></div>
@@ -427,13 +520,13 @@ export default function LiveCamera() {
             </div>
           </div>
           
-          {dataLoading && !cameraData ? (
-            <div className="flex justify-center items-center h-40">
-              <span className="text-gray-500 dark:text-gray-400">Đang tải dữ liệu...</span>
-            </div>
-          ) : !selectedCamera ? (
+          {!selectedCamera ? (
             <div className="flex justify-center items-center h-40">
               <span className="text-gray-500 dark:text-gray-400">Chọn camera để xem dữ liệu</span>
+            </div>
+          ) : !cameraData ? (
+            <div className="flex justify-center items-center h-40">
+              <span className="text-gray-500 dark:text-gray-400">Không có dữ liệu</span>
             </div>
           ) : (
             <>
@@ -497,9 +590,9 @@ export default function LiveCamera() {
               <div className="mt-2 text-xs text-right text-gray-500 dark:text-gray-400 flex items-center justify-end">
                 <span className="mr-1">
                   {dataLoading ? (
-                    <span className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse mr-1"></span>
+                    <span className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse mr-1" title="Đang cập nhật dữ liệu"></span>
                   ) : (
-                    <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+                    <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1" title="Dữ liệu đã cập nhật"></span>
                   )}
                 </span>
                 Cập nhật lúc: {formatTime(lastUpdated)}
@@ -613,11 +706,6 @@ export default function LiveCamera() {
                   </strong>{" "}
                   {selectedCamera.isActive ? "Hoạt động" : "Không hoạt động"}
                 </p>
-                <Link href={`/cameras/${selectedCamera.cameraId}`}>
-                  <button className="mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
-                    Xem chi tiết
-                  </button>
-                </Link>
               </div>
             ) : (
               <p className="text-gray-700 dark:text-gray-300">
