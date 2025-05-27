@@ -53,9 +53,16 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
       const filtered = schedules.filter(
         (schedule) => schedule.junctionId === selectedJunctionId
       );
-      setFilteredSchedules(filtered);
+      // Sort so active schedules appear first
+      const sorted = filtered.sort((a, b) => {
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+        return 0;
+      });
+      setFilteredSchedules(sorted);
     } else {
-      setFilteredSchedules(schedules);
+      // Don't show any schedules when no junction is selected
+      setFilteredSchedules([]);
     }
   }, [selectedJunctionId, schedules]);
 
@@ -171,14 +178,22 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
 
       const savedSchedule = await response.json();
 
-      if (editingSchedule) {
-        setSchedules((prev) =>
-          prev.map((s) =>
-            s.scheduleId === editingSchedule.scheduleId ? savedSchedule : s
-          )
-        );
+      // Refetch all schedules to ensure other schedules in the same junction are updated
+      const schedulesResponse = await fetch("/api/schedules");
+      if (schedulesResponse.ok) {
+        const updatedSchedules = await schedulesResponse.json();
+        setSchedules(updatedSchedules);
       } else {
-        setSchedules((prev) => [...prev, savedSchedule]);
+        // Fallback: update local state
+        if (editingSchedule) {
+          setSchedules((prev) =>
+            prev.map((s) =>
+              s.scheduleId === editingSchedule.scheduleId ? savedSchedule : s
+            )
+          );
+        } else {
+          setSchedules((prev) => [...prev, savedSchedule]);
+        }
       }
 
       resetForm();
@@ -298,11 +313,19 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
     currentStatus: boolean
   ) => {
     try {
+      const scheduleToUpdate = schedules.find(
+        (s) => s.scheduleId === scheduleId
+      );
+      if (!scheduleToUpdate) {
+        alert("Không tìm thấy lịch trình!");
+        return;
+      }
+
       const response = await fetch(`/api/schedules/${scheduleId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...schedules.find((s) => s.scheduleId === scheduleId),
+          ...scheduleToUpdate,
           isActive: !currentStatus,
         }),
       });
@@ -311,10 +334,18 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
         throw new Error("Failed to toggle schedule status");
       }
 
-      const updatedSchedule = await response.json();
-      setSchedules((prev) =>
-        prev.map((s) => (s.scheduleId === scheduleId ? updatedSchedule : s))
-      );
+      // Refetch all schedules to ensure other schedules in the same junction are updated
+      const schedulesResponse = await fetch("/api/schedules");
+      if (schedulesResponse.ok) {
+        const updatedSchedules = await schedulesResponse.json();
+        setSchedules(updatedSchedules);
+      } else {
+        // Fallback: just update the current schedule
+        const updatedSchedule = await response.json();
+        setSchedules((prev) =>
+          prev.map((s) => (s.scheduleId === scheduleId ? updatedSchedule : s))
+        );
+      }
     } catch (error) {
       console.error("Error toggling schedule status:", error);
       alert("Có lỗi xảy ra khi thay đổi trạng thái lịch trình!");
@@ -359,110 +390,157 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
 
       {/* Schedule List */}
       <div className="space-y-4">
-        {filteredSchedules.map((schedule) => (
-          <div
-            key={schedule.scheduleId}
-            className="bg-gray-800 p-4 rounded-lg"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  {schedule.scheduleName}
-                </h3>
-                <p className="text-gray-400 text-sm">
-                  Chế độ: {schedule.mode === "auto" ? "Tự động" : "Lên lịch"}
-                </p>
-                <p className="text-gray-400 text-sm">
-                  Trạng thái: {schedule.isActive ? "Hoạt động" : "Tạm dừng"}
-                </p>
-              </div>
-              <div className="space-x-2">
-                <button
-                  onClick={() =>
-                    handleToggleActive(schedule.scheduleId, schedule.isActive)
-                  }
-                  className={`${
-                    schedule.isActive
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-green-600 hover:bg-green-700"
-                  } text-white px-3 py-1 rounded`}
-                >
-                  {schedule.isActive ? "Tạm dừng" : "Kích hoạt"}
-                </button>
-                <button
-                  onClick={() => handleEdit(schedule)}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
-                >
-                  Sửa
-                </button>
-                <button
-                  onClick={() => handleDelete(schedule.scheduleId)}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                >
-                  Xóa
-                </button>
-              </div>
+        {!selectedJunctionId ? (
+          <div className="bg-gray-800 p-8 rounded-lg text-center">
+            <div className="text-gray-400 text-lg mb-2">
+              📍 Vui lòng chọn một nút giao để xem lịch trình
             </div>
+            <p className="text-gray-500 text-sm">
+              Chọn nút giao từ danh sách trên để hiển thị và quản lý các lịch
+              trình tương ứng
+            </p>
+          </div>
+        ) : filteredSchedules.length === 0 ? (
+          <div className="bg-gray-800 p-8 rounded-lg text-center">
+            <div className="text-gray-400 text-lg mb-2">
+              📅 Chưa có lịch trình nào
+            </div>
+            <p className="text-gray-500 text-sm mb-4">
+              Nút giao này chưa có lịch trình nào. Hãy tạo lịch trình mới.
+            </p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+            >
+              Tạo lịch trình đầu tiên
+            </button>
+          </div>
+        ) : (
+          filteredSchedules.map((schedule) => (
+            <div
+              key={schedule.scheduleId}
+              className={`p-4 rounded-lg relative ${
+                schedule.isActive
+                  ? "bg-gray-800 border-2 border-green-500"
+                  : "bg-gray-800"
+              }`}
+            >
+              {/* Active badge */}
+              {schedule.isActive && (
+                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                  ĐANG HOẠT ĐỘNG
+                </div>
+              )}
 
-            {/* Schedule Details */}
-            {schedule.mode === "auto" ? (
-              <div className="text-gray-300 text-sm">
-                <p>
-                  Pattern tự động:{" "}
-                  {trafficPatterns.find(
-                    (p) => p.patternId === schedule.autoPatternId
-                  )?.patternName || "Không tìm thấy"}
-                </p>
-              </div>
-            ) : (
-              <div className="text-gray-300 text-sm">
-                <p className="mb-2">Lịch trình theo ngày:</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {schedule.daySchedules.map((ds) => {
-                    const dayLabel = daysOfWeek.find(
-                      (d) => d.value === ds.dayOfWeek
-                    )?.label;
-
-                    return (
-                      <div
-                        key={ds.dayOfWeek}
-                        className="bg-gray-700 p-2 rounded"
-                      >
-                        <div className="font-medium mb-1">{dayLabel}</div>
-                        <div className="text-xs space-y-1">
-                          {ds.isActive ? (
-                            ds.timeSlots.map((slot) => {
-                              const pattern = trafficPatterns.find(
-                                (p) => p.patternId === slot.patternId
-                              );
-                              return (
-                                <div
-                                  key={slot.slotId}
-                                  className="bg-gray-600 p-1 rounded"
-                                >
-                                  <div className="text-yellow-300">
-                                    {slot.startTime} - {slot.endTime}
-                                  </div>
-                                  <div>
-                                    {pattern?.patternName || "Không có pattern"}
-                                  </div>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <span className="text-gray-500">
-                              Không hoạt động
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3
+                    className={`text-lg font-semibold ${
+                      schedule.isActive ? "text-green-400" : "text-white"
+                    }`}
+                  >
+                    {schedule.scheduleName}
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    Chế độ: {schedule.mode === "auto" ? "Tự động" : "Lên lịch"}
+                  </p>
+                  <p
+                    className={`text-sm ${
+                      schedule.isActive ? "text-green-300" : "text-gray-400"
+                    }`}
+                  >
+                    Trạng thái: {schedule.isActive ? "Hoạt động" : "Tạm dừng"}
+                  </p>
+                </div>
+                <div className="space-x-2">
+                  <button
+                    onClick={() =>
+                      handleToggleActive(schedule.scheduleId, schedule.isActive)
+                    }
+                    className={`${
+                      schedule.isActive
+                        ? "bg-red-600 hover:bg-red-700"
+                        : "bg-green-600 hover:bg-green-700"
+                    } text-white px-3 py-1 rounded`}
+                  >
+                    {schedule.isActive ? "Tạm dừng" : "Kích hoạt"}
+                  </button>
+                  <button
+                    onClick={() => handleEdit(schedule)}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => handleDelete(schedule.scheduleId)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                  >
+                    Xóa
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Schedule Details */}
+              {schedule.mode === "auto" ? (
+                <div className="text-gray-300 text-sm">
+                  <p>
+                    Pattern tự động:{" "}
+                    {trafficPatterns.find(
+                      (p) => p.patternId === schedule.autoPatternId
+                    )?.patternName || "Không tìm thấy"}
+                  </p>
+                </div>
+              ) : (
+                <div className="text-gray-300 text-sm">
+                  <p className="mb-2">Lịch trình theo ngày:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {schedule.daySchedules.map((ds) => {
+                      const dayLabel = daysOfWeek.find(
+                        (d) => d.value === ds.dayOfWeek
+                      )?.label;
+
+                      return (
+                        <div
+                          key={ds.dayOfWeek}
+                          className="bg-gray-700 p-2 rounded"
+                        >
+                          <div className="font-medium mb-1">{dayLabel}</div>
+                          <div className="text-xs space-y-1">
+                            {ds.isActive ? (
+                              ds.timeSlots.map((slot) => {
+                                const pattern = trafficPatterns.find(
+                                  (p) => p.patternId === slot.patternId
+                                );
+                                return (
+                                  <div
+                                    key={slot.slotId}
+                                    className="bg-gray-600 p-1 rounded"
+                                  >
+                                    <div className="text-yellow-300">
+                                      {slot.startTime} - {slot.endTime}
+                                    </div>
+                                    <div>
+                                      {pattern?.patternName ||
+                                        "Không có pattern"}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <span className="text-gray-500">
+                                Không hoạt động
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
 
       {/* Form Modal */}

@@ -95,6 +95,19 @@ export async function PUT(
       }
     }
 
+    // If setting this schedule to active, deactivate all other schedules for the same junction
+    if (isActive) {
+      await prisma.scheduleConfig.updateMany({
+        where: {
+          junctionId: junctionId,
+          scheduleId: { not: id }, // Exclude current schedule
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    }
+
     const updatedSchedule = await prisma.scheduleConfig.update({
       where: { scheduleId: id },
       data: {

@@ -10,6 +10,14 @@ const defaultVehicles = {
   Tây: { xe_con: 0, xe_may: 0, xe_tai: 0, xe_khach: 0 },
 };
 
+const defaultTimingParams = {
+  minCycleTime: 60, // x - Thời gian chu kỳ tối thiểu (giây)
+  adjustmentFactor: 0.5, // a - Hệ số điều chỉnh (giây/PCU)
+  minGreenTime: 10, // y - Thời gian đèn xanh tối thiểu cho mỗi pha (giây)
+  yellowTime: 3, // Thời gian vàng cho mỗi pha (giây)
+  allRedTime: 3, // Thời gian đỏ toàn phần sau mỗi pha (giây)
+};
+
 const vehicleLabels = {
   xe_con: "Xe con",
   xe_may: "Xe máy",
@@ -17,14 +25,14 @@ const vehicleLabels = {
   xe_khach: "Xe khách",
 };
 
-function calculateTiming(vehicles: any) {
+function calculateTiming(vehicles: any, timingParams: any) {
   // Constants
   const PCU = { xe_con: 1.0, xe_may: 0.17, xe_tai: 1.48, xe_khach: 3.7 };
-  const x = 60; // min cycle time
-  const a = 0.5; // adjustment
-  const y = 10; // min green
-  const yellow_time = 3;
-  const all_red_time = 3;
+  const x = timingParams.minCycleTime;
+  const a = timingParams.adjustmentFactor;
+  const y = timingParams.minGreenTime;
+  const yellow_time = timingParams.yellowTime;
+  const all_red_time = timingParams.allRedTime;
   const num_phases = 4;
 
   // 1. Congestion
@@ -119,6 +127,7 @@ function calculateTiming(vehicles: any) {
 export default function SettingsPage() {
   const [tab, setTab] = useState<"account" | "timing">("account");
   const [vehicles, setVehicles] = useState<any>(defaultVehicles);
+  const [timingParams, setTimingParams] = useState<any>(defaultTimingParams);
   const [result, setResult] = useState<string[]>([]);
 
   return (
@@ -164,54 +173,195 @@ export default function SettingsPage() {
         )}
         {tab === "timing" && (
           <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-6">
               Tính toán thời gian đèn dựa trên số lượng phương tiện
             </h2>
             <form
-              className="space-y-4"
+              className="space-y-6"
               onSubmit={(e) => {
                 e.preventDefault();
-                setResult(calculateTiming(vehicles));
+                setResult(calculateTiming(vehicles, timingParams));
               }}
             >
-              {Object.keys(vehicles).map((dir) => (
-                <div
-                  key={dir}
-                  className="grid grid-cols-5 gap-4 items-center"
-                >
-                  <div className="font-semibold text-gray-800 dark:text-gray-200">
-                    {dir}
-                  </div>
-                  {Object.keys(vehicleLabels).map((type) => (
-                    <div key={type}>
-                      <label className="block text-xs text-gray-500 mb-1">
-                        {vehicleLabels[type]}
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={vehicles[dir][type]}
-                        onChange={(e) =>
-                          setVehicles((prev: any) => ({
-                            ...prev,
-                            [dir]: {
-                              ...prev[dir],
-                              [type]: parseInt(e.target.value) || 0,
-                            },
-                          }))
-                        }
-                        className="w-20 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
-                      />
+              {/* Section: Số lượng phương tiện */}
+              <div className="border-b border-gray-200 dark:border-gray-600 pb-6">
+                <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                  Số lượng phương tiện theo hướng
+                </h3>
+                <div className="space-y-4">
+                  {Object.keys(vehicles).map((dir) => (
+                    <div
+                      key={dir}
+                      className="grid grid-cols-5 gap-4 items-center"
+                    >
+                      <div className="font-semibold text-gray-800 dark:text-gray-200">
+                        {dir}
+                      </div>
+                      {Object.keys(vehicleLabels).map((type) => (
+                        <div key={type}>
+                          <label className="block text-xs text-gray-500 mb-1">
+                            {vehicleLabels[type]}
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={vehicles[dir][type]}
+                            onChange={(e) =>
+                              setVehicles((prev: any) => ({
+                                ...prev,
+                                [dir]: {
+                                  ...prev[dir],
+                                  [type]: parseInt(e.target.value) || 0,
+                                },
+                              }))
+                            }
+                            className="w-20 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
-              ))}
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-              >
-                Tính toán
-              </button>
+              </div>
+
+              {/* Section: Tham số tính toán */}
+              <div className="pb-6">
+                <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-2">
+                  Tham số tính toán thời gian đèn
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Điều chỉnh các tham số dưới đây để tối ưu hóa thuật toán tính
+                  toán thời gian đèn giao thông
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Thời gian chu kỳ tối thiểu (x) - giây
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Thời gian chu kỳ tối thiểu cho một chu kỳ đèn hoàn chỉnh
+                    </p>
+                    <input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={timingParams.minCycleTime}
+                      onChange={(e) =>
+                        setTimingParams((prev: any) => ({
+                          ...prev,
+                          minCycleTime: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Hệ số điều chỉnh (a) - giây/PCU
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Hệ số tính toán chu kỳ dựa trên mật độ giao thông (PCU)
+                    </p>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      value={timingParams.adjustmentFactor}
+                      onChange={(e) =>
+                        setTimingParams((prev: any) => ({
+                          ...prev,
+                          adjustmentFactor: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Thời gian đèn xanh tối thiểu cho mỗi pha (y) - giây
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Thời gian đèn xanh tối thiểu để đảm bảo an toàn giao thông
+                    </p>
+                    <input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={timingParams.minGreenTime}
+                      onChange={(e) =>
+                        setTimingParams((prev: any) => ({
+                          ...prev,
+                          minGreenTime: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Thời gian vàng cho mỗi pha - giây
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Thời gian đèn vàng cảnh báo trước khi chuyển sang đỏ
+                    </p>
+                    <input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={timingParams.yellowTime}
+                      onChange={(e) =>
+                        setTimingParams((prev: any) => ({
+                          ...prev,
+                          yellowTime: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Thời gian đỏ toàn phần sau mỗi pha - giây
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Thời gian tất cả đèn đỏ để đảm bảo khoảng trống an toàn
+                      khi chuyển pha
+                    </p>
+                    <input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={timingParams.allRedTime}
+                      onChange={(e) =>
+                        setTimingParams((prev: any) => ({
+                          ...prev,
+                          allRedTime: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Tính toán thời gian đèn
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimingParams(defaultTimingParams)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Reset về mặc định
+                </button>
+              </div>
             </form>
             {result.length > 0 && (
               <div className="mt-6">

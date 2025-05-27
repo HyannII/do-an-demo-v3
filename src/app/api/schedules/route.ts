@@ -113,6 +113,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // If creating an active schedule, deactivate all other schedules for the same junction
+    if (isActive) {
+      await prisma.scheduleConfig.updateMany({
+        where: {
+          junctionId: junctionId,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    }
+
     const schedule = await prisma.scheduleConfig.create({
       data: {
         junctionId,
