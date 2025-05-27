@@ -31,16 +31,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { junctionId, patternName, timingConfiguration, createdByUserId } =
-      body;
+    const { junctionId, patternName, timingConfiguration } = body;
 
     // Validate required fields
-    if (
-      !junctionId ||
-      !patternName ||
-      !timingConfiguration ||
-      !createdByUserId
-    ) {
+    if (!junctionId || !patternName || !timingConfiguration) {
       return NextResponse.json(
         { error: "Thiếu các trường bắt buộc" },
         { status: 400 }
@@ -58,25 +52,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate user exists
-    const user = await prisma.user.findUnique({
-      where: { userId: createdByUserId },
-    });
-    if (!user) {
-      return NextResponse.json(
-        { error: "Không tìm thấy người dùng" },
-        { status: 400 }
-      );
-    }
-
-    // Validate timingConfiguration structure (basic validation)
+    // Validate timingConfiguration structure for Gantt chart
     if (
-      !timingConfiguration.activeTime ||
-      !timingConfiguration.cycleTime ||
+      !timingConfiguration.cycleDuration ||
       !Array.isArray(timingConfiguration.phases)
     ) {
       return NextResponse.json(
         { error: "Cấu trúc timingConfiguration không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    // Use a default user for now (you can implement proper authentication later)
+    const defaultUser = await prisma.user.findFirst({
+      where: { isActive: true },
+    });
+
+    if (!defaultUser) {
+      return NextResponse.json(
+        { error: "Không tìm thấy người dùng mặc định" },
         { status: 400 }
       );
     }
@@ -86,7 +80,7 @@ export async function POST(request: NextRequest) {
         junctionId,
         patternName,
         timingConfiguration,
-        createdByUserId,
+        createdByUserId: defaultUser.userId,
         createdAt: new Date(),
       },
       include: {

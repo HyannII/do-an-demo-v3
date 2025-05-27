@@ -433,16 +433,45 @@ async function main() {
       junctionId: junction6.junctionId,
       patternName: "Morning Traffic Pattern",
       timingConfiguration: {
+        cycleDuration: 120,
         phases: [
-          { direction: "Bắc", greenTime: 25, startTime: 0 },
-          { direction: "Nam", greenTime: 20, startTime: 30 },
-          { direction: "Đông", greenTime: 15, startTime: 55 },
-          { direction: "Tây", greenTime: 10, startTime: 75 },
+          {
+            phaseId: "phase1",
+            phaseName: "Pha Bắc-Nam",
+            startTime: 0,
+            duration: 30,
+            isActive: true,
+            lightStates: {
+              [trafficLight7.trafficLightId]: "green",
+              [trafficLight8.trafficLightId]: "red",
+              [trafficLight9.trafficLightId]: "green",
+            },
+          },
+          {
+            phaseId: "phase2",
+            phaseName: "Pha Đông-Tây",
+            startTime: 30,
+            duration: 25,
+            isActive: true,
+            lightStates: {
+              [trafficLight7.trafficLightId]: "red",
+              [trafficLight8.trafficLightId]: "green",
+              [trafficLight9.trafficLightId]: "red",
+            },
+          },
+          {
+            phaseId: "phase3",
+            phaseName: "Pha Chuyển Tiếp",
+            startTime: 55,
+            duration: 15,
+            isActive: true,
+            lightStates: {
+              [trafficLight7.trafficLightId]: "yellow",
+              [trafficLight8.trafficLightId]: "yellow",
+              [trafficLight9.trafficLightId]: "yellow",
+            },
+          },
         ],
-        cycleTime: 90,
-        activeTime: { startHour: 6, endHour: 12 },
-        allRedTime: 2,
-        yellowTime: 3,
       },
       createdAt: new Date("2025-05-03T07:29:15.031Z"),
       createdByUserId: user7.userId,
@@ -455,16 +484,45 @@ async function main() {
       junctionId: junction6.junctionId,
       patternName: "Afternoon Traffic Pattern",
       timingConfiguration: {
+        cycleDuration: 100,
         phases: [
-          { direction: "Bắc", greenTime: 25, startTime: 0 },
-          { direction: "Nam", greenTime: 20, startTime: 30 },
-          { direction: "Đông", greenTime: 15, startTime: 55 },
-          { direction: "Tây", greenTime: 10, startTime: 75 },
+          {
+            phaseId: "phase1",
+            phaseName: "Pha Chính",
+            startTime: 0,
+            duration: 40,
+            isActive: true,
+            lightStates: {
+              [trafficLight7.trafficLightId]: "green",
+              [trafficLight8.trafficLightId]: "red",
+              [trafficLight9.trafficLightId]: "green",
+            },
+          },
+          {
+            phaseId: "phase2",
+            phaseName: "Pha Phụ",
+            startTime: 40,
+            duration: 35,
+            isActive: true,
+            lightStates: {
+              [trafficLight7.trafficLightId]: "red",
+              [trafficLight8.trafficLightId]: "green",
+              [trafficLight9.trafficLightId]: "red",
+            },
+          },
+          {
+            phaseId: "phase3",
+            phaseName: "Pha Nghỉ",
+            startTime: 75,
+            duration: 25,
+            isActive: false,
+            lightStates: {
+              [trafficLight7.trafficLightId]: "red",
+              [trafficLight8.trafficLightId]: "red",
+              [trafficLight9.trafficLightId]: "red",
+            },
+          },
         ],
-        cycleTime: 90,
-        activeTime: { startHour: 12, endHour: 18 },
-        allRedTime: 2,
-        yellowTime: 3,
       },
       createdAt: new Date("2025-05-03T07:29:15.031Z"),
       createdByUserId: user7.userId,
@@ -474,49 +532,52 @@ async function main() {
   await prisma.trafficPattern.create({
     data: {
       patternId: "2e402070-6c95-48b1-a41f-414fa3a46687",
-      junctionId: junction6.junctionId,
+      junctionId: junction1.junctionId,
       patternName: "Evening Traffic Pattern",
       timingConfiguration: {
+        cycleDuration: 90,
         phases: [
-          { direction: "Bắc", greenTime: 25, startTime: 0 },
-          { direction: "Nam", greenTime: 20, startTime: 30 },
-          { direction: "Đông", greenTime: 15, startTime: 55 },
-          { direction: "Tây", greenTime: 10, startTime: 75 },
+          {
+            phaseId: "phase1",
+            phaseName: "Pha Cao Điểm",
+            startTime: 0,
+            duration: 45,
+            isActive: true,
+            lightStates: {
+              [trafficLight1.trafficLightId]: "green",
+              [trafficLight2.trafficLightId]: "red",
+            },
+          },
+          {
+            phaseId: "phase2",
+            phaseName: "Pha Thường",
+            startTime: 45,
+            duration: 30,
+            isActive: true,
+            lightStates: {
+              [trafficLight1.trafficLightId]: "red",
+              [trafficLight2.trafficLightId]: "green",
+            },
+          },
+          {
+            phaseId: "phase3",
+            phaseName: "Pha Chuyển Tiếp",
+            startTime: 75,
+            duration: 15,
+            isActive: true,
+            lightStates: {
+              [trafficLight1.trafficLightId]: "yellow",
+              [trafficLight2.trafficLightId]: "yellow",
+            },
+          },
         ],
-        cycleTime: 90,
-        activeTime: { startHour: 18, endHour: 24 },
-        allRedTime: 2,
-        yellowTime: 3,
       },
       createdAt: new Date("2025-05-03T07:29:15.031Z"),
       createdByUserId: user7.userId,
     },
   });
 
-  // Thêm Night Traffic Pattern (00:00–06:00)
-  await prisma.trafficPattern.create({
-    data: {
-      patternId: "f1a2b3c4-d5e6-4f7a-8b9c-0a1b2c3d4e5f",
-      junctionId: junction6.junctionId,
-      patternName: "Night Traffic Pattern",
-      timingConfiguration: {
-        phases: [
-          { direction: "Bắc", greenTime: 20, startTime: 0 },
-          { direction: "Nam", greenTime: 15, startTime: 25 },
-          { direction: "Đông", greenTime: 10, startTime: 45 },
-          { direction: "Tây", greenTime: 10, startTime: 60 },
-        ],
-        cycleTime: 75,
-        activeTime: { startHour: 0, endHour: 6 },
-        allRedTime: 2,
-        yellowTime: 3,
-      },
-      createdAt: new Date("2025-05-03T07:29:15.031Z"),
-      createdByUserId: user7.userId,
-    },
-  });
-
-  console.log("Seeded 4 traffic patterns");
+  console.log("Seeded 3 traffic patterns");
 
   // Seed dữ liệu mẫu cho bảng CameraData
   await prisma.cameraData.create({
@@ -580,6 +641,91 @@ async function main() {
   });
 
   console.log("Seeded 5 camera data entries");
+
+  // Seed dữ liệu cho ScheduleConfig
+  await prisma.scheduleConfig.create({
+    data: {
+      scheduleId: "1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6",
+      junctionId: junction1.junctionId, // Ngã tư Kim Mã
+      scheduleName: "Lịch trình tự động Kim Mã",
+      mode: "auto",
+      autoPatternId: "2e402070-6c95-48b1-a41f-414fa3a46687", // Evening Traffic Pattern
+      daySchedules: [],
+      createdByUserId: user1.userId,
+      isActive: true,
+      createdAt: new Date("2025-05-27T04:00:00.000Z"),
+    },
+  });
+
+  await prisma.scheduleConfig.create({
+    data: {
+      scheduleId: "2b3c4d5e-6f7g-8h9i-0j1k-l2m3n4o5p6q7",
+      junctionId: junction2.junctionId, // Ngã tư Láng Hạ
+      scheduleName: "Lịch trình theo tuần Láng Hạ",
+      mode: "schedule",
+      autoPatternId: null,
+      daySchedules: [
+        {
+          dayOfWeek: 1, // Thứ 2
+          timeSlots: [
+            {
+              slotId: "slot_1_1",
+              patternId: "2e402070-6c95-48b1-a41f-414fa3a46687",
+              startTime: "06:00",
+              endTime: "09:00",
+              isActive: true,
+            },
+            {
+              slotId: "slot_1_2",
+              patternId: "eabe5e98-da62-488f-9c90-758bf9d0762e",
+              startTime: "09:00",
+              endTime: "17:00",
+              isActive: true,
+            },
+            {
+              slotId: "slot_1_3",
+              patternId: "2e402070-6c95-48b1-a41f-414fa3a46687",
+              startTime: "17:00",
+              endTime: "22:00",
+              isActive: true,
+            },
+          ],
+          isActive: true,
+        },
+        {
+          dayOfWeek: 2, // Thứ 3
+          timeSlots: [
+            {
+              slotId: "slot_2_1",
+              patternId: "eabe5e98-da62-488f-9c90-758bf9d0762e",
+              startTime: "06:00",
+              endTime: "22:00",
+              isActive: true,
+            },
+          ],
+          isActive: true,
+        },
+        {
+          dayOfWeek: 0, // Chủ nhật
+          timeSlots: [
+            {
+              slotId: "slot_0_1",
+              patternId: "eabe5e98-da62-488f-9c90-758bf9d0762e",
+              startTime: "08:00",
+              endTime: "20:00",
+              isActive: true,
+            },
+          ],
+          isActive: true,
+        },
+      ],
+      createdByUserId: user2.userId,
+      isActive: true,
+      createdAt: new Date("2025-05-27T04:30:00.000Z"),
+    },
+  });
+
+  console.log("Seeded 2 schedule configs");
 }
 
 main()

@@ -11,25 +11,19 @@ export async function PUT(
 
   if (!id) {
     return NextResponse.json(
-      { error: "ID m?u giao thông không h?p l?" },
+      { error: "ID mẫu giao thông không hợp lệ" },
       { status: 400 }
     );
   }
 
   try {
     const body = await request.json();
-    const { junctionId, patternName, timingConfiguration, createdByUserId } =
-      body;
+    const { junctionId, patternName, timingConfiguration } = body;
 
     // Validate required fields
-    if (
-      !junctionId ||
-      !patternName ||
-      !timingConfiguration ||
-      !createdByUserId
-    ) {
+    if (!junctionId || !patternName || !timingConfiguration) {
       return NextResponse.json(
-        { error: "Thi?u các tru?ng b?t bu?c" },
+        { error: "Thiếu các trường bắt buộc" },
         { status: 400 }
       );
     }
@@ -40,7 +34,7 @@ export async function PUT(
     });
     if (!trafficPattern) {
       return NextResponse.json(
-        { error: "Không tìm th?y m?u giao thông" },
+        { error: "Không tìm thấy mẫu giao thông" },
         { status: 400 }
       );
     }
@@ -51,30 +45,18 @@ export async function PUT(
     });
     if (!junction) {
       return NextResponse.json(
-        { error: "Không tìm th?y nút giao" },
+        { error: "Không tìm thấy nút giao" },
         { status: 400 }
       );
     }
 
-    // Validate user exists
-    const user = await prisma.user.findUnique({
-      where: { userId: createdByUserId },
-    });
-    if (!user) {
-      return NextResponse.json(
-        { error: "Không tìm th?y ngu?i dùng" },
-        { status: 400 }
-      );
-    }
-
-    // Validate timingConfiguration structure (basic validation)
+    // Validate timingConfiguration structure for Gantt chart
     if (
-      !timingConfiguration.activeTime ||
-      !timingConfiguration.cycleTime ||
+      !timingConfiguration.cycleDuration ||
       !Array.isArray(timingConfiguration.phases)
     ) {
       return NextResponse.json(
-        { error: "C?u trúc timingConfiguration không h?p l?" },
+        { error: "Cấu trúc timingConfiguration không hợp lệ" },
         { status: 400 }
       );
     }
@@ -85,7 +67,6 @@ export async function PUT(
         junctionId,
         patternName,
         timingConfiguration,
-        createdByUserId,
       },
       include: {
         user: true,
@@ -95,9 +76,9 @@ export async function PUT(
 
     return NextResponse.json(updatedTrafficPattern, { status: 200 });
   } catch (error) {
-    console.error("L?i khi c?p nh?t m?u giao thông:", error);
+    console.error("Lỗi khi cập nhật mẫu giao thông:", error);
     return NextResponse.json(
-      { error: "Không th? c?p nh?t m?u giao thông" },
+      { error: "Không thể cập nhật mẫu giao thông" },
       { status: 500 }
     );
   } finally {
@@ -113,7 +94,7 @@ export async function DELETE(
 
   if (!id) {
     return NextResponse.json(
-      { error: "ID m?u giao thông không h?p l?" },
+      { error: "ID mẫu giao thông không hợp lệ" },
       { status: 400 }
     );
   }
@@ -125,7 +106,7 @@ export async function DELETE(
 
     if (!trafficPattern) {
       return NextResponse.json(
-        { error: "Không tìm th?y m?u giao thông" },
+        { error: "Không tìm thấy mẫu giao thông" },
         { status: 400 }
       );
     }
@@ -136,9 +117,9 @@ export async function DELETE(
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("L?i khi xóa m?u giao thông:", error);
+    console.error("Lỗi khi xóa mẫu giao thông:", error);
     return NextResponse.json(
-      { error: "Không th? xóa m?u giao thông" },
+      { error: "Không thể xóa mẫu giao thông" },
       { status: 500 }
     );
   } finally {

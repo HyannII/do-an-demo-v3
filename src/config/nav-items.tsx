@@ -81,12 +81,6 @@ export const navItems: NavItem[] = [
     icon: <ListTree className="w-5 h-5" />,
   },
   {
-    type: "link",
-    title: "Báo cáo",
-    href: "/reports",
-    icon: <ScrollText className="w-5 h-5" />,
-  },
-  {
     type: "folder",
     title: "Quản lý người dùng",
     icon: <Users className="w-5 h-5" />,

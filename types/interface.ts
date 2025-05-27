@@ -81,3 +81,28 @@ export interface CameraDataSummary {
   totalBusCount: number;
   entries: CameraData[];
 }
+
+export interface TimeSlot {
+  slotId: string;
+  patternId: string;
+  startTime: string; // Format "HH:MM"
+  endTime: string; // Format "HH:MM"
+  isActive: boolean;
+}
+
+export interface DaySchedule {
+  dayOfWeek: number; // 0 = Chủ nhật, 1 = Thứ 2, ..., 6 = Thứ 7
+  timeSlots: TimeSlot[];
+  isActive: boolean;
+}
+
+export interface ScheduleConfig {
+  scheduleId: string;
+  junctionId: string;
+  scheduleName: string;
+  mode: "auto" | "schedule"; // "auto" sử dụng pattern "Tự động", "schedule" theo lịch
+  autoPatternId?: string; // ID của pattern "Tự động"
+  daySchedules: DaySchedule[];
+  createdAt: Date;
+  isActive: boolean;
+}

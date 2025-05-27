@@ -8,27 +8,27 @@ datasource db {
 }
 
 model Camera {
-  cameraId      String         @id @default(uuid())
+  cameraId      String       @id @default(uuid())
   cameraName    String
   cameraAddress String
   location      String
-  latitude      Decimal?       @db.Decimal(10, 6)
-  longitude     Decimal?       @db.Decimal(10, 6)
-  isActive      Boolean        @default(true)
+  latitude      Decimal?     @db.Decimal(10, 6)
+  longitude     Decimal?     @db.Decimal(10, 6)
+  isActive      Boolean      @default(true)
   junctionId    String?
-  junction      Junction?      @relation(fields: [junctionId], references: [junctionId])
-  cameraData    CameraData[]   // Quan hệ 1-nhiều với CameraData
+  junction      Junction?    @relation(fields: [junctionId], references: [junctionId])
+  cameraData    CameraData[] // Quan hệ 1-nhiều với CameraData
 }
 
 model CameraData {
-  dataId        String   @id @default(uuid())
-  cameraId      String
-  timestamp     DateTime
-  motorcycleCount Int    // Số lượng xe máy
-  carCount      Int    // Số lượng xe con
-  truckCount    Int    // Số lượng xe tải
-  busCount      Int    // Số lượng xe khách
-  camera        Camera @relation(fields: [cameraId], references: [cameraId])
+  dataId          String   @id @default(uuid())
+  cameraId        String
+  timestamp       DateTime
+  motorcycleCount Int // Số lượng xe máy
+  carCount        Int // Số lượng xe con
+  truckCount      Int // Số lượng xe tải
+  busCount        Int // Số lượng xe khách
+  camera          Camera   @relation(fields: [cameraId], references: [cameraId])
 }
 
 model Junction {
@@ -40,6 +40,7 @@ model Junction {
   cameras         Camera[]
   trafficLights   TrafficLight[]
   trafficPatterns TrafficPattern[]
+  ScheduleConfig  ScheduleConfig[]
 }
 
 model Role {
@@ -63,14 +64,15 @@ model TrafficLight {
 }
 
 model TrafficPattern {
-  patternId           String   @id @default(uuid())
+  patternId           String           @id @default(uuid())
   junctionId          String
   patternName         String
   timingConfiguration Json
-  createdAt           DateTime @default(now())
+  createdAt           DateTime         @default(now())
   createdByUserId     String
-  user                User     @relation(fields: [createdByUserId], references: [userId])
-  junction            Junction @relation(fields: [junctionId], references: [junctionId])
+  user                User             @relation(fields: [createdByUserId], references: [userId])
+  junction            Junction         @relation(fields: [junctionId], references: [junctionId])
+  ScheduleConfig      ScheduleConfig[]
 }
 
 model User {
@@ -86,5 +88,21 @@ model User {
   pendingApproval DateTime?
   approvedBy      String?
   trafficPatterns TrafficPattern[]
+  scheduleConfigs ScheduleConfig[]
   role            Role             @relation(fields: [roleId], references: [roleId])
+}
+
+model ScheduleConfig {
+  scheduleId      String          @id @default(uuid())
+  junctionId      String
+  scheduleName    String
+  mode            String // "auto" or "schedule"
+  autoPatternId   String?
+  daySchedules    Json // JSON array of DaySchedule objects
+  createdAt       DateTime        @default(now())
+  createdByUserId String
+  isActive        Boolean         @default(true)
+  user            User            @relation(fields: [createdByUserId], references: [userId])
+  junction        Junction        @relation(fields: [junctionId], references: [junctionId])
+  autoPattern     TrafficPattern? @relation(fields: [autoPatternId], references: [patternId])
 }

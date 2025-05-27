@@ -70,24 +70,28 @@ interface StatisticsData {
 const getGMT7Date = (date = new Date()) => {
   // Create date with GMT+7 offset (7 hours * 60 minutes * 60 seconds * 1000 milliseconds)
   const gmtOffset = 7 * 60 * 60 * 1000;
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
+  const utc = date.getTime() + date.getTimezoneOffset() * 60 * 1000;
   return new Date(utc + gmtOffset);
 };
 
 // Format time string to GMT+7
 const formatTimeToGMT7 = (timeString: string) => {
   // If timeString is already in GMT+7 format or doesn't contain time, return as is
-  if (!timeString.includes(':')) return timeString;
-  
+  if (!timeString.includes(":")) return timeString;
+
   // For "HH:MM" format (usually from hourly data)
   try {
-    const [hours, minutes] = timeString.split(':').map(num => parseInt(num, 10));
+    const [hours, minutes] = timeString
+      .split(":")
+      .map((num) => parseInt(num, 10));
     // Ensure valid hours and minutes (basic validation)
     if (isNaN(hours) || isNaN(minutes)) return timeString;
-    
+
     // We're assuming the time is already in GMT+7 from the server
     // Just format it properly for display
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
   } catch (error) {
     console.error("Error parsing time string:", error);
     return timeString;
@@ -100,12 +104,12 @@ const formatDateToGMT7 = (dateString: string) => {
     // Create a Date object - assume the input is in UTC/ISO format
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
+
     // Convert to GMT+7
     const gmt7Date = getGMT7Date(date);
-    
+
     // Format the date for display
-    return gmt7Date.toLocaleDateString('vi-VN');
+    return gmt7Date.toLocaleDateString("vi-VN");
   } catch (error) {
     console.error("Error parsing date string:", error);
     return dateString;
@@ -115,9 +119,9 @@ const formatDateToGMT7 = (dateString: string) => {
 // Use exact time from database without timezone conversion
 const useExactTime = (timeString: string) => {
   // Return the time portion (HH:MM:SS) from the timestamp
-  if (timeString && timeString.includes(' ')) {
+  if (timeString && timeString.includes(" ")) {
     // Extract time part from "yyyy-mm-dd hh:mm:ss" format
-    return timeString.split(' ')[1];
+    return timeString.split(" ")[1];
   }
   // If it's already a time format or not in expected format, return as is
   return timeString;
@@ -126,20 +130,214 @@ const useExactTime = (timeString: string) => {
 // Use exact date from database without timezone conversion
 const useExactDate = (dateString: string) => {
   // If dateString is in "yyyy-mm-dd hh:mm:ss" format, extract the date part
-  if (dateString && dateString.includes(' ')) {
-    return dateString.split(' ')[0];
+  if (dateString && dateString.includes(" ")) {
+    return dateString.split(" ")[0];
   }
   return dateString;
 };
 
+// Format date for different periods
+const formatDateForPeriod = (dateString: string, period: string) => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    // Convert to GMT+7
+    const gmt7Date = getGMT7Date(date);
+
+    switch (period) {
+      case "today":
+        return gmt7Date.toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      case "week":
+        return gmt7Date.toLocaleDateString("vi-VN", {
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit",
+        });
+      case "month":
+        return gmt7Date.toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+      case "year":
+        return gmt7Date.toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        });
+      default:
+        return gmt7Date.toLocaleDateString("vi-VN");
+    }
+  } catch (error) {
+    console.error("Error parsing date string:", error);
+    return dateString;
+  }
+};
+
+// Get appropriate data aggregation level based on period
+const getDataAggregationLevel = (period: string) => {
+  switch (period) {
+    case "today":
+      return "hourly"; // Hiển thị theo giờ
+    case "week":
+      return "daily"; // Hiển thị theo ngày trong tuần
+    case "month":
+      return "daily"; // Hiển thị theo ngày trong tháng
+    case "year":
+      return "monthly"; // Hiển thị theo tháng trong năm (nếu có dữ liệu) hoặc theo ngày
+    default:
+      return "daily";
+  }
+};
+
+// Process daily data for year view to show monthly aggregation if possible
+const processYearlyData = (dailyData: any[]) => {
+  if (!dailyData || dailyData.length === 0) return [];
+
+  // Group data by month
+  const monthlyData = new Map();
+
+  dailyData.forEach((data) => {
+    const date = new Date(data.date);
+    const monthKey = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    if (!monthlyData.has(monthKey)) {
+      monthlyData.set(monthKey, {
+        date: monthKey,
+        motorcycleCount: 0,
+        carCount: 0,
+        truckCount: 0,
+        busCount: 0,
+      });
+    }
+
+    const existing = monthlyData.get(monthKey);
+    existing.motorcycleCount += data.motorcycleCount;
+    existing.carCount += data.carCount;
+    existing.truckCount += data.truckCount;
+    existing.busCount += data.busCount;
+  });
+
+  return Array.from(monthlyData.values()).sort((a, b) =>
+    a.date.localeCompare(b.date)
+  );
+};
+
+// Format monthly labels for year view
+const formatMonthlyLabel = (monthKey: string) => {
+  const [year, month] = monthKey.split("-");
+  const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+  return date.toLocaleDateString("vi-VN", { month: "short", year: "2-digit" });
+};
+
+// Filter hourly data to only include current day
+const filterTodayData = (hourlyData: any[]) => {
+  if (!hourlyData || hourlyData.length === 0) return [];
+
+  // Get current date in GMT+7
+  const today = getGMT7Date();
+  const todayDateString = today.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+  // Filter data to only include entries from today
+  const todayData = hourlyData.filter((data) => {
+    if (!data.time) return false;
+
+    // Extract date part from timestamp
+    let dataDateString;
+    if (data.time.includes(" ")) {
+      // Format: "YYYY-MM-DD HH:MM:SS"
+      dataDateString = data.time.split(" ")[0];
+    } else if (data.time.includes("T")) {
+      // ISO format: "YYYY-MM-DDTHH:MM:SS"
+      dataDateString = data.time.split("T")[0];
+    } else {
+      // If it's just time (HH:MM:SS), assume it's from today
+      return true;
+    }
+
+    return dataDateString === todayDateString;
+  });
+
+  console.log(
+    `Filtered hourly data: ${todayData.length} entries for today (${todayDateString})`
+  );
+  return todayData;
+};
+
+// Generate complete hourly timeline for today (00:00 to 23:59)
+const generateTodayTimeline = (filteredData: any[]) => {
+  const timeline = [];
+
+  // Create a map of existing data by hour
+  const dataByHour = new Map();
+  filteredData.forEach((data) => {
+    let hour;
+    if (data.time.includes(" ")) {
+      // Extract hour from "YYYY-MM-DD HH:MM:SS" format
+      const timePart = data.time.split(" ")[1];
+      hour = parseInt(timePart.split(":")[0], 10);
+    } else if (data.time.includes(":")) {
+      // Extract hour from "HH:MM:SS" format
+      hour = parseInt(data.time.split(":")[0], 10);
+    } else {
+      return; // Skip invalid time format
+    }
+
+    if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+      if (!dataByHour.has(hour)) {
+        dataByHour.set(hour, {
+          motorcycleCount: 0,
+          carCount: 0,
+          truckCount: 0,
+          busCount: 0,
+        });
+      }
+
+      const existing = dataByHour.get(hour);
+      existing.motorcycleCount += data.motorcycleCount || 0;
+      existing.carCount += data.carCount || 0;
+      existing.truckCount += data.truckCount || 0;
+      existing.busCount += data.busCount || 0;
+    }
+  });
+
+  // Generate complete 24-hour timeline
+  for (let hour = 0; hour < 24; hour++) {
+    const hourString = hour.toString().padStart(2, "0") + ":00";
+    const data = dataByHour.get(hour) || {
+      motorcycleCount: 0,
+      carCount: 0,
+      truckCount: 0,
+      busCount: 0,
+    };
+
+    timeline.push({
+      time: hourString,
+      displayTime: hourString,
+      ...data,
+    });
+  }
+
+  return timeline;
+};
+
 export default function StatisticsPage() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
-  const [selectedJunction, setSelectedJunction] = useState<Junction | null>(null);
+  const [selectedJunction, setSelectedJunction] = useState<Junction | null>(
+    null
+  );
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
   const [loading, setLoading] = useState<boolean>(true);
   const [dataLoading, setDataLoading] = useState<boolean>(false);
-  const [statisticsData, setStatisticsData] = useState<StatisticsData | null>(null);
+  const [statisticsData, setStatisticsData] = useState<StatisticsData | null>(
+    null
+  );
   const [lastUpdated, setLastUpdated] = useState<Date>(getGMT7Date());
 
   // Fetch junctions on component mount
@@ -170,14 +368,17 @@ export default function StatisticsPage() {
   const fetchStatisticsData = async (cameraId: string, period: string) => {
     setDataLoading(true);
     try {
-      const response = await fetch(`/api/cameras/${cameraId}/statistics?period=${period}`, {
-        cache: 'no-store',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+      const response = await fetch(
+        `/api/cameras/${cameraId}/statistics?period=${period}`,
+        {
+          cache: "no-store",
+          headers: {
+            Pragma: "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
         }
-      });
-      
+      );
+
       if (!response.ok) {
         console.error("Failed to fetch statistics data", response.status);
         return;
@@ -185,10 +386,14 @@ export default function StatisticsPage() {
       const data = await response.json();
       setStatisticsData(data);
       setLastUpdated(new Date());
-      
-      console.log(`Statistics data updated at ${new Date().toISOString()} for period ${period}`);
+
+      console.log(
+        `Statistics data updated at ${new Date().toISOString()} for period ${period}`
+      );
       if (data && data.totalMotorcycleCount !== undefined) {
-        console.log(`Total counts - Motorcycles: ${data.totalMotorcycleCount}, Cars: ${data.totalCarCount}, Trucks: ${data.totalTruckCount}, Buses: ${data.totalBusCount}`);
+        console.log(
+          `Total counts - Motorcycles: ${data.totalMotorcycleCount}, Cars: ${data.totalCarCount}, Trucks: ${data.totalTruckCount}, Buses: ${data.totalBusCount}`
+        );
       }
     } catch (error) {
       console.error("Error fetching statistics data:", error);
@@ -218,7 +423,7 @@ export default function StatisticsPage() {
   const handleJunctionSelect = (junction: Junction) => {
     setSelectedJunction(junction);
     setSelectedCamera(null); // Reset selected camera when changing junctions
-    setStatisticsData(null);  // Clear statistics data
+    setStatisticsData(null); // Clear statistics data
   };
 
   // Handle camera selection
@@ -235,33 +440,75 @@ export default function StatisticsPage() {
   const getChartData = () => {
     if (!statisticsData) return null;
 
-    // For today, use hourly data
-    if (selectedPeriod === "today") {
-      if (!statisticsData.hourlyData || statisticsData.hourlyData.length === 0) {
-        return null;
+    const aggregationLevel = getDataAggregationLevel(selectedPeriod);
+
+    // For today, use hourly data with filtering for current day only
+    if (selectedPeriod === "today" && aggregationLevel === "hourly") {
+      if (
+        !statisticsData.hourlyData ||
+        statisticsData.hourlyData.length === 0
+      ) {
+        // If no data, still show empty timeline for today
+        const emptyTimeline = generateTodayTimeline([]);
+        return {
+          labels: emptyTimeline.map((data) => data.displayTime),
+          datasets: [
+            {
+              label: "Xe máy",
+              data: emptyTimeline.map((data) => data.motorcycleCount),
+              borderColor: vehicleColors[0],
+              backgroundColor: vehicleColors[0],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+            {
+              label: "Xe con",
+              data: emptyTimeline.map((data) => data.carCount),
+              borderColor: vehicleColors[1],
+              backgroundColor: vehicleColors[1],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+            {
+              label: "Xe tải",
+              data: emptyTimeline.map((data) => data.truckCount),
+              borderColor: vehicleColors[2],
+              backgroundColor: vehicleColors[2],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+            {
+              label: "Xe khách",
+              data: emptyTimeline.map((data) => data.busCount),
+              borderColor: vehicleColors[3],
+              backgroundColor: vehicleColors[3],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+          ],
+        };
       }
 
-      // Format time labels for display
-      const formattedData = statisticsData.hourlyData.map(data => {
-        // Extract time part for display (HH:MM format)
-        const displayTime = data.time && data.time.includes(' ') 
-          ? data.time.split(' ')[1].substring(0, 5)  // Extract HH:MM from timestamp
-          : data.time;
+      // Filter data to only include current day
+      const todayData = filterTodayData(statisticsData.hourlyData);
 
-        return {
-          ...data,
-          displayTime,
-        };
-      });
+      // Generate complete timeline with filtered data
+      const formattedData = generateTodayTimeline(todayData);
 
-      console.log(`Rendering chart with ${formattedData.length} data points`);
+      console.log(
+        `Rendering today chart with ${formattedData.length} hourly data points`
+      );
 
       return {
-        labels: formattedData.map(data => data.displayTime),
+        labels: formattedData.map((data) => data.displayTime),
         datasets: [
           {
             label: "Xe máy",
-            data: formattedData.map(data => data.motorcycleCount),
+            data: formattedData.map((data) => data.motorcycleCount),
             borderColor: vehicleColors[0],
             backgroundColor: vehicleColors[0],
             fill: false,
@@ -270,7 +517,7 @@ export default function StatisticsPage() {
           },
           {
             label: "Xe con",
-            data: formattedData.map(data => data.carCount),
+            data: formattedData.map((data) => data.carCount),
             borderColor: vehicleColors[1],
             backgroundColor: vehicleColors[1],
             fill: false,
@@ -279,7 +526,7 @@ export default function StatisticsPage() {
           },
           {
             label: "Xe tải",
-            data: formattedData.map(data => data.truckCount),
+            data: formattedData.map((data) => data.truckCount),
             borderColor: vehicleColors[2],
             backgroundColor: vehicleColors[2],
             fill: false,
@@ -288,7 +535,7 @@ export default function StatisticsPage() {
           },
           {
             label: "Xe khách",
-            data: formattedData.map(data => data.busCount),
+            data: formattedData.map((data) => data.busCount),
             borderColor: vehicleColors[3],
             backgroundColor: vehicleColors[3],
             fill: false,
@@ -298,42 +545,113 @@ export default function StatisticsPage() {
         ],
       };
     }
-    
-    // For week, month, year, use daily data
+
+    // For year view, try to show monthly aggregation if we have enough data
+    if (
+      selectedPeriod === "year" &&
+      statisticsData.dailyData &&
+      statisticsData.dailyData.length > 30
+    ) {
+      const monthlyData = processYearlyData(statisticsData.dailyData);
+
+      if (monthlyData.length > 0) {
+        console.log(
+          `Rendering yearly chart with monthly aggregation: ${monthlyData.length} months`
+        );
+
+        return {
+          labels: monthlyData.map((data) => formatMonthlyLabel(data.date)),
+          datasets: [
+            {
+              label: "Xe máy",
+              data: monthlyData.map((data) => data.motorcycleCount),
+              borderColor: vehicleColors[0],
+              backgroundColor: vehicleColors[0],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+            {
+              label: "Xe con",
+              data: monthlyData.map((data) => data.carCount),
+              borderColor: vehicleColors[1],
+              backgroundColor: vehicleColors[1],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+            {
+              label: "Xe tải",
+              data: monthlyData.map((data) => data.truckCount),
+              borderColor: vehicleColors[2],
+              backgroundColor: vehicleColors[2],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+            {
+              label: "Xe khách",
+              data: monthlyData.map((data) => data.busCount),
+              borderColor: vehicleColors[3],
+              backgroundColor: vehicleColors[3],
+              fill: false,
+              borderWidth: 2,
+              pointHitRadius: 10,
+            },
+          ],
+        };
+      }
+    }
+
+    // For week, month, year (daily view), use daily data with appropriate formatting
+    if (!statisticsData.dailyData || statisticsData.dailyData.length === 0) {
+      return null;
+    }
+
+    console.log(
+      `Rendering ${selectedPeriod} chart with daily data: ${statisticsData.dailyData.length} days`
+    );
+
     return {
-      labels: statisticsData.dailyData.map(data => useExactDate(data.date)),
+      labels: statisticsData.dailyData.map((data) =>
+        formatDateForPeriod(data.date, selectedPeriod)
+      ),
       datasets: [
         {
           label: "Xe máy",
-          data: statisticsData.dailyData.map(data => data.motorcycleCount),
+          data: statisticsData.dailyData.map((data) => data.motorcycleCount),
           borderColor: vehicleColors[0],
           backgroundColor: vehicleColors[0],
           fill: false,
           borderWidth: 2,
+          pointHitRadius: 10,
         },
         {
           label: "Xe con",
-          data: statisticsData.dailyData.map(data => data.carCount),
+          data: statisticsData.dailyData.map((data) => data.carCount),
           borderColor: vehicleColors[1],
           backgroundColor: vehicleColors[1],
           fill: false,
           borderWidth: 2,
+          pointHitRadius: 10,
         },
         {
           label: "Xe tải",
-          data: statisticsData.dailyData.map(data => data.truckCount),
+          data: statisticsData.dailyData.map((data) => data.truckCount),
           borderColor: vehicleColors[2],
           backgroundColor: vehicleColors[2],
           fill: false,
           borderWidth: 2,
+          pointHitRadius: 10,
         },
         {
           label: "Xe khách",
-          data: statisticsData.dailyData.map(data => data.busCount),
+          data: statisticsData.dailyData.map((data) => data.busCount),
           borderColor: vehicleColors[3],
           backgroundColor: vehicleColors[3],
           fill: false,
           borderWidth: 2,
+          pointHitRadius: 10,
         },
       ],
     };
@@ -371,9 +689,32 @@ export default function StatisticsPage() {
       case "month":
         return "Số lượng xe theo ngày trong tháng này";
       case "year":
+        // Check if we're showing monthly or daily aggregation
+        if (statisticsData?.dailyData && statisticsData.dailyData.length > 30) {
+          return "Số lượng xe theo tháng trong năm nay";
+        }
         return "Số lượng xe theo ngày trong năm nay";
       default:
         return "Số lượng xe theo thời gian";
+    }
+  };
+
+  // Get X-axis title based on period and data type
+  const getXAxisTitle = () => {
+    switch (selectedPeriod) {
+      case "today":
+        return "Thời gian (giờ)";
+      case "week":
+        return "Ngày trong tuần";
+      case "month":
+        return "Ngày trong tháng";
+      case "year":
+        if (statisticsData?.dailyData && statisticsData.dailyData.length > 30) {
+          return "Tháng trong năm";
+        }
+        return "Ngày trong năm";
+      default:
+        return "Thời gian";
     }
   };
 
@@ -395,10 +736,10 @@ export default function StatisticsPage() {
 
   // Format time without timezone correction
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('vi-VN', { 
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   };
 
@@ -425,20 +766,33 @@ export default function StatisticsPage() {
                   onChange={handlePeriodChange}
                 >
                   {periodOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
                       {option.label}
                     </option>
                   ))}
                 </select>
-                <button 
+                <button
                   onClick={handleForceRefresh}
                   className="p-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                   title="Làm mới dữ liệu"
                   disabled={dataLoading}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className={dataLoading ? "animate-spin" : ""}>
-                    <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                    className={dataLoading ? "animate-spin" : ""}
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"
+                    />
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
                   </svg>
                 </button>
               </>
@@ -446,7 +800,9 @@ export default function StatisticsPage() {
             {dataLoading && (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Đang tải...</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Đang tải...
+                </span>
               </div>
             )}
           </div>
@@ -471,7 +827,7 @@ export default function StatisticsPage() {
                     x: {
                       title: {
                         display: true,
-                        text: selectedPeriod === "today" ? "Thời gian" : "Ngày",
+                        text: getXAxisTitle(),
                         color: "white",
                       },
                       ticks: {
@@ -479,7 +835,14 @@ export default function StatisticsPage() {
                         maxRotation: 45,
                         minRotation: 0,
                         autoSkip: true,
-                        maxTicksLimit: 15,
+                        maxTicksLimit:
+                          selectedPeriod === "today"
+                            ? 24
+                            : selectedPeriod === "week"
+                            ? 7
+                            : selectedPeriod === "month"
+                            ? 15
+                            : 12,
                       },
                       grid: {
                         color: "transparent",
@@ -495,9 +858,9 @@ export default function StatisticsPage() {
                       ticks: {
                         color: "white",
                         precision: 0,
-                        callback: function(value) {
+                        callback: function (value) {
                           return value.toLocaleString();
-                        }
+                        },
                       },
                       grid: {
                         color: "rgba(255, 255, 255, 0.1)",
@@ -514,55 +877,72 @@ export default function StatisticsPage() {
                         boxWidth: 10,
                         boxHeight: 10,
                       },
-                      position: 'top',
+                      position: "top",
                     },
                     tooltip: {
-                      mode: 'index',
+                      mode: "index",
                       intersect: false,
                       displayColors: true,
                       callbacks: {
-                        title: function(tooltipItems) {
+                        title: function (tooltipItems) {
                           if (tooltipItems.length > 0) {
                             const dataIndex = tooltipItems[0].dataIndex;
-                            const datasetIndex = tooltipItems[0].datasetIndex;
-                            
-                            // Get the original time data
-                            if (statisticsData && statisticsData.hourlyData) {
-                              const originalData = statisticsData.hourlyData[dataIndex];
-                              if (originalData && originalData.time) {
-                                if (selectedPeriod === "today") {
-                                  return `Thời gian: ${originalData.time}`;
-                                }
+
+                            // Get the original time/date data for tooltip
+                            if (
+                              selectedPeriod === "today" &&
+                              statisticsData?.hourlyData
+                            ) {
+                              const originalData =
+                                statisticsData.hourlyData[dataIndex];
+                              if (originalData?.time) {
+                                return `Thời gian: ${originalData.time}`;
+                              }
+                            } else if (statisticsData?.dailyData) {
+                              const originalData =
+                                statisticsData.dailyData[dataIndex];
+                              if (originalData?.date) {
+                                const formattedDate = formatDateForPeriod(
+                                  originalData.date,
+                                  selectedPeriod
+                                );
+                                return `Ngày: ${formattedDate}`;
                               }
                             }
-                            
-                            return tooltipItems[0].label || '';
+
+                            return tooltipItems[0].label || "";
                           }
-                          return '';
+                          return "";
                         },
-                        label: function(context) {
-                          let label = context.dataset.label || '';
+                        label: function (context) {
+                          let label = context.dataset.label || "";
                           if (label) {
-                            label += ': ';
+                            label += ": ";
                           }
                           if (context.parsed.y !== null) {
                             label += context.parsed.y.toLocaleString();
                           }
                           return label;
                         },
-                        footer: function(tooltipItems) {
-                          // Add a footer note explaining these are aggregated counts
-                          return [
-                            'Tổng số xe trong khoảng thời gian này'
-                          ];
-                        }
-                      }
+                        footer: function (tooltipItems) {
+                          // Add period-specific footer
+                          const periodText =
+                            selectedPeriod === "today"
+                              ? "trong giờ này"
+                              : selectedPeriod === "week"
+                              ? "trong ngày này"
+                              : selectedPeriod === "month"
+                              ? "trong ngày này"
+                              : "trong khoảng thời gian này";
+                          return [`Tổng số xe ${periodText}`];
+                        },
+                      },
                     },
                   },
                   elements: {
                     line: {
                       tension: 0.3,
-                      borderJoinStyle: 'round',
+                      borderJoinStyle: "round",
                     },
                     point: {
                       radius: 4,
@@ -574,8 +954,8 @@ export default function StatisticsPage() {
                       left: 10,
                       right: 25,
                       top: 20,
-                      bottom: 10
-                    }
+                      bottom: 10,
+                    },
                   },
                 }}
               />
@@ -583,11 +963,11 @@ export default function StatisticsPage() {
           ) : (
             <div className="flex justify-center items-center h-[calc(100%-2rem)]">
               <p className="text-gray-700 dark:text-gray-300">
-                {!selectedCamera 
+                {!selectedCamera
                   ? "Chọn một camera để xem thống kê"
-                  : dataLoading 
-                    ? "Đang tải dữ liệu..."
-                    : "Không có dữ liệu cho giai đoạn này"}
+                  : dataLoading
+                  ? "Đang tải dữ liệu..."
+                  : "Không có dữ liệu cho giai đoạn này"}
               </p>
             </div>
           )}
@@ -620,11 +1000,11 @@ export default function StatisticsPage() {
             ) : (
               <div className="flex justify-center items-center flex-grow">
                 <p className="text-gray-700 dark:text-gray-300">
-                  {!selectedCamera 
+                  {!selectedCamera
                     ? "Chọn một camera để xem thống kê"
-                    : dataLoading 
-                      ? "Đang tải dữ liệu..."
-                      : "Không có dữ liệu cho giai đoạn này"}
+                    : dataLoading
+                    ? "Đang tải dữ liệu..."
+                    : "Không có dữ liệu cho giai đoạn này"}
                 </p>
               </div>
             )}
@@ -637,39 +1017,51 @@ export default function StatisticsPage() {
                 <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="text-center">
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Xe máy</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        Xe máy
+                      </p>
                       <p className="text-md font-bold text-blue-600 dark:text-blue-400">
-                        {statisticsData.totalMotorcycleCount.toLocaleString('vi-VN')}
+                        {statisticsData.totalMotorcycleCount.toLocaleString(
+                          "vi-VN"
+                        )}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Xe con</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        Xe con
+                      </p>
                       <p className="text-md font-bold text-yellow-600 dark:text-yellow-400">
-                        {statisticsData.totalCarCount.toLocaleString('vi-VN')}
+                        {statisticsData.totalCarCount.toLocaleString("vi-VN")}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Xe tải</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        Xe tải
+                      </p>
                       <p className="text-md font-bold text-green-600 dark:text-green-400">
-                        {statisticsData.totalTruckCount.toLocaleString('vi-VN')}
+                        {statisticsData.totalTruckCount.toLocaleString("vi-VN")}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Xe khách</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        Xe khách
+                      </p>
                       <p className="text-md font-bold text-purple-600 dark:text-purple-400">
-                        {statisticsData.totalBusCount.toLocaleString('vi-VN')}
+                        {statisticsData.totalBusCount.toLocaleString("vi-VN")}
                       </p>
                     </div>
                   </div>
                   <div className="mt-1 border-t pt-1 text-center">
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Tổng số</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Tổng số
+                    </p>
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                       {(
                         statisticsData.totalMotorcycleCount +
                         statisticsData.totalCarCount +
                         statisticsData.totalTruckCount +
                         statisticsData.totalBusCount
-                      ).toLocaleString('vi-VN')}
+                      ).toLocaleString("vi-VN")}
                     </p>
                   </div>
                 </div>
@@ -779,8 +1171,8 @@ const styles = `
 `;
 
 // Add the styles to the document head
-if (typeof document !== 'undefined') {
-  const styleElement = document.createElement('style');
+if (typeof document !== "undefined") {
+  const styleElement = document.createElement("style");
   styleElement.innerHTML = styles;
   document.head.appendChild(styleElement);
 }

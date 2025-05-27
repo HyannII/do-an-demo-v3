@@ -4,32 +4,50 @@ import React, { useState, useEffect } from "react";
 import CameraManagement from "./camera";
 import TrafficLightManagement from "./trafficLight";
 import JunctionManagement from "./junction";
-import { Camera, TrafficLight, Junction } from "../../../../types/interface";
+import TrafficPatternManagement from "./trafficPattern";
+import ScheduleManagement from "./scheduleManagement";
+import {
+  Camera,
+  TrafficLight,
+  Junction,
+  TrafficPattern,
+  ScheduleConfig,
+} from "../../../../types/interface";
 
 export default function ManagementPage() {
   const [selectedObject, setSelectedObject] = useState<
-    "camera" | "trafficLight" | "junction"
+    "camera" | "trafficLight" | "junction" | "trafficPattern" | "schedule"
   >("camera");
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [trafficLights, setTrafficLights] = useState<TrafficLight[]>([]);
   const [junctions, setJunctions] = useState<Junction[]>([]);
+  const [trafficPatterns, setTrafficPatterns] = useState<TrafficPattern[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleConfig[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Fetch all data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [camerasResponse, trafficLightsResponse, junctionsResponse] =
-          await Promise.all([
-            fetch("/api/cameras"),
-            fetch("/api/trafficLights"),
-            fetch("/api/junctions"),
-          ]);
+        const [
+          camerasResponse,
+          trafficLightsResponse,
+          junctionsResponse,
+          trafficPatternsResponse,
+          schedulesResponse,
+        ] = await Promise.all([
+          fetch("/api/cameras"),
+          fetch("/api/trafficLights"),
+          fetch("/api/junctions"),
+          fetch("/api/trafficPatterns"),
+          fetch("/api/schedules").catch(() => ({ ok: false, json: () => [] })), // Fallback for schedules API
+        ]);
 
         if (
           !camerasResponse.ok ||
           !trafficLightsResponse.ok ||
-          !junctionsResponse.ok
+          !junctionsResponse.ok ||
+          !trafficPatternsResponse.ok
         ) {
           console.error("Failed to fetch data");
           return;
@@ -38,10 +56,16 @@ export default function ManagementPage() {
         const camerasData = await camerasResponse.json();
         const trafficLightsData = await trafficLightsResponse.json();
         const junctionsData = await junctionsResponse.json();
+        const trafficPatternsData = await trafficPatternsResponse.json();
+        const schedulesData = schedulesResponse.ok
+          ? await schedulesResponse.json()
+          : [];
 
         setCameras(camerasData);
         setTrafficLights(trafficLightsData);
         setJunctions(junctionsData);
+        setTrafficPatterns(trafficPatternsData);
+        setSchedules(schedulesData);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -81,7 +105,7 @@ export default function ManagementPage() {
             Ðèn Giao Thông
           </li>
           <li
-            className={`p-2 cursor-pointer rounded ${
+            className={`p-2 cursor-pointer rounded mb-2 ${
               selectedObject === "junction"
                 ? "bg-blue-900/30 text-blue-400"
                 : "text-white hover:bg-gray-700"
@@ -89,6 +113,26 @@ export default function ManagementPage() {
             onClick={() => setSelectedObject("junction")}
           >
             Nút Giao
+          </li>
+          <li
+            className={`p-2 cursor-pointer rounded mb-2 ${
+              selectedObject === "trafficPattern"
+                ? "bg-blue-900/30 text-blue-400"
+                : "text-white hover:bg-gray-700"
+            } transition-colors`}
+            onClick={() => setSelectedObject("trafficPattern")}
+          >
+            Pattern Đèn Giao Thông
+          </li>
+          <li
+            className={`p-2 cursor-pointer rounded ${
+              selectedObject === "schedule"
+                ? "bg-blue-900/30 text-blue-400"
+                : "text-white hover:bg-gray-700"
+            } transition-colors`}
+            onClick={() => setSelectedObject("schedule")}
+          >
+            Lịch trình Hoạt động
           </li>
         </ul>
       </div>
@@ -108,6 +152,19 @@ export default function ManagementPage() {
         <TrafficLightManagement
           trafficLights={trafficLights}
           setTrafficLights={setTrafficLights}
+          junctions={junctions}
+        />
+      ) : selectedObject === "trafficPattern" ? (
+        <TrafficPatternManagement
+          trafficPatterns={trafficPatterns}
+          setTrafficPatterns={setTrafficPatterns}
+          junctions={junctions}
+        />
+      ) : selectedObject === "schedule" ? (
+        <ScheduleManagement
+          schedules={schedules}
+          setSchedules={setSchedules}
+          trafficPatterns={trafficPatterns}
           junctions={junctions}
         />
       ) : (
