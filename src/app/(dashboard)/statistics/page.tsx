@@ -66,264 +66,33 @@ interface StatisticsData {
   }[];
 }
 
-// Get GMT+7 date
-const getGMT7Date = (date = new Date()) => {
-  // Create date with GMT+7 offset (7 hours * 60 minutes * 60 seconds * 1000 milliseconds)
-  const gmtOffset = 7 * 60 * 60 * 1000;
-  const utc = date.getTime() + date.getTimezoneOffset() * 60 * 1000;
-  return new Date(utc + gmtOffset);
-};
+// Interface for hourly statistics data
+interface HourlyStatisticsData {
+  cameraId: string;
+  startDate: string;
+  endDate: string;
+  totalMotorcycleCount: number;
+  totalCarCount: number;
+  totalTruckCount: number;
+  totalBusCount: number;
+  hourlyData: {
+    hour: number;
+    time: string;
+    motorcycleCount: number;
+    carCount: number;
+    truckCount: number;
+    busCount: number;
+  }[];
+  lastUpdated: string;
+}
 
-// Format time string to GMT+7
-const formatTimeToGMT7 = (timeString: string) => {
-  // If timeString is already in GMT+7 format or doesn't contain time, return as is
-  if (!timeString.includes(":")) return timeString;
+// Process raw camera data for today's hourly statistics
+const processTodayHourlyData = (cameraEntries: any[]) => {
+  console.log(`Total camera entries received: ${cameraEntries.length}`);
 
-  // For "HH:MM" format (usually from hourly data)
-  try {
-    const [hours, minutes] = timeString
-      .split(":")
-      .map((num) => parseInt(num, 10));
-    // Ensure valid hours and minutes (basic validation)
-    if (isNaN(hours) || isNaN(minutes)) return timeString;
+  // TODO: Implement new logic here
 
-    // We're assuming the time is already in GMT+7 from the server
-    // Just format it properly for display
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}`;
-  } catch (error) {
-    console.error("Error parsing time string:", error);
-    return timeString;
-  }
-};
-
-// Format date to GMT+7
-const formatDateToGMT7 = (dateString: string) => {
-  try {
-    // Create a Date object - assume the input is in UTC/ISO format
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-
-    // Convert to GMT+7
-    const gmt7Date = getGMT7Date(date);
-
-    // Format the date for display
-    return gmt7Date.toLocaleDateString("vi-VN");
-  } catch (error) {
-    console.error("Error parsing date string:", error);
-    return dateString;
-  }
-};
-
-// Use exact time from database without timezone conversion
-const useExactTime = (timeString: string) => {
-  // Return the time portion (HH:MM:SS) from the timestamp
-  if (timeString && timeString.includes(" ")) {
-    // Extract time part from "yyyy-mm-dd hh:mm:ss" format
-    return timeString.split(" ")[1];
-  }
-  // If it's already a time format or not in expected format, return as is
-  return timeString;
-};
-
-// Use exact date from database without timezone conversion
-const useExactDate = (dateString: string) => {
-  // If dateString is in "yyyy-mm-dd hh:mm:ss" format, extract the date part
-  if (dateString && dateString.includes(" ")) {
-    return dateString.split(" ")[0];
-  }
-  return dateString;
-};
-
-// Format date for different periods
-const formatDateForPeriod = (dateString: string, period: string) => {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-
-    // Convert to GMT+7
-    const gmt7Date = getGMT7Date(date);
-
-    switch (period) {
-      case "today":
-        return gmt7Date.toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      case "week":
-        return gmt7Date.toLocaleDateString("vi-VN", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit",
-        });
-      case "month":
-        return gmt7Date.toLocaleDateString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-        });
-      case "year":
-        return gmt7Date.toLocaleDateString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "2-digit",
-        });
-      default:
-        return gmt7Date.toLocaleDateString("vi-VN");
-    }
-  } catch (error) {
-    console.error("Error parsing date string:", error);
-    return dateString;
-  }
-};
-
-// Get appropriate data aggregation level based on period
-const getDataAggregationLevel = (period: string) => {
-  switch (period) {
-    case "today":
-      return "hourly"; // Hiển thị theo giờ
-    case "week":
-      return "daily"; // Hiển thị theo ngày trong tuần
-    case "month":
-      return "daily"; // Hiển thị theo ngày trong tháng
-    case "year":
-      return "monthly"; // Hiển thị theo tháng trong năm (nếu có dữ liệu) hoặc theo ngày
-    default:
-      return "daily";
-  }
-};
-
-// Process daily data for year view to show monthly aggregation if possible
-const processYearlyData = (dailyData: any[]) => {
-  if (!dailyData || dailyData.length === 0) return [];
-
-  // Group data by month
-  const monthlyData = new Map();
-
-  dailyData.forEach((data) => {
-    const date = new Date(data.date);
-    const monthKey = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
-    ).padStart(2, "0")}`;
-
-    if (!monthlyData.has(monthKey)) {
-      monthlyData.set(monthKey, {
-        date: monthKey,
-        motorcycleCount: 0,
-        carCount: 0,
-        truckCount: 0,
-        busCount: 0,
-      });
-    }
-
-    const existing = monthlyData.get(monthKey);
-    existing.motorcycleCount += data.motorcycleCount;
-    existing.carCount += data.carCount;
-    existing.truckCount += data.truckCount;
-    existing.busCount += data.busCount;
-  });
-
-  return Array.from(monthlyData.values()).sort((a, b) =>
-    a.date.localeCompare(b.date)
-  );
-};
-
-// Format monthly labels for year view
-const formatMonthlyLabel = (monthKey: string) => {
-  const [year, month] = monthKey.split("-");
-  const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-  return date.toLocaleDateString("vi-VN", { month: "short", year: "2-digit" });
-};
-
-// Filter hourly data to only include current day
-const filterTodayData = (hourlyData: any[]) => {
-  if (!hourlyData || hourlyData.length === 0) return [];
-
-  // Get current date in GMT+7
-  const today = getGMT7Date();
-  const todayDateString = today.toISOString().split("T")[0]; // YYYY-MM-DD format
-
-  // Filter data to only include entries from today
-  const todayData = hourlyData.filter((data) => {
-    if (!data.time) return false;
-
-    // Extract date part from timestamp
-    let dataDateString;
-    if (data.time.includes(" ")) {
-      // Format: "YYYY-MM-DD HH:MM:SS"
-      dataDateString = data.time.split(" ")[0];
-    } else if (data.time.includes("T")) {
-      // ISO format: "YYYY-MM-DDTHH:MM:SS"
-      dataDateString = data.time.split("T")[0];
-    } else {
-      // If it's just time (HH:MM:SS), assume it's from today
-      return true;
-    }
-
-    return dataDateString === todayDateString;
-  });
-
-  console.log(
-    `Filtered hourly data: ${todayData.length} entries for today (${todayDateString})`
-  );
-  return todayData;
-};
-
-// Generate complete hourly timeline for today (00:00 to 23:59)
-const generateTodayTimeline = (filteredData: any[]) => {
-  const timeline = [];
-
-  // Create a map of existing data by hour
-  const dataByHour = new Map();
-  filteredData.forEach((data) => {
-    let hour;
-    if (data.time.includes(" ")) {
-      // Extract hour from "YYYY-MM-DD HH:MM:SS" format
-      const timePart = data.time.split(" ")[1];
-      hour = parseInt(timePart.split(":")[0], 10);
-    } else if (data.time.includes(":")) {
-      // Extract hour from "HH:MM:SS" format
-      hour = parseInt(data.time.split(":")[0], 10);
-    } else {
-      return; // Skip invalid time format
-    }
-
-    if (!isNaN(hour) && hour >= 0 && hour <= 23) {
-      if (!dataByHour.has(hour)) {
-        dataByHour.set(hour, {
-          motorcycleCount: 0,
-          carCount: 0,
-          truckCount: 0,
-          busCount: 0,
-        });
-      }
-
-      const existing = dataByHour.get(hour);
-      existing.motorcycleCount += data.motorcycleCount || 0;
-      existing.carCount += data.carCount || 0;
-      existing.truckCount += data.truckCount || 0;
-      existing.busCount += data.busCount || 0;
-    }
-  });
-
-  // Generate complete 24-hour timeline
-  for (let hour = 0; hour < 24; hour++) {
-    const hourString = hour.toString().padStart(2, "0") + ":00";
-    const data = dataByHour.get(hour) || {
-      motorcycleCount: 0,
-      carCount: 0,
-      truckCount: 0,
-      busCount: 0,
-    };
-
-    timeline.push({
-      time: hourString,
-      displayTime: hourString,
-      ...data,
-    });
-  }
-
-  return timeline;
+  return [];
 };
 
 export default function StatisticsPage() {
@@ -338,7 +107,157 @@ export default function StatisticsPage() {
   const [statisticsData, setStatisticsData] = useState<StatisticsData | null>(
     null
   );
-  const [lastUpdated, setLastUpdated] = useState<Date>(getGMT7Date());
+  const [hourlyStatisticsData, setHourlyStatisticsData] =
+    useState<HourlyStatisticsData | null>(null); // Add state for hourly data
+  const [cameraData, setCameraData] = useState<any>(null); // Add state for raw camera data
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Add custom scrollbar styles
+  useEffect(() => {
+    const styles = `
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 5px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #555;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #777;
+      }
+    `;
+
+    if (typeof document !== "undefined") {
+      const styleElement = document.createElement("style");
+      styleElement.innerHTML = styles;
+      document.head.appendChild(styleElement);
+
+      // Cleanup function to remove the style element when component unmounts
+      return () => {
+        if (document.head.contains(styleElement)) {
+          document.head.removeChild(styleElement);
+        }
+      };
+    }
+  }, []);
+
+  // Function to fetch hourly statistics data for today
+  const fetchHourlyStatistics = async (cameraId: string) => {
+    setDataLoading(true);
+    try {
+      const timestamp = Date.now();
+      console.log(
+        `Fetching hourly statistics for camera ${cameraId} at ${new Date().toISOString()}`
+      );
+
+      const response = await fetch(
+        `/api/cameras/${cameraId}/hourly-stats?timestamp=${timestamp}`,
+        {
+          cache: "no-store",
+          headers: {
+            Pragma: "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to fetch hourly statistics", response.status);
+        return;
+      }
+      const data = await response.json();
+
+      console.log(`Received hourly statistics:`, {
+        cameraId: data.cameraId,
+        totalHours: data.hourlyData?.length || 0,
+        totalMotorcycles: data.totalMotorcycleCount,
+        totalCars: data.totalCarCount,
+        totalTrucks: data.totalTruckCount,
+        totalBuses: data.totalBusCount,
+        lastUpdated: data.lastUpdated,
+      });
+
+      setHourlyStatisticsData(data);
+      setLastUpdated(new Date());
+
+      console.log(`Hourly statistics updated at ${new Date().toISOString()}`);
+    } catch (error) {
+      console.error("Error fetching hourly statistics:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  // Function to fetch raw camera data for today
+  const fetchCameraData = async (cameraId: string) => {
+    setDataLoading(true);
+    try {
+      // Add timestamp parameter to bust cache
+      const timestamp = Date.now();
+      console.log(
+        `Fetching camera data for camera ${cameraId} at ${new Date().toISOString()}`
+      );
+
+      const response = await fetch(
+        `/api/cameras/${cameraId}/data?timestamp=${timestamp}`,
+        {
+          cache: "no-store",
+          headers: {
+            Pragma: "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to fetch camera data", response.status);
+        return;
+      }
+      const data = await response.json();
+
+      console.log(`Received camera data:`, {
+        cameraId: data.cameraId,
+        totalEntries: data.entries?.length || 0,
+        totalMotorcycles: data.totalMotorcycleCount,
+        totalCars: data.totalCarCount,
+        totalTrucks: data.totalTruckCount,
+        totalBuses: data.totalBusCount,
+        lastUpdated: data.lastUpdated,
+      });
+
+      // Log sample timestamps from received data
+      if (data.entries && data.entries.length > 0) {
+        console.log("Sample timestamps from API response:");
+        data.entries.slice(0, 3).forEach((entry: any, index: number) => {
+          const entryGMT7 = new Date(entry.timestamp);
+          console.log(
+            `  ${index + 1}. API: ${
+              entry.timestamp
+            } -> GMT+7: ${entryGMT7.toISOString()}`
+          );
+        });
+      }
+
+      setCameraData(data);
+      setLastUpdated(new Date());
+
+      console.log(`Camera data updated at ${new Date().toISOString()} (GMT+7)`);
+    } catch (error) {
+      console.error("Error fetching camera data:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   // Fetch junctions on component mount
   useEffect(() => {
@@ -405,7 +324,11 @@ export default function StatisticsPage() {
   // Manually force refresh data
   const handleForceRefresh = () => {
     if (selectedCamera) {
-      fetchStatisticsData(selectedCamera.cameraId, selectedPeriod);
+      if (selectedPeriod === "today") {
+        fetchHourlyStatistics(selectedCamera.cameraId);
+      } else {
+        fetchStatisticsData(selectedCamera.cameraId, selectedPeriod);
+      }
     }
   };
 
@@ -413,10 +336,18 @@ export default function StatisticsPage() {
   useEffect(() => {
     if (!selectedCamera) {
       setStatisticsData(null);
+      setHourlyStatisticsData(null);
+      setCameraData(null);
       return;
     }
 
-    fetchStatisticsData(selectedCamera.cameraId, selectedPeriod);
+    // For "today" period, fetch hourly statistics
+    if (selectedPeriod === "today") {
+      fetchHourlyStatistics(selectedCamera.cameraId);
+    } else {
+      // For other periods, use the existing statistics API
+      fetchStatisticsData(selectedCamera.cameraId, selectedPeriod);
+    }
   }, [selectedCamera, selectedPeriod]);
 
   // Handle junction selection
@@ -424,11 +355,17 @@ export default function StatisticsPage() {
     setSelectedJunction(junction);
     setSelectedCamera(null); // Reset selected camera when changing junctions
     setStatisticsData(null); // Clear statistics data
+    setHourlyStatisticsData(null); // Clear hourly statistics data
+    setCameraData(null); // Clear camera data
   };
 
   // Handle camera selection
   const handleCameraSelect = (camera: Camera) => {
     setSelectedCamera(camera);
+    // Clear previous data when switching cameras
+    setStatisticsData(null);
+    setHourlyStatisticsData(null);
+    setCameraData(null);
   };
 
   // Handle period selection
@@ -438,77 +375,26 @@ export default function StatisticsPage() {
 
   // Determine chart data based on selected period
   const getChartData = () => {
-    if (!statisticsData) return null;
-
-    const aggregationLevel = getDataAggregationLevel(selectedPeriod);
-
-    // For today, use hourly data with filtering for current day only
-    if (selectedPeriod === "today" && aggregationLevel === "hourly") {
-      if (
-        !statisticsData.hourlyData ||
-        statisticsData.hourlyData.length === 0
-      ) {
-        // If no data, still show empty timeline for today
-        const emptyTimeline = generateTodayTimeline([]);
-        return {
-          labels: emptyTimeline.map((data) => data.displayTime),
-          datasets: [
-            {
-              label: "Xe máy",
-              data: emptyTimeline.map((data) => data.motorcycleCount),
-              borderColor: vehicleColors[0],
-              backgroundColor: vehicleColors[0],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-            {
-              label: "Xe con",
-              data: emptyTimeline.map((data) => data.carCount),
-              borderColor: vehicleColors[1],
-              backgroundColor: vehicleColors[1],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-            {
-              label: "Xe tải",
-              data: emptyTimeline.map((data) => data.truckCount),
-              borderColor: vehicleColors[2],
-              backgroundColor: vehicleColors[2],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-            {
-              label: "Xe khách",
-              data: emptyTimeline.map((data) => data.busCount),
-              borderColor: vehicleColors[3],
-              backgroundColor: vehicleColors[3],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-          ],
-        };
-      }
-
-      // Filter data to only include current day
-      const todayData = filterTodayData(statisticsData.hourlyData);
-
-      // Generate complete timeline with filtered data
-      const formattedData = generateTodayTimeline(todayData);
+    // For today, use hourly statistics data
+    if (selectedPeriod === "today") {
+      if (!hourlyStatisticsData || !hourlyStatisticsData.hourlyData)
+        return null;
 
       console.log(
-        `Rendering today chart with ${formattedData.length} hourly data points`
+        `Rendering hourly chart with ${hourlyStatisticsData.hourlyData.length} hours`
       );
 
       return {
-        labels: formattedData.map((data) => data.displayTime),
+        labels: hourlyStatisticsData.hourlyData.map((data) => {
+          // Format hour as "HH:00"
+          return `${data.hour.toString().padStart(2, "0")}:00`;
+        }),
         datasets: [
           {
             label: "Xe máy",
-            data: formattedData.map((data) => data.motorcycleCount),
+            data: hourlyStatisticsData.hourlyData.map(
+              (data) => data.motorcycleCount
+            ),
             borderColor: vehicleColors[0],
             backgroundColor: vehicleColors[0],
             fill: false,
@@ -517,7 +403,7 @@ export default function StatisticsPage() {
           },
           {
             label: "Xe con",
-            data: formattedData.map((data) => data.carCount),
+            data: hourlyStatisticsData.hourlyData.map((data) => data.carCount),
             borderColor: vehicleColors[1],
             backgroundColor: vehicleColors[1],
             fill: false,
@@ -526,7 +412,9 @@ export default function StatisticsPage() {
           },
           {
             label: "Xe tải",
-            data: formattedData.map((data) => data.truckCount),
+            data: hourlyStatisticsData.hourlyData.map(
+              (data) => data.truckCount
+            ),
             borderColor: vehicleColors[2],
             backgroundColor: vehicleColors[2],
             fill: false,
@@ -535,7 +423,7 @@ export default function StatisticsPage() {
           },
           {
             label: "Xe khách",
-            data: formattedData.map((data) => data.busCount),
+            data: hourlyStatisticsData.hourlyData.map((data) => data.busCount),
             borderColor: vehicleColors[3],
             backgroundColor: vehicleColors[3],
             fill: false,
@@ -546,64 +434,10 @@ export default function StatisticsPage() {
       };
     }
 
-    // For year view, try to show monthly aggregation if we have enough data
-    if (
-      selectedPeriod === "year" &&
-      statisticsData.dailyData &&
-      statisticsData.dailyData.length > 30
-    ) {
-      const monthlyData = processYearlyData(statisticsData.dailyData);
+    // For other periods, use existing statistics data logic
+    if (!statisticsData) return null;
 
-      if (monthlyData.length > 0) {
-        console.log(
-          `Rendering yearly chart with monthly aggregation: ${monthlyData.length} months`
-        );
-
-        return {
-          labels: monthlyData.map((data) => formatMonthlyLabel(data.date)),
-          datasets: [
-            {
-              label: "Xe máy",
-              data: monthlyData.map((data) => data.motorcycleCount),
-              borderColor: vehicleColors[0],
-              backgroundColor: vehicleColors[0],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-            {
-              label: "Xe con",
-              data: monthlyData.map((data) => data.carCount),
-              borderColor: vehicleColors[1],
-              backgroundColor: vehicleColors[1],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-            {
-              label: "Xe tải",
-              data: monthlyData.map((data) => data.truckCount),
-              borderColor: vehicleColors[2],
-              backgroundColor: vehicleColors[2],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-            {
-              label: "Xe khách",
-              data: monthlyData.map((data) => data.busCount),
-              borderColor: vehicleColors[3],
-              backgroundColor: vehicleColors[3],
-              fill: false,
-              borderWidth: 2,
-              pointHitRadius: 10,
-            },
-          ],
-        };
-      }
-    }
-
-    // For week, month, year (daily view), use daily data with appropriate formatting
+    // For week, month, year, use daily data with appropriate formatting
     if (!statisticsData.dailyData || statisticsData.dailyData.length === 0) {
       return null;
     }
@@ -613,9 +447,31 @@ export default function StatisticsPage() {
     );
 
     return {
-      labels: statisticsData.dailyData.map((data) =>
-        formatDateForPeriod(data.date, selectedPeriod)
-      ),
+      labels: statisticsData.dailyData.map((data) => {
+        // Simple date formatting without timezone conversion
+        const date = new Date(data.date);
+        switch (selectedPeriod) {
+          case "week":
+            return date.toLocaleDateString("vi-VN", {
+              weekday: "short",
+              day: "2-digit",
+              month: "2-digit",
+            });
+          case "month":
+            return date.toLocaleDateString("vi-VN", {
+              day: "2-digit",
+              month: "2-digit",
+            });
+          case "year":
+            return date.toLocaleDateString("vi-VN", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "2-digit",
+            });
+          default:
+            return date.toLocaleDateString("vi-VN");
+        }
+      }),
       datasets: [
         {
           label: "Xe máy",
@@ -659,6 +515,31 @@ export default function StatisticsPage() {
 
   // Prepare data for the pie chart
   const getPieChartData = () => {
+    // For today, use hourly statistics data
+    if (selectedPeriod === "today") {
+      if (!hourlyStatisticsData) return null;
+
+      return {
+        labels: vehicleTypes,
+        datasets: [
+          {
+            data: [
+              hourlyStatisticsData.totalMotorcycleCount || 0,
+              hourlyStatisticsData.totalCarCount || 0,
+              hourlyStatisticsData.totalTruckCount || 0,
+              hourlyStatisticsData.totalBusCount || 0,
+            ],
+            backgroundColor: vehicleColors,
+            borderColor: vehicleColors.map((color) =>
+              color.replace("0.8", "1")
+            ),
+            borderWidth: 1,
+          },
+        ],
+      };
+    }
+
+    // For other periods, use statistics data
     if (!statisticsData) return null;
 
     return {
@@ -689,10 +570,6 @@ export default function StatisticsPage() {
       case "month":
         return "Số lượng xe theo ngày trong tháng này";
       case "year":
-        // Check if we're showing monthly or daily aggregation
-        if (statisticsData?.dailyData && statisticsData.dailyData.length > 30) {
-          return "Số lượng xe theo tháng trong năm nay";
-        }
         return "Số lượng xe theo ngày trong năm nay";
       default:
         return "Số lượng xe theo thời gian";
@@ -709,9 +586,6 @@ export default function StatisticsPage() {
       case "month":
         return "Ngày trong tháng";
       case "year":
-        if (statisticsData?.dailyData && statisticsData.dailyData.length > 30) {
-          return "Tháng trong năm";
-        }
         return "Ngày trong năm";
       default:
         return "Thời gian";
@@ -891,21 +765,24 @@ export default function StatisticsPage() {
                             // Get the original time/date data for tooltip
                             if (
                               selectedPeriod === "today" &&
-                              statisticsData?.hourlyData
+                              hourlyStatisticsData?.hourlyData
                             ) {
                               const originalData =
-                                statisticsData.hourlyData[dataIndex];
-                              if (originalData?.time) {
-                                return `Thời gian: ${originalData.time}`;
+                                hourlyStatisticsData.hourlyData[dataIndex];
+                              if (originalData) {
+                                const hour = originalData.hour
+                                  .toString()
+                                  .padStart(2, "0");
+                                return `Giờ: ${hour}:00 - ${hour}:59`;
                               }
                             } else if (statisticsData?.dailyData) {
                               const originalData =
                                 statisticsData.dailyData[dataIndex];
                               if (originalData?.date) {
-                                const formattedDate = formatDateForPeriod(
-                                  originalData.date,
-                                  selectedPeriod
-                                );
+                                // Simple date formatting without timezone conversion
+                                const date = new Date(originalData.date);
+                                const formattedDate =
+                                  date.toLocaleDateString("vi-VN");
                                 return `Ngày: ${formattedDate}`;
                               }
                             }
@@ -1009,7 +886,9 @@ export default function StatisticsPage() {
               </div>
             )}
 
-            {statisticsData && (
+            {(selectedPeriod === "today"
+              ? hourlyStatisticsData
+              : statisticsData) && (
               <div className="mt-2">
                 <h3 className="text-sm font-semibold mb-1 text-gray-900 dark:text-white">
                   Tổng số phương tiện {getPeriodLabel()}
@@ -1021,9 +900,13 @@ export default function StatisticsPage() {
                         Xe máy
                       </p>
                       <p className="text-md font-bold text-blue-600 dark:text-blue-400">
-                        {statisticsData.totalMotorcycleCount.toLocaleString(
-                          "vi-VN"
-                        )}
+                        {selectedPeriod === "today"
+                          ? (
+                              hourlyStatisticsData?.totalMotorcycleCount || 0
+                            ).toLocaleString("vi-VN")
+                          : (
+                              statisticsData?.totalMotorcycleCount || 0
+                            ).toLocaleString("vi-VN")}
                       </p>
                     </div>
                     <div className="text-center">
@@ -1031,7 +914,13 @@ export default function StatisticsPage() {
                         Xe con
                       </p>
                       <p className="text-md font-bold text-yellow-600 dark:text-yellow-400">
-                        {statisticsData.totalCarCount.toLocaleString("vi-VN")}
+                        {selectedPeriod === "today"
+                          ? (
+                              hourlyStatisticsData?.totalCarCount || 0
+                            ).toLocaleString("vi-VN")
+                          : (statisticsData?.totalCarCount || 0).toLocaleString(
+                              "vi-VN"
+                            )}
                       </p>
                     </div>
                     <div className="text-center">
@@ -1039,7 +928,13 @@ export default function StatisticsPage() {
                         Xe tải
                       </p>
                       <p className="text-md font-bold text-green-600 dark:text-green-400">
-                        {statisticsData.totalTruckCount.toLocaleString("vi-VN")}
+                        {selectedPeriod === "today"
+                          ? (
+                              hourlyStatisticsData?.totalTruckCount || 0
+                            ).toLocaleString("vi-VN")
+                          : (
+                              statisticsData?.totalTruckCount || 0
+                            ).toLocaleString("vi-VN")}
                       </p>
                     </div>
                     <div className="text-center">
@@ -1047,7 +942,13 @@ export default function StatisticsPage() {
                         Xe khách
                       </p>
                       <p className="text-md font-bold text-purple-600 dark:text-purple-400">
-                        {statisticsData.totalBusCount.toLocaleString("vi-VN")}
+                        {selectedPeriod === "today"
+                          ? (
+                              hourlyStatisticsData?.totalBusCount || 0
+                            ).toLocaleString("vi-VN")
+                          : (statisticsData?.totalBusCount || 0).toLocaleString(
+                              "vi-VN"
+                            )}
                       </p>
                     </div>
                   </div>
@@ -1056,17 +957,25 @@ export default function StatisticsPage() {
                       Tổng số
                     </p>
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
-                      {(
-                        statisticsData.totalMotorcycleCount +
-                        statisticsData.totalCarCount +
-                        statisticsData.totalTruckCount +
-                        statisticsData.totalBusCount
-                      ).toLocaleString("vi-VN")}
+                      {selectedPeriod === "today"
+                        ? (
+                            (hourlyStatisticsData?.totalMotorcycleCount || 0) +
+                            (hourlyStatisticsData?.totalCarCount || 0) +
+                            (hourlyStatisticsData?.totalTruckCount || 0) +
+                            (hourlyStatisticsData?.totalBusCount || 0)
+                          ).toLocaleString("vi-VN")
+                        : (
+                            (statisticsData?.totalMotorcycleCount || 0) +
+                            (statisticsData?.totalCarCount || 0) +
+                            (statisticsData?.totalTruckCount || 0) +
+                            (statisticsData?.totalBusCount || 0)
+                          ).toLocaleString("vi-VN")}
                     </p>
                   </div>
                 </div>
                 <div className="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">
-                  Cập nhật lúc: {formatTime(lastUpdated)}
+                  Cập nhật lúc:{" "}
+                  {lastUpdated ? formatTime(lastUpdated) : "--:--:--"}
                 </div>
               </div>
             )}
@@ -1144,35 +1053,4 @@ export default function StatisticsPage() {
       </div>
     </div>
   );
-}
-
-// Add this CSS to the top of your file to customize scrollbars
-const styles = `
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 5px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #555;
-  }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #555;
-  }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #777;
-  }
-`;
-
-// Add the styles to the document head
-if (typeof document !== "undefined") {
-  const styleElement = document.createElement("style");
-  styleElement.innerHTML = styles;
-  document.head.appendChild(styleElement);
 }
