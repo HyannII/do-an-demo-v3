@@ -3,7 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Hls from "hls.js";
-import { Camera, Junction, CameraDataSummary } from "../../../../types/interface";
+import {
+  Camera,
+  Junction,
+  CameraDataSummary,
+} from "../../../../types/interface";
 
 export default function LiveCamera() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
@@ -18,9 +22,29 @@ export default function LiveCamera() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [streamError, setStreamError] = useState<string | null>(null);
   const [isAutoQuality, setIsAutoQuality] = useState<boolean>(true);
-  const [qualityLevels, setQualityLevels] = useState<{ height: number; bitrate: number; level: number }[]>([]);
+  const [qualityLevels, setQualityLevels] = useState<
+    { height: number; bitrate: number; level: number }[]
+  >([]);
   const [wasDocumentHidden, setWasDocumentHidden] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [hourlyStatisticsData, setHourlyStatisticsData] = useState<{
+    cameraId: string;
+    startDate: string;
+    endDate: string;
+    totalMotorcycleCount: number;
+    totalCarCount: number;
+    totalTruckCount: number;
+    totalBusCount: number;
+    hourlyData: {
+      hour: number;
+      time: string;
+      motorcycleCount: number;
+      carCount: number;
+      truckCount: number;
+      busCount: number;
+    }[];
+    lastUpdated: string;
+  } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -29,27 +53,27 @@ export default function LiveCamera() {
 
   // Create HLS config with optimized settings
   const hlsConfig = {
-    maxBufferLength: 30,           // Increase buffer length for smoother playback
-    maxMaxBufferLength: 60,        // Maximum buffer size
-    liveSyncDurationCount: 15,      // Live sync window
+    maxBufferLength: 30, // Increase buffer length for smoother playback
+    maxMaxBufferLength: 60, // Maximum buffer size
+    liveSyncDurationCount: 15, // Live sync window
     liveDurationInfinity: true,
-    enableWorker: true,            // Use web workers for better performance
-    lowLatencyMode: true,          // Reduce latency
-    backBufferLength: 30,          // Keep 30s of backward buffer
-    fragLoadingMaxRetry: 8,        // Increase retry attempts for fragment loading
-    manifestLoadingMaxRetry: 8,    // Increase retry attempts for manifest loading
-    levelLoadingMaxRetry: 8,       // Increase retry attempts for level loading
-    fragLoadingRetryDelay: 500,    // Initial retry delay for fragment loading (ms)
-    manifestLoadingRetryDelay: 500,// Initial retry delay for manifest loading (ms)
-    levelLoadingRetryDelay: 500,   // Initial retry delay for level loading (ms)
-    fragLoadingMaxRetryTimeout: 5000,   // Maximum retry timeout for fragment loading (ms)
-    manifestLoadingMaxRetryTimeout: 5000,// Maximum retry timeout for manifest loading (ms)
-    levelLoadingMaxRetryTimeout: 5000,   // Maximum retry timeout for level loading (ms)
-    startLevel: -1,                // Auto select initial quality level
-    abrEwmaDefaultEstimate: 16384,// Default bitrate estimate
-    abrEwmaFastLive: 3.0,          // Fast live adaptation 
-    abrEwmaSlowLive: 9.0,          // Slow live adaptation
-    startFragPrefetch: true,       // Prefetch initial fragments
+    enableWorker: true, // Use web workers for better performance
+    lowLatencyMode: true, // Reduce latency
+    backBufferLength: 30, // Keep 30s of backward buffer
+    fragLoadingMaxRetry: 8, // Increase retry attempts for fragment loading
+    manifestLoadingMaxRetry: 8, // Increase retry attempts for manifest loading
+    levelLoadingMaxRetry: 8, // Increase retry attempts for level loading
+    fragLoadingRetryDelay: 500, // Initial retry delay for fragment loading (ms)
+    manifestLoadingRetryDelay: 500, // Initial retry delay for manifest loading (ms)
+    levelLoadingRetryDelay: 500, // Initial retry delay for level loading (ms)
+    fragLoadingMaxRetryTimeout: 5000, // Maximum retry timeout for fragment loading (ms)
+    manifestLoadingMaxRetryTimeout: 5000, // Maximum retry timeout for manifest loading (ms)
+    levelLoadingMaxRetryTimeout: 5000, // Maximum retry timeout for level loading (ms)
+    startLevel: -1, // Auto select initial quality level
+    abrEwmaDefaultEstimate: 16384, // Default bitrate estimate
+    abrEwmaFastLive: 3.0, // Fast live adaptation
+    abrEwmaSlowLive: 9.0, // Slow live adaptation
+    startFragPrefetch: true, // Prefetch initial fragments
   };
 
   // Fetch junctions and their cameras on component mount
@@ -77,116 +101,132 @@ export default function LiveCamera() {
   }, []);
 
   // Initialize and set up HLS player with error handling and recovery
-  const initializeHlsPlayer = useCallback((video: HTMLVideoElement, url: string) => {
-    if (!Hls.isSupported()) {
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url;
-        video.addEventListener("loadedmetadata", () => {
+  const initializeHlsPlayer = useCallback(
+    (video: HTMLVideoElement, url: string) => {
+      if (!Hls.isSupported()) {
+        if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = url;
+          video.addEventListener("loadedmetadata", () => {
+            video.play().catch((error) => {
+              console.error("Error playing video:", error);
+              setStreamError("Không thể phát video. Vui lòng thử lại.");
+            });
+          });
+        } else {
+          setStreamError("Trình duyệt của bạn không hỗ trợ phát video HLS.");
+        }
+        return null;
+      }
+
+      // Clean up any existing HLS instance
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+
+      setVideoLoading(true);
+
+      try {
+        // Create new HLS instance with optimized config
+        const hls = new Hls(hlsConfig);
+        hls.loadSource(url);
+        hls.attachMedia(video);
+
+        // Handle quality levels for adaptive streaming
+        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+          const levels = data.levels.map((level, index) => ({
+            height: level.height,
+            bitrate: level.bitrate,
+            level: index,
+          }));
+          setQualityLevels(levels);
+
+          // Start playback when manifest is ready
           video.play().catch((error) => {
             console.error("Error playing video:", error);
             setStreamError("Không thể phát video. Vui lòng thử lại.");
           });
         });
-      } else {
-        setStreamError("Trình duyệt của bạn không hỗ trợ phát video HLS.");
-      }
-      return null;
-    }
 
-    // Clean up any existing HLS instance
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-    }
+        // Error handling and recovery
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) {
+            console.error("Fatal HLS error:", data.type, data.details);
 
-    setVideoLoading(true);
-    
-    try {
-      // Create new HLS instance with optimized config
-      const hls = new Hls(hlsConfig);
-      hls.loadSource(url);
-      hls.attachMedia(video);
-
-      // Handle quality levels for adaptive streaming
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-        const levels = data.levels.map((level, index) => ({
-          height: level.height,
-          bitrate: level.bitrate,
-          level: index
-        }));
-        setQualityLevels(levels);
-        
-        // Start playback when manifest is ready
-        video.play().catch((error) => {
-          console.error("Error playing video:", error);
-          setStreamError("Không thể phát video. Vui lòng thử lại.");
-        });
-      });
-
-      // Error handling and recovery
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          console.error('Fatal HLS error:', data.type, data.details);
-          
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              // Try to recover network error
-              if (recoveryAttempts.current < maxRecoveryAttempts) {
-                console.log(`Attempting to recover from network error (${recoveryAttempts.current + 1}/${maxRecoveryAttempts})`);
-                recoveryAttempts.current += 1;
-                hls.startLoad();
-                setStreamError("Đang kết nối lại...");
-              } else {
-                setStreamError("Không thể kết nối đến luồng video. Vui lòng thử lại sau.");
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                // Try to recover network error
+                if (recoveryAttempts.current < maxRecoveryAttempts) {
+                  console.log(
+                    `Attempting to recover from network error (${
+                      recoveryAttempts.current + 1
+                    }/${maxRecoveryAttempts})`
+                  );
+                  recoveryAttempts.current += 1;
+                  hls.startLoad();
+                  setStreamError("Đang kết nối lại...");
+                } else {
+                  setStreamError(
+                    "Không thể kết nối đến luồng video. Vui lòng thử lại sau."
+                  );
+                  hls.destroy();
+                }
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                // Try to recover media error
+                if (recoveryAttempts.current < maxRecoveryAttempts) {
+                  console.log(
+                    `Attempting to recover from media error (${
+                      recoveryAttempts.current + 1
+                    }/${maxRecoveryAttempts})`
+                  );
+                  recoveryAttempts.current += 1;
+                  hls.recoverMediaError();
+                  setStreamError("Đang khôi phục luồng video...");
+                } else {
+                  setStreamError("Lỗi phát luồng video. Vui lòng thử lại.");
+                  hls.destroy();
+                }
+                break;
+              default:
+                // Cannot recover from other errors
+                setStreamError("Lỗi không xác định. Vui lòng thử lại.");
                 hls.destroy();
-              }
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              // Try to recover media error
-              if (recoveryAttempts.current < maxRecoveryAttempts) {
-                console.log(`Attempting to recover from media error (${recoveryAttempts.current + 1}/${maxRecoveryAttempts})`);
-                recoveryAttempts.current += 1;
-                hls.recoverMediaError();
-                setStreamError("Đang khôi phục luồng video...");
-              } else {
-                setStreamError("Lỗi phát luồng video. Vui lòng thử lại.");
-                hls.destroy();
-              }
-              break;
-            default:
-              // Cannot recover from other errors
-              setStreamError("Lỗi không xác định. Vui lòng thử lại.");
-              hls.destroy();
-              break;
+                break;
+            }
+          } else {
+            // Non-fatal errors, log but don't take action
+            console.warn("Non-fatal HLS error:", data.type, data.details);
           }
-        } else {
-          // Non-fatal errors, log but don't take action
-          console.warn('Non-fatal HLS error:', data.type, data.details);
-        }
-      });
+        });
 
-      // Track when buffering starts/ends to show loading indicators
-      hls.on(Hls.Events.BUFFER_CREATED, () => {
-        setStreamError(null);
-      });
-
-      // Track when stream is successfully playing
-      hls.on(Hls.Events.FRAG_BUFFERED, () => {
-        if (streamError === "Đang kết nối lại..." || streamError === "Đang khôi phục luồng video...") {
+        // Track when buffering starts/ends to show loading indicators
+        hls.on(Hls.Events.BUFFER_CREATED, () => {
           setStreamError(null);
-        }
-        // Reset recovery attempts counter when fragments are successfully buffered
-        recoveryAttempts.current = 0;
-        setVideoLoading(false);
-      });
+        });
 
-      return hls;
-    } catch (error) {
-      console.error("Error initializing HLS:", error);
-      setStreamError("Lỗi khởi tạo trình phát video.");
-      setVideoLoading(false);
-      return null;
-    }
-  }, [streamError]);
+        // Track when stream is successfully playing
+        hls.on(Hls.Events.FRAG_BUFFERED, () => {
+          if (
+            streamError === "Đang kết nối lại..." ||
+            streamError === "Đang khôi phục luồng video..."
+          ) {
+            setStreamError(null);
+          }
+          // Reset recovery attempts counter when fragments are successfully buffered
+          recoveryAttempts.current = 0;
+          setVideoLoading(false);
+        });
+
+        return hls;
+      } catch (error) {
+        console.error("Error initializing HLS:", error);
+        setStreamError("Lỗi khởi tạo trình phát video.");
+        setVideoLoading(false);
+        return null;
+      }
+    },
+    [streamError]
+  );
 
   // Handle HLS playback when a camera is selected
   useEffect(() => {
@@ -216,36 +256,36 @@ export default function LiveCamera() {
   // Handle page visibility change to reload stream when tab is changed or app is minimized
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === "hidden") {
         setWasDocumentHidden(true);
-      } else if (document.visibilityState === 'visible' && wasDocumentHidden) {
+      } else if (document.visibilityState === "visible" && wasDocumentHidden) {
         // Document became visible after being hidden
-        console.log('Tab is now visible, reloading stream...');
-        
+        console.log("Tab is now visible, reloading stream...");
+
         const video = videoRef.current;
         if (video && selectedCamera && selectedCamera.cameraAddress) {
           // Reset stream error and recovery attempts
           setStreamError(null);
           recoveryAttempts.current = 0;
           setVideoLoading(true); // Set video as loading while we reinitialize
-          
+
           // Re-initialize the HLS player
           const hls = initializeHlsPlayer(video, selectedCamera.cameraAddress);
           if (hls) {
             hlsRef.current = hls;
           }
         }
-        
+
         setWasDocumentHidden(false);
       }
     };
 
     // Add event listener for visibility change
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Clean up
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [selectedCamera, initializeHlsPlayer, wasDocumentHidden]);
 
@@ -253,7 +293,7 @@ export default function LiveCamera() {
   const getGMT7Date = (date = new Date()) => {
     // Create date with GMT+7 offset (7 hours * 60 minutes * 60 seconds * 1000 milliseconds)
     const gmtOffset = 7 * 60 * 60 * 1000;
-    const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
+    const utc = date.getTime() + date.getTimezoneOffset() * 60 * 1000;
     return new Date(utc + gmtOffset);
   };
 
@@ -263,27 +303,34 @@ export default function LiveCamera() {
     try {
       // Add timestamp parameter to bust cache
       const timestamp = Date.now();
-      const response = await fetch(`/api/cameras/${cameraId}/data?timestamp=${timestamp}`, {
-        cache: 'no-store',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+      const response = await fetch(
+        `/api/cameras/${cameraId}/data?timestamp=${timestamp}`,
+        {
+          cache: "no-store",
+          headers: {
+            Pragma: "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
         }
-      });
-      
+      );
+
       if (!response.ok) {
         console.error("Failed to fetch camera data", response.status);
         return;
       }
       const data = await response.json();
-      
+
       // Update data without showing loading state
       setCameraData(data);
       setLastUpdated(getGMT7Date());
 
-      console.log(`Camera data updated at ${getGMT7Date().toISOString()} (GMT+7)`);
+      console.log(
+        `Camera data updated at ${getGMT7Date().toISOString()} (GMT+7)`
+      );
       if (data && data.totalMotorcycleCount !== undefined) {
-        console.log(`Received counts - Motorcycles: ${data.totalMotorcycleCount}, Cars: ${data.totalCarCount}, Trucks: ${data.totalTruckCount}, Buses: ${data.totalBusCount}`);
+        console.log(
+          `Received counts - Motorcycles: ${data.totalMotorcycleCount}, Cars: ${data.totalCarCount}, Trucks: ${data.totalTruckCount}, Buses: ${data.totalBusCount}`
+        );
       }
     } catch (error) {
       console.error("Error fetching camera data:", error);
@@ -292,10 +339,57 @@ export default function LiveCamera() {
     }
   };
 
+  // Function to fetch hourly statistics data for today (new logic from statistics page)
+  const fetchHourlyStatistics = async (cameraId: string) => {
+    setDataLoading(true);
+    try {
+      const timestamp = Date.now();
+      console.log(
+        `Fetching hourly statistics for camera ${cameraId} at ${new Date().toISOString()}`
+      );
+
+      const response = await fetch(
+        `/api/cameras/${cameraId}/hourly-stats?timestamp=${timestamp}`,
+        {
+          cache: "no-store",
+          headers: {
+            Pragma: "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to fetch hourly statistics", response.status);
+        return;
+      }
+      const data = await response.json();
+
+      console.log(`Received hourly statistics:`, {
+        cameraId: data.cameraId,
+        totalHours: data.hourlyData?.length || 0,
+        totalMotorcycles: data.totalMotorcycleCount,
+        totalCars: data.totalCarCount,
+        totalTrucks: data.totalTruckCount,
+        totalBuses: data.totalBusCount,
+        lastUpdated: data.lastUpdated,
+      });
+
+      setHourlyStatisticsData(data);
+      setLastUpdated(new Date());
+
+      console.log(`Hourly statistics updated at ${new Date().toISOString()}`);
+    } catch (error) {
+      console.error("Error fetching hourly statistics:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
   // Manually force refresh data
   const handleForceRefresh = () => {
     if (selectedCamera) {
-      fetchCameraData(selectedCamera.cameraId);
+      fetchHourlyStatistics(selectedCamera.cameraId);
     }
   };
 
@@ -309,15 +403,16 @@ export default function LiveCamera() {
 
     if (!selectedCamera) {
       setCameraData(null);
+      setHourlyStatisticsData(null);
       return;
     }
 
-    // Initial data fetch
-    fetchCameraData(selectedCamera.cameraId);
+    // Initial data fetch using hourly statistics
+    fetchHourlyStatistics(selectedCamera.cameraId);
 
     // Set up automatic refresh every 5 seconds
     intervalRef.current = setInterval(() => {
-      fetchCameraData(selectedCamera.cameraId);
+      fetchHourlyStatistics(selectedCamera.cameraId);
     }, 5000);
 
     // Clean up on component unmount or when camera changes
@@ -332,31 +427,34 @@ export default function LiveCamera() {
   const handleJunctionSelect = (junction: Junction) => {
     setSelectedJunction(junction);
     setSelectedCamera(null); // Reset selected camera when changing junctions
-    setCameraData(null);     // Clear camera data when junction changes
+    setCameraData(null); // Clear camera data when junction changes
+    setHourlyStatisticsData(null); // Clear hourly statistics data when junction changes
   };
 
   const handleCameraSelect = (camera: Camera) => {
     // Keep any previous data if changing to a camera of the same type
     // This prevents the table from disappearing during camera switch
-    const keepingPreviousData = selectedCamera && cameraData;
-    
+    const keepingPreviousData =
+      selectedCamera && (cameraData || hourlyStatisticsData);
+
     setSelectedCamera(camera);
     setVideoLoading(true); // Set video as loading when a new camera is selected
-    
+
     // Don't clear camera data immediately when switching between cameras
     // Let the data update naturally with the next fetch instead
     if (!keepingPreviousData) {
       setCameraData(null);
+      setHourlyStatisticsData(null);
     }
   };
 
   // Format time for the last updated timestamp in GMT+7
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('vi-VN', { 
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      timeZone: 'Asia/Bangkok' // Use GMT+7 timezone
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "Asia/Bangkok", // Use GMT+7 timezone
     });
   };
 
@@ -366,7 +464,10 @@ export default function LiveCamera() {
     if (!video) return;
 
     if (video.paused || video.ended) {
-      video.play().then(() => setIsPlaying(true)).catch(e => console.error("Error playing video:", e));
+      video
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((e) => console.error("Error playing video:", e));
     } else {
       video.pause();
       setIsPlaying(false);
@@ -379,9 +480,13 @@ export default function LiveCamera() {
     if (!video) return;
 
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch(err => console.error("Error exiting fullscreen:", err));
+      document
+        .exitFullscreen()
+        .catch((err) => console.error("Error exiting fullscreen:", err));
     } else {
-      video.requestFullscreen().catch(err => console.error("Error requesting fullscreen:", err));
+      video
+        .requestFullscreen()
+        .catch((err) => console.error("Error requesting fullscreen:", err));
     }
   };
 
@@ -392,13 +497,13 @@ export default function LiveCamera() {
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
-    
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    
+
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+
     return () => {
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
     };
   }, [selectedCamera]);
 
@@ -421,49 +526,71 @@ export default function LiveCamera() {
                 >
                   Your browser does not support the video tag.
                 </video>
-                
+
                 {/* Custom Video Controls - Play Button at bottom left */}
                 <div className="absolute bottom-4 left-4">
-                  <button 
+                  <button
                     onClick={togglePlay}
                     className="text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors focus:outline-none"
                   >
                     {isPlaying ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        fill="currentColor"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
                       </svg>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        fill="currentColor"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
                       </svg>
                     )}
                   </button>
                 </div>
-                
+
                 {/* Fullscreen Button at bottom right */}
                 <div className="absolute bottom-4 right-4">
-                  <button 
+                  <button
                     onClick={toggleFullscreen}
                     className="text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors focus:outline-none"
+                    title="Toàn màn hình"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z" />
                     </svg>
                   </button>
                 </div>
-                
+
                 {streamError && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
                     <div className="text-white text-center p-4">
                       <p className="mb-2">{streamError}</p>
-                      <button 
+                      <button
                         onClick={() => {
                           // Reset and retry stream initialization
                           if (selectedCamera && videoRef.current) {
                             setStreamError(null);
                             recoveryAttempts.current = 0;
                             setVideoLoading(true); // Show loading indicator when retrying
-                            const hls = initializeHlsPlayer(videoRef.current, selectedCamera.cameraAddress);
+                            const hls = initializeHlsPlayer(
+                              videoRef.current,
+                              selectedCamera.cameraAddress
+                            );
                             if (hls) {
                               hlsRef.current = hls;
                             }
@@ -503,30 +630,43 @@ export default function LiveCamera() {
             </h3>
             <div className="flex items-center">
               {selectedCamera && (
-                <button 
+                <button
                   onClick={handleForceRefresh}
                   className="mr-2 p-1 rounded-full text-gray-500 hover:text-blue-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                   title="Làm mới dữ liệu"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"
+                    />
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
                   </svg>
                 </button>
               )}
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {getGMT7Date().toLocaleDateString('vi-VN')}
+                {getGMT7Date().toLocaleDateString("vi-VN")}
               </span>
             </div>
           </div>
-          
+
           {!selectedCamera ? (
             <div className="flex justify-center items-center h-40">
-              <span className="text-gray-500 dark:text-gray-400">Chọn camera để xem dữ liệu</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                Chọn camera để xem dữ liệu
+              </span>
             </div>
-          ) : !cameraData ? (
+          ) : !hourlyStatisticsData ? (
             <div className="flex justify-center items-center h-40">
-              <span className="text-gray-500 dark:text-gray-400">Không có dữ liệu</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                Không có dữ liệu
+              </span>
             </div>
           ) : (
             <>
@@ -547,7 +687,7 @@ export default function LiveCamera() {
                       Xe máy
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {cameraData?.totalMotorcycleCount || 0}
+                      {hourlyStatisticsData?.totalMotorcycleCount || 0}
                     </td>
                   </tr>
                   <tr>
@@ -555,7 +695,7 @@ export default function LiveCamera() {
                       Xe con
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {cameraData?.totalCarCount || 0}
+                      {hourlyStatisticsData?.totalCarCount || 0}
                     </td>
                   </tr>
                   <tr>
@@ -563,7 +703,7 @@ export default function LiveCamera() {
                       Xe tải
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {cameraData?.totalTruckCount || 0}
+                      {hourlyStatisticsData?.totalTruckCount || 0}
                     </td>
                   </tr>
                   <tr>
@@ -571,7 +711,7 @@ export default function LiveCamera() {
                       Xe khách
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {cameraData?.totalBusCount || 0}
+                      {hourlyStatisticsData?.totalBusCount || 0}
                     </td>
                   </tr>
                   <tr className="bg-gray-100 dark:bg-gray-800">
@@ -579,10 +719,10 @@ export default function LiveCamera() {
                       Tổng cộng
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-800 dark:text-white font-semibold">
-                      {(cameraData?.totalMotorcycleCount || 0) + 
-                      (cameraData?.totalCarCount || 0) + 
-                      (cameraData?.totalTruckCount || 0) + 
-                      (cameraData?.totalBusCount || 0)}
+                      {(hourlyStatisticsData?.totalMotorcycleCount || 0) +
+                        (hourlyStatisticsData?.totalCarCount || 0) +
+                        (hourlyStatisticsData?.totalTruckCount || 0) +
+                        (hourlyStatisticsData?.totalBusCount || 0)}
                     </td>
                   </tr>
                 </tbody>
@@ -590,9 +730,15 @@ export default function LiveCamera() {
               <div className="mt-2 text-xs text-right text-gray-500 dark:text-gray-400 flex items-center justify-end">
                 <span className="mr-1">
                   {dataLoading ? (
-                    <span className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse mr-1" title="Đang cập nhật dữ liệu"></span>
+                    <span
+                      className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse mr-1"
+                      title="Đang cập nhật dữ liệu"
+                    ></span>
                   ) : (
-                    <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1" title="Dữ liệu đã cập nhật"></span>
+                    <span
+                      className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1"
+                      title="Dữ liệu đã cập nhật"
+                    ></span>
                   )}
                 </span>
                 Cập nhật lúc: {formatTime(lastUpdated)}
