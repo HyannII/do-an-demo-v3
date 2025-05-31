@@ -23,8 +23,9 @@ export interface Junction {
 export interface Role {
   roleId: string;
   roleName: string;
-  permissions?: any;
+  permissions?: Record<string, boolean>;
   users: User[];
+  createdAt?: string | Date;
 }
 
 export interface TrafficLight {

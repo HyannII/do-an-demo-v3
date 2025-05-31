@@ -17,10 +17,21 @@ load_dotenv()
 pygame.init()
 
 # Cấu hình cửa sổ
-WINDOW_WIDTH = 600
-WINDOW_HEIGHT = 600
+WINDOW_WIDTH = 1200
+WINDOW_HEIGHT = 700
 WINDOW = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Mô phỏng đèn giao thông 4 pha")
+
+# Cấu hình layout
+MENU_WIDTH = 350
+SIMULATION_WIDTH = WINDOW_WIDTH - MENU_WIDTH
+SIMULATION_HEIGHT = WINDOW_HEIGHT
+
+# Layout chia đôi theo tỉ lệ 65:35
+LEFT_TOP_HEIGHT = int(WINDOW_HEIGHT * 0.65)  # Nửa trên bên trái: danh sách nút giao (65%)
+LEFT_BOTTOM_HEIGHT = int(WINDOW_HEIGHT * 0.35)  # Nửa dưới bên trái: thông tin chi tiết (35%)
+RIGHT_TOP_HEIGHT = int(WINDOW_HEIGHT * 0.65)  # Nửa trên bên phải: giả lập đèn (65%)
+RIGHT_BOTTOM_HEIGHT = int(WINDOW_HEIGHT * 0.35)  # Nửa dưới bên phải: biểu đồ (35%)
 
 # Màu sắc
 RED = (255, 0, 0)
@@ -28,6 +39,10 @@ YELLOW = (255, 255, 0)
 GREEN = (0, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+GRAY = (128, 128, 128)
+LIGHT_GRAY = (220, 220, 220)
+BLUE = (0, 100, 200)
+LIGHT_BLUE = (173, 216, 230)
 
 # Màu mờ (khi không hoạt động)
 DIM_RED = (150, 0, 0)
@@ -58,6 +73,21 @@ config_lock = threading.Lock()  # Lock để đồng bộ truy cập vào new_co
 
 # Lock để đồng bộ truy cập vào trạng thái đèn và các biến toàn cục
 state_lock = threading.Lock()
+
+# GUI state variables
+junctions_list = []
+filtered_junctions = []  # For search results
+selected_junction_index = -1
+simulation_running = False
+scroll_offset = 0
+loading_junctions = True
+search_text = ""
+search_active = False
+show_info_panel = False  # Show detailed info panel
+
+# Search input box (positioned in top half)
+search_box = pygame.Rect(10, 50, MENU_WIDTH - 20, 25)
+stop_button = pygame.Rect(10, 80, 80, 25)
 
 # Khởi tạo FastAPI
 app = FastAPI()
@@ -668,51 +698,57 @@ def initialize_junction():
         else:
             print("Lựa chọn không hợp lệ. Vui lòng chọn 1, 2 hoặc 3.")
 
-# Khởi tạo junction trước khi đọc cấu hình
-initialize_junction()
+# Khởi tạo junction trước khi đọc cấu hình (Commented out for GUI version)
+# initialize_junction()
 
-# Cập nhật tiêu đề cửa sổ với tên junction
-pygame.display.set_caption(f"Mô phỏng đèn giao thông - {JUNCTION_NAME}")
+# Cập nhật tiêu đề cửa sổ với tên junction (will be updated dynamically in GUI)
+# pygame.display.set_caption(f"Mô phỏng đèn giao thông - {JUNCTION_NAME}")
 
-# Đọc cấu hình lần đầu tiên (đồng bộ)
-print("Đang khởi tạo cấu hình đèn giao thông...")
-load_config_from_db(sync=True)
+# Đọc cấu hình lần đầu tiên (đồng bộ) (Commented out for GUI version - loaded when junction is selected)
+# print("Đang khởi tạo cấu hình đèn giao thông...")
+# load_config_from_db(sync=True)
 
-# Vị trí và kích thước đèn
+# Vị trí và kích thước đèn (điều chỉnh cho nửa trên bên phải)
 LIGHT_RADIUS = 20
+SIM_OFFSET_X = MENU_WIDTH  # Bắt đầu từ sau menu
+SIM_CENTER_X = SIM_OFFSET_X + SIMULATION_WIDTH // 2
+SIM_CENTER_Y = RIGHT_TOP_HEIGHT // 2  # Center of top right area
+
 LIGHT_POSITIONS = {
     "Bắc": {
-        "red": (WINDOW_WIDTH // 2, 100),
-        "yellow": (WINDOW_WIDTH // 2, 140),
-        "green": (WINDOW_WIDTH // 2, 180)
+        "red": (SIM_CENTER_X - 45, 120),
+        "yellow": (SIM_CENTER_X, 120),
+        "green": (SIM_CENTER_X + 45, 120)
     },
     "Nam": {
-        "red": (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 180),
-        "yellow": (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 140),
-        "green": (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 100)
+        "red": (SIM_CENTER_X - 45, RIGHT_TOP_HEIGHT - 40),
+        "yellow": (SIM_CENTER_X, RIGHT_TOP_HEIGHT - 40),
+        "green": (SIM_CENTER_X + 45, RIGHT_TOP_HEIGHT - 40)
     },
     "Đông": {
-        "red": (WINDOW_WIDTH - 100, WINDOW_HEIGHT // 2 - 40),
-        "yellow": (WINDOW_WIDTH - 100, WINDOW_HEIGHT // 2),
-        "green": (WINDOW_WIDTH - 100, WINDOW_HEIGHT // 2 + 40)
+        "red": (SIM_OFFSET_X + SIMULATION_WIDTH - 155, SIM_CENTER_Y + 30),
+        "yellow": (SIM_OFFSET_X + SIMULATION_WIDTH - 110, SIM_CENTER_Y + 30),
+        "green": (SIM_OFFSET_X + SIMULATION_WIDTH - 65, SIM_CENTER_Y + 30)
     },
     "Tây": {
-        "red": (100, WINDOW_HEIGHT // 2 - 40),
-        "yellow": (100, WINDOW_HEIGHT // 2),
-        "green": (100, WINDOW_HEIGHT // 2 + 40)
+        "red": (SIM_OFFSET_X + 65, SIM_CENTER_Y + 30),
+        "yellow": (SIM_OFFSET_X + 110, SIM_CENTER_Y + 30),
+        "green": (SIM_OFFSET_X + 155, SIM_CENTER_Y + 30)
     }
 }
 
-# Vị trí thời gian đếm ngược (bên cạnh đèn)
+# Vị trí thời gian đếm ngược (phía bên phải mỗi cụm đèn)
 COUNTDOWN_POSITIONS = {
-    "Bắc": (WINDOW_WIDTH // 2 + 60, 140),
-    "Nam": (WINDOW_WIDTH // 2 + 60, WINDOW_HEIGHT - 140),
-    "Đông": (WINDOW_WIDTH - 60, WINDOW_HEIGHT // 2),
-    "Tây": (160, WINDOW_HEIGHT // 2)
+    "Bắc": (SIM_CENTER_X + 85, 120),  # Right of horizontal lights
+    "Nam": (SIM_CENTER_X + 85, RIGHT_TOP_HEIGHT - 40),  # Right of horizontal lights
+    "Đông": (SIM_OFFSET_X + SIMULATION_WIDTH - 20, SIM_CENTER_Y + 30),  # Right of horizontal lights
+    "Tây": (SIM_OFFSET_X + 200, SIM_CENTER_Y + 30)  # Right of horizontal lights
 }
 
-# Font chữ cho thời gian và nhãn
-FONT = pygame.font.SysFont("Cascadia Code", 30)
+# Font chữ cho thời gian và nhãn (regular, không italic)
+FONT_LARGE = pygame.font.SysFont("Verdana", 24)  # Regular font
+FONT_MEDIUM = pygame.font.SysFont("Verdana", 18)  # Regular font
+FONT_SMALL = pygame.font.SysFont("Verdana", 14)  # Regular font
 
 # Hàm vẽ đèn giao thông
 def draw_traffic_light(positions, active_color):
@@ -726,21 +762,24 @@ def draw_traffic_light(positions, active_color):
 def draw_labels():
     labels = ["Bắc", "Nam", "Đông", "Tây"]
     positions = [
-        (WINDOW_WIDTH // 2, 50),
-        (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 230),
-        (WINDOW_WIDTH - 50, WINDOW_HEIGHT // 2 - 80),
-        (50, WINDOW_HEIGHT // 2 - 80)
+        (SIM_CENTER_X, 150),
+        (SIM_CENTER_X, SIMULATION_HEIGHT - 110),
+        (SIM_OFFSET_X + SIMULATION_WIDTH - 50, SIM_CENTER_Y - 40),
+        (SIM_OFFSET_X + 50, SIM_CENTER_Y - 40)
     ]
     for label, pos in zip(labels, positions):
-        text = FONT.render(label, True, BLACK)
+        text = FONT_LARGE.render(label, True, BLACK)
         text_rect = text.get_rect(center=pos)
         WINDOW.blit(text, text_rect)
 
-# Hàm mô phỏng đèn giao thông
-def traffic_light_simulation():
-    global current_time, lights_state, countdowns, last_config_update
+# Hàm mô phỏng đèn giao thông với GUI
+def main_gui():
+    global current_time, lights_state, countdowns, last_config_update, search_text, search_active
     clock = pygame.time.Clock()
     current_time = 0
+    
+    # Load junctions list in background
+    threading.Thread(target=load_junctions_async, daemon=True).start()
 
     while True:
         for event in pygame.event.get():
@@ -751,130 +790,540 @@ def traffic_light_simulation():
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
+                elif search_active:
+                    # Handle search input
+                    if event.key == pygame.K_BACKSPACE:
+                        search_text = search_text[:-1]
+                        filter_junctions()
+                    elif event.key == pygame.K_RETURN:
+                        search_active = False
+                    elif event.unicode.isprintable():
+                        search_text += event.unicode
+                        filter_junctions()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left click
+                    mouse_pos = pygame.mouse.get_pos()
+                    if mouse_pos[0] < MENU_WIDTH:  # Click in menu area
+                        handle_menu_click(mouse_pos)
+                elif event.button in [4, 5]:  # Mouse wheel
+                    mouse_pos = pygame.mouse.get_pos()
+                    if mouse_pos[0] < MENU_WIDTH and mouse_pos[1] < LEFT_TOP_HEIGHT:  # Scroll in top left area only
+                        handle_scroll(event)
 
-        # Tăng thời gian hiện tại
-        current_time = (current_time + 1) % CYCLE_TIME
+        # Update simulation time only if simulation is running
+        if simulation_running and CYCLE_TIME > 0:
+            # Tăng thời gian hiện tại
+            current_time = (current_time + 1) % CYCLE_TIME
 
-        # Kiểm tra nếu đã qua nửa chu kỳ kể từ lần cập nhật cuối cùng
-        with state_lock:
-            half_cycle = CYCLE_TIME // 2
-            time_since_last_update = (current_time - last_config_update) % CYCLE_TIME
-            if time_since_last_update >= half_cycle:
-                print(f"Đạt nửa chu kỳ ({half_cycle}s) tại current_time={current_time}. Đang đọc cấu hình mới...")
-                # Chạy load_config_from_db trong một thread riêng (bất đồng bộ)
-                threading.Thread(target=lambda: load_config_from_db(sync=False), daemon=True).start()
-                last_config_update = current_time
+            # Kiểm tra nếu đã qua nửa chu kỳ kể từ lần cập nhật cuối cùng
+            with state_lock:
+                half_cycle = CYCLE_TIME // 2
+                time_since_last_update = (current_time - last_config_update) % CYCLE_TIME
+                if time_since_last_update >= half_cycle:
+                    print(f"Đạt nửa chu kỳ ({half_cycle}s) tại current_time={current_time}. Đang đọc cấu hình mới...")
+                    # Chạy load_config_from_db trong một thread riêng (bất đồng bộ)
+                    threading.Thread(target=lambda: load_config_from_db(sync=False), daemon=True).start()
+                    last_config_update = current_time
 
-        # Kiểm tra và cập nhật cấu hình mới nếu có
-        update_config()
+            # Kiểm tra và cập nhật cấu hình mới nếu có
+            update_config()
 
-        # Cập nhật trạng thái đèn và đếm ngược trong một khối khóa
-        with state_lock:
-            # Khởi tạo trạng thái cho tất cả hướng có thể
-            all_directions = ["Bắc", "Nam", "Đông", "Tây"]
-            lights_state = {direction: "red" for direction in all_directions}
-            countdowns = {direction: None for direction in all_directions}
+            # Cập nhật trạng thái đèn và đếm ngược trong một khối khóa
+            with state_lock:
+                # Khởi tạo trạng thái cho tất cả hướng có thể
+                all_directions = ["Bắc", "Nam", "Đông", "Tây"]
+                lights_state = {direction: "red" for direction in all_directions}
+                countdowns = {direction: None for direction in all_directions}
 
-            # Tìm phase đang active cho mỗi hướng
-            for phase in PHASES:
-                direction = phase["direction"]
-                start_time = phase["startTime"]
-                duration = phase["duration"]
-                phase_end = start_time + duration
-                color = phase.get("color", "red")
+                # Tìm phase đang active cho mỗi hướng
+                for phase in PHASES:
+                    direction = phase["direction"]
+                    start_time = phase["startTime"]
+                    duration = phase["duration"]
+                    phase_end = start_time + duration
+                    color = phase.get("color", "red")
+                    
+                    # Kiểm tra nếu current_time nằm trong phase này
+                    if start_time <= current_time < phase_end:
+                        # Phase này đang active
+                        lights_state[direction] = color
+                        countdowns[direction] = phase_end - current_time
                 
-                # Kiểm tra nếu current_time nằm trong phase này
-                if start_time <= current_time < phase_end:
-                    # Phase này đang active
-                    lights_state[direction] = color
-                    countdowns[direction] = phase_end - current_time
-            
-            # Tính countdown cho các hướng đang đỏ (tìm phase tiếp theo)
-            for direction in all_directions:
-                if lights_state[direction] == "red":
-                    # Tìm phase tiếp theo gần nhất cho direction này
-                    next_phase_start = None
-                    
-                    # Tìm trong các phase sau current_time
-                    for phase in PHASES:
-                        if phase["direction"] == direction and phase["startTime"] > current_time:
-                            if next_phase_start is None or phase["startTime"] < next_phase_start:
-                                next_phase_start = phase["startTime"]
-                    
-                    if next_phase_start is not None:
-                        # Có phase trong chu kỳ hiện tại
-                        countdowns[direction] = next_phase_start - current_time
-                    else:
-                        # Không có phase nào sau current_time, tìm phase đầu tiên của chu kỳ tiếp theo
-                        earliest_phase_start = None
-                        for phase in PHASES:
-                            if phase["direction"] == direction:
-                                if earliest_phase_start is None or phase["startTime"] < earliest_phase_start:
-                                    earliest_phase_start = phase["startTime"]
+                # Tính countdown cho các hướng đang đỏ (tìm phase tiếp theo)
+                for direction in all_directions:
+                    if lights_state[direction] == "red":
+                        # Tìm phase tiếp theo gần nhất cho direction này
+                        next_phase_start = None
                         
-                        if earliest_phase_start is not None:
-                            countdowns[direction] = CYCLE_TIME - current_time + earliest_phase_start
+                        # Tìm trong các phase sau current_time
+                        for phase in PHASES:
+                            if phase["direction"] == direction and phase["startTime"] > current_time:
+                                if next_phase_start is None or phase["startTime"] < next_phase_start:
+                                    next_phase_start = phase["startTime"]
+                        
+                        if next_phase_start is not None:
+                            # Có phase trong chu kỳ hiện tại
+                            countdowns[direction] = next_phase_start - current_time
                         else:
-                            countdowns[direction] = CYCLE_TIME  # Fallback
+                            # Không có phase nào sau current_time, tìm phase đầu tiên của chu kỳ tiếp theo
+                            earliest_phase_start = None
+                            for phase in PHASES:
+                                if phase["direction"] == direction:
+                                    if earliest_phase_start is None or phase["startTime"] < earliest_phase_start:
+                                        earliest_phase_start = phase["startTime"]
+                            
+                            if earliest_phase_start is not None:
+                                countdowns[direction] = CYCLE_TIME - current_time + earliest_phase_start
+                            else:
+                                countdowns[direction] = CYCLE_TIME  # Fallback
 
         # Vẽ giao diện
         WINDOW.fill(WHITE)
-        draw_labels()
-
-        for direction in LIGHT_POSITIONS:
-            with state_lock:
-                state = lights_state[direction]
-                countdown = countdowns[direction]
-            draw_traffic_light(LIGHT_POSITIONS[direction], state)
-            if countdown is not None:
-                countdown_text = FONT.render(str(countdown), True, BLACK)
-                countdown_rect = countdown_text.get_rect(center=COUNTDOWN_POSITIONS[direction])
-                WINDOW.blit(countdown_text, countdown_rect)
-        
-        time_text = FONT.render(f"Thời gian: {current_time}s", True, BLACK)
-        time_rect = time_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 15))
-        WINDOW.blit(time_text, time_rect)
-        
-        cycle_text = FONT.render(f"Chu kỳ: {CYCLE_TIME}s", True, BLACK)
-        cycle_rect = cycle_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 15))
-        WINDOW.blit(cycle_text, cycle_rect)
+        draw_menu()  # Top left: Junction list
+        draw_info_detail()  # Bottom left: Junction details
+        draw_simulation()  # Top right: Traffic light simulation
+        draw_phase_chart()  # Bottom right: Phase timing chart
 
         pygame.display.flip()
         clock.tick(1)
 
+# GUI Functions
+def load_junctions_async():
+    """Load junctions list in background thread"""
+    global junctions_list, filtered_junctions, loading_junctions
+    try:
+        junctions = get_all_junctions()
+        junctions_list = junctions
+        filtered_junctions = junctions.copy()  # Initially show all junctions
+        loading_junctions = False
+        print(f"Đã tải {len(junctions)} nút giao")
+    except Exception as e:
+        print(f"Lỗi khi tải danh sách nút giao: {e}")
+        loading_junctions = False
 
+def filter_junctions():
+    """Filter junctions based on search text"""
+    global filtered_junctions, scroll_offset
+    if not search_text:
+        filtered_junctions = junctions_list.copy()
+    else:
+        search_lower = search_text.lower()
+        filtered_junctions = [
+            junction for junction in junctions_list
+            if search_lower in junction["junctionName"].lower() or 
+               search_lower in junction["location"].lower()
+        ]
+    scroll_offset = 0  # Reset scroll when filtering
+
+def draw_search_box():
+    """Draw the search input box"""
+    # Search box background
+    pygame.draw.rect(WINDOW, WHITE, search_box)
+    pygame.draw.rect(WINDOW, GRAY if not search_active else BLUE, search_box, 2)
+    
+    # Search text
+    search_display = search_text if search_text else "Tìm kiếm..."
+    text_color = BLACK if search_text else GRAY
+    search_text_surface = FONT_SMALL.render(search_display, True, text_color)
+    text_rect = search_text_surface.get_rect(left=search_box.left + 5, centery=search_box.centery)
+    WINDOW.blit(search_text_surface, text_rect)
+
+def draw_stop_button():
+    """Draw the stop/reset button"""
+    button_color = LIGHT_BLUE if simulation_running else LIGHT_GRAY
+    text_color = BLACK if simulation_running else GRAY
+    
+    pygame.draw.rect(WINDOW, button_color, stop_button)
+    pygame.draw.rect(WINDOW, GRAY, stop_button, 2)
+    
+    button_text = "Dừng" if simulation_running else "Reset"
+    text_surface = FONT_SMALL.render(button_text, True, text_color)
+    text_rect = text_surface.get_rect(center=stop_button.center)
+    WINDOW.blit(text_surface, text_rect)
+
+def draw_menu():
+    """Draw the top half of left menu panel - junction list"""
+    global scroll_offset
+    
+    # Draw top menu background
+    menu_rect = pygame.Rect(0, 0, MENU_WIDTH, LEFT_TOP_HEIGHT)
+    pygame.draw.rect(WINDOW, LIGHT_GRAY, menu_rect)
+    pygame.draw.line(WINDOW, GRAY, (MENU_WIDTH, 0), (MENU_WIDTH, LEFT_TOP_HEIGHT), 2)
+    pygame.draw.line(WINDOW, GRAY, (0, LEFT_TOP_HEIGHT), (MENU_WIDTH, LEFT_TOP_HEIGHT), 2)
+    
+    # Draw title
+    title_text = FONT_MEDIUM.render("Danh sách nút giao", True, BLACK)
+    title_rect = title_text.get_rect(center=(MENU_WIDTH // 2, 25))
+    WINDOW.blit(title_text, title_rect)
+    
+    # Draw search box
+    draw_search_box()
+    
+    # Draw stop button
+    draw_stop_button()
+    
+    # Draw loading or junction list
+    if loading_junctions:
+        loading_text = FONT_SMALL.render("Đang tải...", True, GRAY)
+        loading_rect = loading_text.get_rect(center=(MENU_WIDTH // 2, LEFT_TOP_HEIGHT // 2))
+        WINDOW.blit(loading_text, loading_rect)
+    else:
+        # Draw junction list (more space available with 65% height)
+        y_start = 110
+        item_height = 50  # Updated to match draw_menu
+        available_height = LEFT_TOP_HEIGHT - y_start - 10
+        visible_items = available_height // item_height
+        
+
+        
+        for i, junction in enumerate(filtered_junctions):
+            if i < scroll_offset:
+                continue
+            if i >= scroll_offset + visible_items:
+                break
+                
+            y_pos = y_start + (i - scroll_offset) * item_height
+            if y_pos + item_height > LEFT_TOP_HEIGHT:
+                break
+                
+            # Draw junction item
+            item_rect = pygame.Rect(10, y_pos, MENU_WIDTH - 20, item_height - 3)
+            
+            # Highlight selected item
+            if i == selected_junction_index:
+                pygame.draw.rect(WINDOW, BLUE, item_rect)
+                text_color = WHITE
+            else:
+                pygame.draw.rect(WINDOW, WHITE, item_rect)
+                text_color = BLACK
+            
+            pygame.draw.rect(WINDOW, GRAY, item_rect, 1)
+            
+            # Draw junction name (no ID)
+            name_text = FONT_SMALL.render(junction["junctionName"][:100], True, text_color)
+            name_rect = name_text.get_rect(left=item_rect.left + 8, top=item_rect.top + 8)
+            WINDOW.blit(name_text, name_rect)
+            
+            # Draw location
+            location_text = FONT_SMALL.render(junction["location"][:32], True, text_color)
+            location_rect = location_text.get_rect(left=item_rect.left + 8, top=item_rect.top + 28)
+            WINDOW.blit(location_text, location_rect)
+
+def draw_info_detail():
+    """Draw the bottom half of left panel - detailed junction info"""
+    # Draw bottom panel background
+    info_rect = pygame.Rect(0, LEFT_TOP_HEIGHT, MENU_WIDTH, LEFT_BOTTOM_HEIGHT)
+    pygame.draw.rect(WINDOW, WHITE, info_rect)
+    pygame.draw.rect(WINDOW, GRAY, info_rect, 2)
+    
+    if not simulation_running:
+        # Show instruction
+        instruction_text = FONT_SMALL.render("Chọn nút giao để xem thông tin", True, GRAY)
+        instruction_rect = instruction_text.get_rect(center=(MENU_WIDTH // 2, LEFT_TOP_HEIGHT + LEFT_BOTTOM_HEIGHT // 2))
+        WINDOW.blit(instruction_text, instruction_rect)
+        return
+    
+    y_offset = LEFT_TOP_HEIGHT + 10
+    
+    # Title
+    title_text = FONT_MEDIUM.render("Thông tin chi tiết", True, BLACK)
+    WINDOW.blit(title_text, (10, y_offset))
+    y_offset += 30
+    
+    # Junction name
+    name_text = FONT_SMALL.render(f"Tên: {JUNCTION_NAME}", True, BLACK)
+    WINDOW.blit(name_text, (10, y_offset))
+    y_offset += 20
+    
+    # Config source
+    source_text = FONT_SMALL.render(f"Nguồn: {CONFIG_SOURCE}", True, BLACK)
+    WINDOW.blit(source_text, (10, y_offset))
+    y_offset += 25
+    
+    # Schedule info
+    schedule_title = FONT_SMALL.render("Lịch trình:", True, BLACK)
+    WINDOW.blit(schedule_title, (10, y_offset))
+    y_offset += 18
+    
+    with state_lock:
+        # Cycle info
+        cycle_text = FONT_SMALL.render(f"• Chu kỳ: {CYCLE_TIME}s", True, BLACK)
+        WINDOW.blit(cycle_text, (15, y_offset))
+        y_offset += 16
+        
+        yellow_text = FONT_SMALL.render(f"• Đèn vàng: {YELLOW_TIME}s", True, BLACK)
+        WINDOW.blit(yellow_text, (15, y_offset))
+        y_offset += 16
+        
+        all_red_text = FONT_SMALL.render(f"• Đèn đỏ chung: {ALL_RED_TIME}s", True, BLACK)
+        WINDOW.blit(all_red_text, (15, y_offset))
+        y_offset += 16
+        
+        # Calculate total red time per cycle
+        total_green_yellow = 0
+        for phase in PHASES:
+            if phase.get("color") in ["green", "yellow"]:
+                total_green_yellow += phase["duration"]
+        red_time = max(0, CYCLE_TIME - total_green_yellow - ALL_RED_TIME)
+        
+        red_text = FONT_SMALL.render(f"• Đèn đỏ: {red_time}s", True, BLACK)
+        WINDOW.blit(red_text, (15, y_offset))
+        y_offset += 20
+        
+        # Current phase info
+        current_phase_title = FONT_SMALL.render("Pha hiện tại:", True, BLACK)
+        WINDOW.blit(current_phase_title, (10, y_offset))
+        y_offset += 18
+        
+        current_phase_found = False
+        for phase in PHASES:
+            start_time = phase["startTime"]
+            duration = phase["duration"]
+            phase_end = start_time + duration
+            
+            if start_time <= current_time < phase_end:
+                phase_info = f"• {phase['direction']} - {phase.get('color', 'red')}"
+                phase_text = FONT_SMALL.render(phase_info, True, BLACK)
+                WINDOW.blit(phase_text, (15, y_offset))
+                y_offset += 16
+                
+                time_left = f"• Còn lại: {phase_end - current_time}s"
+                time_text = FONT_SMALL.render(time_left, True, BLACK)
+                WINDOW.blit(time_text, (15, y_offset))
+                current_phase_found = True
+                break
+        
+        if not current_phase_found:
+            no_phase_text = FONT_SMALL.render("• Không xác định", True, GRAY)
+            WINDOW.blit(no_phase_text, (15, y_offset))
+
+def draw_simulation():
+    """Draw the top right area - traffic light simulation"""
+    global current_time
+    
+    # Draw simulation background (top right area only)
+    sim_rect = pygame.Rect(MENU_WIDTH, 0, SIMULATION_WIDTH, RIGHT_TOP_HEIGHT)
+    pygame.draw.rect(WINDOW, WHITE, sim_rect)
+    pygame.draw.line(WINDOW, GRAY, (MENU_WIDTH, 0), (MENU_WIDTH, RIGHT_TOP_HEIGHT), 2)
+    pygame.draw.line(WINDOW, GRAY, (MENU_WIDTH, RIGHT_TOP_HEIGHT), (WINDOW_WIDTH, RIGHT_TOP_HEIGHT), 2)
+    
+    if not simulation_running:
+        # Show instruction to select junction
+        instruction_text = FONT_MEDIUM.render("Chọn nút giao để bắt đầu mô phỏng", True, GRAY)
+        instruction_rect = instruction_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y))
+        WINDOW.blit(instruction_text, instruction_rect)
+        return
+    
+    # Draw junction name
+    junction_text = FONT_LARGE.render(f"{JUNCTION_NAME}", True, BLACK)
+    junction_rect = junction_text.get_rect(center=(SIM_CENTER_X, 20))
+    WINDOW.blit(junction_text, junction_rect)
+    
+    # Draw direction labels
+    labels = ["Bắc", "Nam", "Đông", "Tây"]
+    label_positions = [
+        (SIM_CENTER_X, 80),  # Above horizontal lights
+        (SIM_CENTER_X, RIGHT_TOP_HEIGHT - 40),  # Below horizontal lights
+        (SIM_OFFSET_X + SIMULATION_WIDTH - 90, SIM_CENTER_Y - 20),  # Above horizontal lights
+        (SIM_OFFSET_X + 90, SIM_CENTER_Y - 20)  # Above horizontal lights
+    ]
+    
+    for label, pos in zip(labels, label_positions):
+        text = FONT_MEDIUM.render(label, True, BLACK)
+        text_rect = text.get_rect(center=pos)
+        WINDOW.blit(text, text_rect)
+    
+    # Draw traffic lights
+    for direction in LIGHT_POSITIONS:
+        with state_lock:
+            state = lights_state[direction]
+            countdown = countdowns[direction]
+        draw_traffic_light(LIGHT_POSITIONS[direction], state)
+        if countdown is not None:
+            countdown_text = FONT_MEDIUM.render(str(countdown), True, BLACK)
+            countdown_rect = countdown_text.get_rect(center=COUNTDOWN_POSITIONS[direction])
+            WINDOW.blit(countdown_text, countdown_rect)
+    
+    # Draw current time and cycle info
+    with state_lock:
+        time_text = FONT_MEDIUM.render(f"Thời gian: {current_time}s", True, BLACK)
+        time_rect = time_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y))
+        WINDOW.blit(time_text, time_rect)
+        
+        cycle_text = FONT_MEDIUM.render(f"Chu kỳ: {CYCLE_TIME}s", True, BLACK)
+        cycle_rect = cycle_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y + 30))
+        WINDOW.blit(cycle_text, cycle_rect)
+
+def handle_menu_click(mouse_pos):
+    """Handle mouse clicks in the menu area"""
+    global selected_junction_index, simulation_running, show_info_panel, JUNCTION_ID, JUNCTION_NAME, current_time, search_active, search_text
+    
+    # Check if clicking on search box
+    if search_box.collidepoint(mouse_pos):
+        search_active = True
+        return
+    else:
+        search_active = False
+    
+    # Check if clicking on stop button
+    if stop_button.collidepoint(mouse_pos):
+        if simulation_running:
+            simulation_running = False
+            show_info_panel = False
+            selected_junction_index = -1
+            JUNCTION_ID = ""
+            JUNCTION_NAME = ""
+            current_time = 0
+            print("Đã dừng mô phỏng")
+        return
+    
+    if loading_junctions or not filtered_junctions:
+        return
+    
+    # Only handle clicks in the top half (junction list area)
+    if mouse_pos[1] >= LEFT_TOP_HEIGHT:
+        return
+    
+    y_start = 110
+    item_height = 50  # Updated to match draw_menu
+    visible_items = (LEFT_TOP_HEIGHT - y_start - 10) // item_height
+    
+    if mouse_pos[1] < y_start:
+        return
+    
+    clicked_index = (mouse_pos[1] - y_start) // item_height + scroll_offset
+    
+    if 0 <= clicked_index < len(filtered_junctions):
+        selected_junction_index = clicked_index
+        selected_junction = filtered_junctions[clicked_index]
+        
+        # Update junction info
+        JUNCTION_ID = selected_junction["junctionId"]
+        JUNCTION_NAME = selected_junction["junctionName"]
+        
+        print(f"Đã chọn nút giao: {JUNCTION_NAME}")
+        
+        # Load configuration for selected junction
+        current_time = 0
+        simulation_running = True
+        show_info_panel = True  # Show detailed info panel
+        
+        # Update window title
+        pygame.display.set_caption(f"Mô phỏng đèn giao thông - {JUNCTION_NAME}")
+        
+        # Load config in background thread
+        threading.Thread(target=lambda: load_config_from_db(sync=True), daemon=True).start()
+
+def handle_scroll(event):
+    """Handle mouse wheel scrolling in menu"""
+    global scroll_offset
+    
+    if loading_junctions or not filtered_junctions:
+        return
+    
+    if event.button == 4:  # Scroll up
+        scroll_offset = max(0, scroll_offset - 1)
+    elif event.button == 5:  # Scroll down
+        available_height = LEFT_TOP_HEIGHT - 110 - 10
+        visible_items = available_height // 50  # Updated to match new item height
+        max_scroll = max(0, len(filtered_junctions) - visible_items)
+        scroll_offset = min(max_scroll, scroll_offset + 1)
+
+def draw_phase_chart():
+    """Draw phase timing chart in bottom right area"""
+    if not PHASES or CYCLE_TIME == 0:
+        # Draw empty chart area
+        chart_area = pygame.Rect(MENU_WIDTH, RIGHT_TOP_HEIGHT, SIMULATION_WIDTH, RIGHT_BOTTOM_HEIGHT)
+        pygame.draw.rect(WINDOW, WHITE, chart_area)
+        pygame.draw.rect(WINDOW, GRAY, chart_area, 2)
+        
+        no_data_text = FONT_MEDIUM.render("Chưa có dữ liệu biểu đồ", True, GRAY)
+        no_data_rect = no_data_text.get_rect(center=(SIM_CENTER_X, RIGHT_TOP_HEIGHT + RIGHT_BOTTOM_HEIGHT // 2))
+        WINDOW.blit(no_data_text, no_data_rect)
+        return
+    
+    # Chart area setup
+    chart_margin = 20
+    chart_rect = pygame.Rect(
+        MENU_WIDTH + chart_margin, 
+        RIGHT_TOP_HEIGHT + 40,
+        SIMULATION_WIDTH - 2 * chart_margin, 
+        RIGHT_BOTTOM_HEIGHT - 80
+    )
+    
+    # Draw chart background
+    chart_area = pygame.Rect(MENU_WIDTH, RIGHT_TOP_HEIGHT, SIMULATION_WIDTH, RIGHT_BOTTOM_HEIGHT)
+    pygame.draw.rect(WINDOW, WHITE, chart_area)
+    pygame.draw.rect(WINDOW, GRAY, chart_area, 2)
+    
+    pygame.draw.rect(WINDOW, LIGHT_GRAY, chart_rect)
+    pygame.draw.rect(WINDOW, BLACK, chart_rect, 2)
+    
+    # Draw title
+    chart_title = FONT_MEDIUM.render("Biểu đồ thời gian các pha", True, BLACK)
+    title_rect = chart_title.get_rect(centerx=SIM_CENTER_X, y=RIGHT_TOP_HEIGHT + 10)
+    WINDOW.blit(chart_title, title_rect)
+    
+    # Calculate scale
+    scale_width = chart_rect.width - 60
+    if scale_width <= 0:
+        return
+    time_per_pixel = CYCLE_TIME / scale_width
+    
+    # Draw phases
+    colors = {"green": GREEN, "yellow": YELLOW, "red": RED}
+    directions = ["Bắc", "Nam", "Đông", "Tây"]
+    
+    row_height = max(20, (chart_rect.height - 20) // len(directions))
+    
+    for dir_idx, direction in enumerate(directions):
+        y_pos = chart_rect.top + 10 + dir_idx * row_height
+        
+        # Draw direction label
+        dir_text = FONT_SMALL.render(direction, True, BLACK)
+        WINDOW.blit(dir_text, (chart_rect.left + 5, y_pos + row_height // 4))
+        
+        # Draw red background for entire cycle first
+        red_rect = pygame.Rect(
+            chart_rect.left + 50, y_pos, 
+            scale_width, row_height - 5
+        )
+        pygame.draw.rect(WINDOW, DIM_RED, red_rect)
+        
+        # Draw active phases on top
+        for phase in PHASES:
+            if phase["direction"] == direction:
+                start_x = chart_rect.left + 50 + int(phase["startTime"] / time_per_pixel)
+                width = max(2, int(phase["duration"] / time_per_pixel))
+                phase_rect = pygame.Rect(start_x, y_pos, width, row_height - 5)
+                
+                color = colors.get(phase.get("color", "red"), RED)
+                pygame.draw.rect(WINDOW, color, phase_rect)
+                pygame.draw.rect(WINDOW, BLACK, phase_rect, 1)
+        
+        pygame.draw.rect(WINDOW, BLACK, red_rect, 1)
+    
+    # Draw current time indicator
+    with state_lock:
+        current_x = chart_rect.left + 50 + int(current_time / time_per_pixel)
+        pygame.draw.line(WINDOW, BLACK, 
+                        (current_x, chart_rect.top), 
+                        (current_x, chart_rect.bottom), 3)
+    
+    # Draw time labels
+    time_step = max(5, CYCLE_TIME // 8)
+    for i in range(0, CYCLE_TIME + 1, time_step):
+        x_pos = chart_rect.left + 50 + int(i / time_per_pixel)
+        if x_pos <= chart_rect.right - 20:
+            time_text = FONT_SMALL.render(str(i), True, BLACK)
+            time_rect = time_text.get_rect(centerx=x_pos, top=chart_rect.bottom + 5)
+            WINDOW.blit(time_text, time_rect)
 
 if __name__ == "__main__":
-    print(f"\nBắt đầu mô phỏng đèn giao thông cho nút giao: {JUNCTION_NAME}")
-    
-    # Hiển thị thông tin cấu hình hiện tại
-    with state_lock:
-        print(f"✅ Cấu hình đã tải:")
-        print(f"   Nguồn: {CONFIG_SOURCE}")
-        print(f"   Chu kỳ: {CYCLE_TIME}s")
-        print(f"   Đèn vàng: {YELLOW_TIME}s")
-        print(f"   Đèn đỏ chung: {ALL_RED_TIME}s")
-        print(f"   Số pha: {len(PHASES)}")
-        for i, phase in enumerate(PHASES):
-            color = phase.get('color', 'unknown')
-            print(f"     Pha {i+1}: {phase['direction']} - Start: {phase['startTime']}s, Duration: {phase['duration']}s, Color: {color}")
-    
-    # Hiển thị thông tin file cache
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-                cache_data = json.load(f)
-            cache_time = cache_data.get("timestamp", "Unknown")
-            cache_source = cache_data.get("source", "unknown")
-            print(f"📁 Cache file: {CACHE_FILE}")
-            print(f"   Thời gian: {cache_time}")
-            print(f"   Nguồn: {cache_source}")
-        except:
-            print(f"📁 Cache file: {CACHE_FILE} (lỗi đọc)")
-    else:
-        print(f"📁 Cache file: {CACHE_FILE} (chưa tồn tại)")
-    
-    print("\n🎮 Điều khiển:")
+    print("=== MÔ PHỎNG ĐÈN GIAO THÔNG 4 PHA - GUI ===")
+    print("🎮 Điều khiển:")
+    print("   Click chuột: Chọn nút giao")
+    print("   Scroll chuột: Cuộn danh sách nút giao")
     print("   ESC: Thoát mô phỏng")
     print("   Đóng cửa sổ: Thoát mô phỏng")
     print(f"\n🌐 API server: http://localhost:8000")
@@ -885,5 +1334,5 @@ if __name__ == "__main__":
     server = uvicorn.Server(config)
     threading.Thread(target=server.run, daemon=True).start()
     
-    # Chạy mô phỏng trong main thread
-    traffic_light_simulation()
+    # Chạy GUI trong main thread
+    main_gui()

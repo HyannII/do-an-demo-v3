@@ -102,7 +102,7 @@ export default function ManagementPage() {
             } transition-colors`}
             onClick={() => setSelectedObject("trafficLight")}
           >
-            Ðèn Giao Thông
+            Ðèn giao thông
           </li>
           <li
             className={`p-2 cursor-pointer rounded mb-2 ${
@@ -112,7 +112,7 @@ export default function ManagementPage() {
             } transition-colors`}
             onClick={() => setSelectedObject("junction")}
           >
-            Nút Giao
+            Nút giao thông
           </li>
           <li
             className={`p-2 cursor-pointer rounded mb-2 ${
@@ -122,7 +122,7 @@ export default function ManagementPage() {
             } transition-colors`}
             onClick={() => setSelectedObject("trafficPattern")}
           >
-            Pattern Đèn Giao Thông
+            Mẫu pha đèn giao thông
           </li>
           <li
             className={`p-2 cursor-pointer rounded ${
@@ -132,7 +132,7 @@ export default function ManagementPage() {
             } transition-colors`}
             onClick={() => setSelectedObject("schedule")}
           >
-            Lịch trình Hoạt động
+            Lịch trình hoạt động
           </li>
         </ul>
       </div>

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogOut, ChevronDown, ChevronUp } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { navItems, NavItem } from "@/config/nav-items";
+import { usePermissions } from "../../hooks/usePermissions";
 
 interface SidebarProps {
   user: { name?: string | null; email?: string | null };
@@ -13,6 +14,35 @@ interface SidebarProps {
   setCollapsed: (value: boolean) => void;
   junctionId?: string; // Add junctionId as an optional prop
 }
+
+// Map navigation routes to required permissions
+const routePermissions: Record<string, string> = {
+  "/map": "can-access-map",
+  "/liveCamera": "can-access-live-camera",
+  "/trafficLight": "can-access-traffic-light",
+  "/utility/traffic-light-calculation": "can-access-traffic-light-calculator",
+  "/statistics": "can-access-statistics",
+  "/objectManagement": "can-access-object-management",
+  "/settings": "can-access-settings",
+  "/users/list": "can-access-user-list",
+  "/users/pending": "can-access-user-pending",
+  "/users/roles": "can-access-user-roles",
+};
+
+// Map folder titles to required permissions
+const folderPermissions: Record<string, string> = {
+  "Quản lý người dùng": "can-access-user-management",
+  "Tiện ích": "can-access-utility",
+};
+
+// Default accessible routes when permissions fail to load
+const defaultAccessibleRoutes = [
+  "/map",
+  "/liveCamera",
+  "/trafficLight",
+  "/utility/traffic-light-calculation",
+  "/statistics",
+];
 
 export function Sidebar({
   user,
@@ -22,6 +52,8 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
+  const { hasPermission, hasAnyPermission, loading, permissions } =
+    usePermissions();
 
   // Auto-open folders based on active path
   useEffect(() => {
@@ -46,6 +78,84 @@ export function Sidebar({
     }));
   };
 
+  // Check if user has permission to access a route
+  const canAccessRoute = (href: string): boolean => {
+    const permission = routePermissions[href];
+
+    // If still loading permissions, show default routes
+    if (loading) {
+      return defaultAccessibleRoutes.includes(href);
+    }
+
+    // If no permission required or if permissions object is empty (fallback), allow basic routes
+    if (!permission) {
+      return true;
+    }
+
+    // Check if permissions object is empty (API failed), allow default routes
+    if (Object.keys(permissions).length === 0) {
+      return defaultAccessibleRoutes.includes(href);
+    }
+
+    return hasPermission(permission);
+  };
+
+  // Check if user can access any child in a folder
+  const canAccessFolder = (children: any[], folderTitle?: string): boolean => {
+    // First check if user has explicit folder permission
+    if (folderTitle && folderPermissions[folderTitle]) {
+      const folderPermission = folderPermissions[folderTitle];
+      if (
+        !hasPermission(folderPermission) &&
+        Object.keys(permissions).length > 0
+      ) {
+        return false;
+      }
+    }
+
+    // Then check if user can access any child
+    return children.some((child) => canAccessRoute(child.href));
+  };
+
+  // Filter nav items based on permissions
+  const filterNavItems = (items: NavItem[]): NavItem[] => {
+    return items
+      .filter((item) => {
+        if (item.type === "link") {
+          return canAccessRoute(item.href);
+        }
+        if (item.type === "folder") {
+          // Show folder if user has access to any child
+          const hasAccessToChildren = canAccessFolder(
+            item.children,
+            item.title
+          );
+          if (!hasAccessToChildren) return false;
+
+          // Filter children based on permissions
+          const accessibleChildren = item.children.filter((child) =>
+            canAccessRoute(child.href)
+          );
+          return accessibleChildren.length > 0;
+        }
+        return true; // Show buttons and other types
+      })
+      .map((item) => {
+        if (item.type === "folder") {
+          // Return folder with filtered children
+          return {
+            ...item,
+            children: item.children.filter((child) =>
+              canAccessRoute(child.href)
+            ),
+          };
+        }
+        return item;
+      });
+  };
+
+  const accessibleNavItems = filterNavItems(navItems);
+
   return (
     <div
       className={`${
@@ -61,8 +171,14 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto py-4">
+        {loading && !collapsed && (
+          <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+            Đang tải menu...
+          </div>
+        )}
+
         <nav className="space-y-1 px-2">
-          {navItems.map((item, index) => {
+          {accessibleNavItems.map((item, index) => {
             if (item.type === "link") {
               // Handle the "Camera" link specifically
               if (
@@ -187,10 +303,19 @@ export function Sidebar({
 
             return null;
           })}
+
+          {/* Show message if no items are accessible */}
+          {accessibleNavItems.length === 0 && !loading && (
+            <div className="px-4 py-8 text-center">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                Không có quyền truy cập menu nào
+              </p>
+            </div>
+          )}
         </nav>
       </div>
 
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+      <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">
         <div
           className={`flex ${
             collapsed ? "justify-center" : "justify-between"

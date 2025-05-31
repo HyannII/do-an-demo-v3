@@ -1,168 +1,36 @@
 {
   "junction_id": "71862a02-471b-4e77-867d-aa66e8e77c4b",
   "junction_name": "Ngã tư Quang Trung - Lý Thường Kiệt",
-  "timestamp": "2025-05-27T23:45:48.771605",
-  "source": "database",
+  "timestamp": "2025-05-31T00:29:56.279186",
+  "source": "minimal_fallback",
   "config": {
-    "CYCLE_TIME": 185,
+    "CYCLE_TIME": 60,
     "YELLOW_TIME": 3,
     "ALL_RED_TIME": 2,
     "PHASES": [
       {
         "startTime": 0,
-        "duration": 54,
+        "duration": 25,
         "direction": "Bắc",
-        "color": "green",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "green"
-        },
-        "phaseName": "Bắc - Xanh"
+        "color": "green"
       },
       {
-        "startTime": 54,
+        "startTime": 25,
         "duration": 3,
         "direction": "Bắc",
-        "color": "yellow",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "yellow"
-        },
-        "phaseName": "Bắc - Vàng"
+        "color": "yellow"
       },
       {
-        "startTime": 57,
-        "duration": 3,
-        "direction": "Bắc",
-        "color": "red",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Bắc - Đỏ chung"
-      },
-      {
-        "startTime": 60,
-        "duration": 10,
-        "direction": "Nam",
-        "color": "green",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "green",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Nam - Xanh"
-      },
-      {
-        "startTime": 70,
-        "duration": 3,
-        "direction": "Nam",
-        "color": "yellow",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "yellow",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Nam - Vàng"
-      },
-      {
-        "startTime": 73,
-        "duration": 3,
-        "direction": "Nam",
-        "color": "red",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Nam - Đỏ chung"
-      },
-      {
-        "startTime": 76,
-        "duration": 43,
+        "startTime": 30,
+        "duration": 25,
         "direction": "Đông",
-        "color": "green",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "green",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Đông - Xanh"
+        "color": "green"
       },
       {
-        "startTime": 119,
+        "startTime": 55,
         "duration": 3,
         "direction": "Đông",
-        "color": "yellow",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "yellow",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Đông - Vàng"
-      },
-      {
-        "startTime": 122,
-        "duration": 3,
-        "direction": "Đông",
-        "color": "red",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Đông - Đỏ chung"
-      },
-      {
-        "startTime": 125,
-        "duration": 54,
-        "direction": "Tây",
-        "color": "green",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "green",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Tây - Xanh"
-      },
-      {
-        "startTime": 179,
-        "duration": 3,
-        "direction": "Tây",
-        "color": "yellow",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "yellow",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Tây - Vàng"
-      },
-      {
-        "startTime": 182,
-        "duration": 3,
-        "direction": "Tây",
-        "color": "red",
-        "lightStates": {
-          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
-          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
-          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
-          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
-        },
-        "phaseName": "Tây - Đỏ chung"
+        "color": "yellow"
       }
     ]
   }

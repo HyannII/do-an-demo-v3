@@ -3,6 +3,47 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const { id } = params;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: "ID mẫu giao thông không hợp lệ" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const trafficPattern = await prisma.trafficPattern.findUnique({
+      where: { patternId: id },
+      include: {
+        user: true,
+        junction: true,
+      },
+    });
+
+    if (!trafficPattern) {
+      return NextResponse.json(
+        { error: "Không tìm thấy mẫu giao thông" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(trafficPattern, { status: 200 });
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin mẫu giao thông:", error);
+    return NextResponse.json(
+      { error: "Không thể lấy thông tin mẫu giao thông" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }

@@ -356,18 +356,20 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
     <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-4">
-          Quản lý Lịch trình Đèn Giao Thông
+          Quản lý lịch trình hoạt động đèn giao thông
         </h1>
 
-        {/* Junction Filter */}
+        {/* Junction Selection */}
         <div className="mb-4">
-          <label className="block text-white mb-2">Chọn nút giao:</label>
+          <label className="block text-white mb-2 font-medium">
+            Chọn nút giao để quản lý:
+          </label>
           <select
             value={selectedJunctionId}
             onChange={(e) => setSelectedJunctionId(e.target.value)}
-            className="px-3 py-2 bg-gray-800 text-white border border-gray-600 rounded-lg"
+            className="px-4 py-3 bg-gray-800 text-white border border-gray-600 rounded-lg w-full md:w-1/2 focus:outline-none focus:border-blue-500"
           >
-            <option value="">Tất cả nút giao</option>
+            <option value="">-- Vui lòng chọn nút giao --</option>
             {junctions.map((junction) => (
               <option
                 key={junction.junctionId}
@@ -379,176 +381,219 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
           </select>
         </div>
 
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-          disabled={!selectedJunctionId}
-        >
-          Thêm Lịch trình Mới
-        </button>
-      </div>
-
-      {/* Schedule List */}
-      <div className="space-y-4">
-        {!selectedJunctionId ? (
-          <div className="bg-gray-800 p-8 rounded-lg text-center">
-            <div className="text-gray-400 text-lg mb-2">
-              📍 Vui lòng chọn một nút giao để xem lịch trình
-            </div>
-            <p className="text-gray-500 text-sm">
-              Chọn nút giao từ danh sách trên để hiển thị và quản lý các lịch
-              trình tương ứng
-            </p>
-          </div>
-        ) : filteredSchedules.length === 0 ? (
-          <div className="bg-gray-800 p-8 rounded-lg text-center">
-            <div className="text-gray-400 text-lg mb-2">
-              📅 Chưa có lịch trình nào
-            </div>
-            <p className="text-gray-500 text-sm mb-4">
-              Nút giao này chưa có lịch trình nào. Hãy tạo lịch trình mới.
-            </p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-            >
-              Tạo lịch trình đầu tiên
-            </button>
-          </div>
-        ) : (
-          filteredSchedules.map((schedule) => (
-            <div
-              key={schedule.scheduleId}
-              className={`p-4 rounded-lg relative ${
-                schedule.isActive
-                  ? "bg-gray-800 border-2 border-green-500"
-                  : "bg-gray-800"
-              }`}
-            >
-              {/* Active badge */}
-              {schedule.isActive && (
-                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                  ĐANG HOẠT ĐỘNG
-                </div>
-              )}
-
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h3
-                    className={`text-lg font-semibold ${
-                      schedule.isActive ? "text-green-400" : "text-white"
-                    }`}
-                  >
-                    {schedule.scheduleName}
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    Chế độ: {schedule.mode === "auto" ? "Tự động" : "Lên lịch"}
-                  </p>
-                  <p
-                    className={`text-sm ${
-                      schedule.isActive ? "text-green-300" : "text-gray-400"
-                    }`}
-                  >
-                    Trạng thái: {schedule.isActive ? "Hoạt động" : "Tạm dừng"}
-                  </p>
-                </div>
-                <div className="space-x-2">
-                  <button
-                    onClick={() =>
-                      handleToggleActive(schedule.scheduleId, schedule.isActive)
-                    }
-                    className={`${
-                      schedule.isActive
-                        ? "bg-red-600 hover:bg-red-700"
-                        : "bg-green-600 hover:bg-green-700"
-                    } text-white px-3 py-1 rounded`}
-                  >
-                    {schedule.isActive ? "Tạm dừng" : "Kích hoạt"}
-                  </button>
-                  <button
-                    onClick={() => handleEdit(schedule)}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
-                  >
-                    Sửa
-                  </button>
-                  <button
-                    onClick={() => handleDelete(schedule.scheduleId)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </div>
-
-              {/* Schedule Details */}
-              {schedule.mode === "auto" ? (
-                <div className="text-gray-300 text-sm">
-                  <p>
-                    Pattern tự động:{" "}
-                    {trafficPatterns.find(
-                      (p) => p.patternId === schedule.autoPatternId
-                    )?.patternName || "Không tìm thấy"}
-                  </p>
-                </div>
-              ) : (
-                <div className="text-gray-300 text-sm">
-                  <p className="mb-2">Lịch trình theo ngày:</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {schedule.daySchedules.map((ds) => {
-                      const dayLabel = daysOfWeek.find(
-                        (d) => d.value === ds.dayOfWeek
-                      )?.label;
-
-                      return (
-                        <div
-                          key={ds.dayOfWeek}
-                          className="bg-gray-700 p-2 rounded"
-                        >
-                          <div className="font-medium mb-1">{dayLabel}</div>
-                          <div className="text-xs space-y-1">
-                            {ds.isActive ? (
-                              ds.timeSlots.map((slot) => {
-                                const pattern = trafficPatterns.find(
-                                  (p) => p.patternId === slot.patternId
-                                );
-                                return (
-                                  <div
-                                    key={slot.slotId}
-                                    className="bg-gray-600 p-1 rounded"
-                                  >
-                                    <div className="text-yellow-300">
-                                      {slot.startTime} - {slot.endTime}
-                                    </div>
-                                    <div>
-                                      {pattern?.patternName ||
-                                        "Không có pattern"}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <span className="text-gray-500">
-                                Không hoạt động
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
+        {/* Show button only when junction is selected */}
+        {selectedJunctionId && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Thêm lịch trình mới
+          </button>
         )}
       </div>
+
+      {/* Content based on junction selection */}
+      {!selectedJunctionId ? (
+        <div className="bg-gray-800 p-8 rounded-lg text-center">
+          <div className="mb-4">
+            <svg
+              className="mx-auto h-16 w-16 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            Chọn nút giao để bắt đầu
+          </h3>
+          <p className="text-gray-400">
+            Vui lòng chọn một nút giao từ danh sách trên để xem và quản lý các
+            lịch trình hoạt động tương ứng.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Schedule List */}
+          <div className="space-y-4">
+            {filteredSchedules.length > 0 ? (
+              filteredSchedules.map((schedule) => (
+                <div
+                  key={schedule.scheduleId}
+                  className={`p-4 rounded-lg relative ${
+                    schedule.isActive
+                      ? "bg-gray-800 border-2 border-green-500"
+                      : "bg-gray-800"
+                  }`}
+                >
+                  {/* Active badge */}
+                  {schedule.isActive && (
+                    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                      ĐANG HOẠT ĐỘNG
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3
+                        className={`text-lg font-semibold ${
+                          schedule.isActive ? "text-green-400" : "text-white"
+                        }`}
+                      >
+                        {schedule.scheduleName}
+                      </h3>
+                      <p className="text-gray-400 text-sm">
+                        Chế độ:{" "}
+                        {schedule.mode === "auto" ? "Tự động" : "Lên lịch"}
+                      </p>
+                      <p
+                        className={`text-sm ${
+                          schedule.isActive ? "text-green-300" : "text-gray-400"
+                        }`}
+                      >
+                        Trạng thái:{" "}
+                        {schedule.isActive ? "Hoạt động" : "Tạm dừng"}
+                      </p>
+                    </div>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() =>
+                          handleToggleActive(
+                            schedule.scheduleId,
+                            schedule.isActive
+                          )
+                        }
+                        className={`${
+                          schedule.isActive
+                            ? "bg-red-600 hover:bg-red-700"
+                            : "bg-green-600 hover:bg-green-700"
+                        } text-white px-3 py-1 rounded transition-colors`}
+                      >
+                        {schedule.isActive ? "Tạm dừng" : "Kích hoạt"}
+                      </button>
+                      <button
+                        onClick={() => handleEdit(schedule)}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded transition-colors"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => handleDelete(schedule.scheduleId)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition-colors"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Schedule Details */}
+                  {schedule.mode === "auto" ? (
+                    <div className="text-gray-300 text-sm">
+                      <p>
+                        Pattern tự động:{" "}
+                        {trafficPatterns.find(
+                          (p) => p.patternId === schedule.autoPatternId
+                        )?.patternName || "Không tìm thấy"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-gray-300 text-sm">
+                      <p className="mb-2">Lịch trình theo ngày:</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {schedule.daySchedules.map((ds) => {
+                          const dayLabel = daysOfWeek.find(
+                            (d) => d.value === ds.dayOfWeek
+                          )?.label;
+
+                          return (
+                            <div
+                              key={ds.dayOfWeek}
+                              className="bg-gray-700 p-2 rounded"
+                            >
+                              <div className="font-medium mb-1">{dayLabel}</div>
+                              <div className="text-xs space-y-1">
+                                {ds.isActive ? (
+                                  ds.timeSlots.map((slot) => {
+                                    const pattern = trafficPatterns.find(
+                                      (p) => p.patternId === slot.patternId
+                                    );
+                                    return (
+                                      <div
+                                        key={slot.slotId}
+                                        className="bg-gray-600 p-1 rounded"
+                                      >
+                                        <div className="text-yellow-300">
+                                          {slot.startTime} - {slot.endTime}
+                                        </div>
+                                        <div>
+                                          {pattern?.patternName ||
+                                            "Không có pattern"}
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <span className="text-gray-500">
+                                    Không hoạt động
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="bg-gray-800 p-8 rounded-lg text-center">
+                <div className="mb-4">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Chưa có lịch trình nào
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  Nút giao này chưa có lịch trình hoạt động nào. Hãy tạo lịch
+                  trình đầu tiên.
+                </p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Tạo lịch trình đầu tiên
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-white mb-4">
-              {editingSchedule ? "Chỉnh sửa Lịch trình" : "Thêm Lịch trình Mới"}
+              {editingSchedule ? "Chỉnh sửa lịch trình" : "Thêm lịch trình mới"}
             </h2>
 
             <form
@@ -561,7 +606,8 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                   type="text"
                   value={scheduleName}
                   onChange={(e) => setScheduleName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg"
+                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="Ví dụ: Lịch trình giờ cao điểm, Lịch trình cuối tuần..."
                   required
                 />
               </div>
@@ -581,7 +627,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                       }
                       className="mr-2"
                     />
-                    Tự động (sử dụng pattern "Tự động")
+                    Tự động (sử dụng một mẫu pha cố định)
                   </label>
                   <label className="flex items-center text-white">
                     <input
@@ -593,7 +639,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                       }
                       className="mr-2"
                     />
-                    Lên lịch (cài đặt pattern cho từng ngày)
+                    Lên lịch (cài đặt mẫu pha cho từng ngày và khung giờ)
                   </label>
                 </div>
               </div>
@@ -602,15 +648,15 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
               {mode === "auto" && (
                 <div>
                   <label className="block text-white mb-2">
-                    Pattern tự động:
+                    Mẫu pha tự động:
                   </label>
                   <select
                     value={autoPatternId}
                     onChange={(e) => setAutoPatternId(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg"
+                    className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
                     required
                   >
-                    <option value="">Chọn pattern</option>
+                    <option value="">Chọn mẫu pha</option>
                     {getAvailablePatterns().map((pattern) => (
                       <option
                         key={pattern.patternId}
@@ -623,8 +669,8 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
 
                   {getAutoPattern() && (
                     <p className="text-yellow-400 text-sm mt-2">
-                      💡 Gợi ý: Tìm thấy pattern "
-                      {getAutoPattern()?.patternName}" - có thể là pattern tự
+                      💡 Gợi ý: Tìm thấy mẫu pha "
+                      {getAutoPattern()?.patternName}" - có thể là mẫu pha tự
                       động
                     </p>
                   )}
@@ -681,7 +727,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                       onClick={() =>
                                         removeTimeSlot(day.value, slot.slotId)
                                       }
-                                      className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                      className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition-colors"
                                       disabled={
                                         daySchedule.timeSlots.length === 1
                                       }
@@ -693,7 +739,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div>
                                       <label className="block text-gray-300 text-sm mb-1">
-                                        Pattern:
+                                        Mẫu pha:
                                       </label>
                                       <select
                                         value={slot.patternId}
@@ -706,10 +752,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                             }
                                           )
                                         }
-                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm"
+                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
                                         required
                                       >
-                                        <option value="">Chọn pattern</option>
+                                        <option value="">Chọn mẫu pha</option>
                                         {getAvailablePatterns().map(
                                           (pattern) => (
                                             <option
@@ -738,7 +784,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                             }
                                           )
                                         }
-                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm"
+                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
                                         required
                                       />
                                     </div>
@@ -758,7 +804,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                             }
                                           )
                                         }
-                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm"
+                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
                                         required
                                       />
                                     </div>
@@ -769,7 +815,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                               <button
                                 type="button"
                                 onClick={() => addTimeSlot(day.value)}
-                                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm"
+                                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm transition-colors"
                               >
                                 + Thêm khung giờ
                               </button>
@@ -785,14 +831,14 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
               <div className="flex space-x-4">
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                 >
                   {editingSchedule ? "Cập nhật" : "Thêm"}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
                 >
                   Hủy
                 </button>

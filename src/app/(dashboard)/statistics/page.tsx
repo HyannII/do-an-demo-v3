@@ -608,12 +608,11 @@ export default function StatisticsPage() {
     }
   };
 
-  // Format time without timezone correction
+  // Format time without timezone correction and without seconds
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
     });
   };
 
@@ -756,7 +755,10 @@ export default function StatisticsPage() {
                     tooltip: {
                       mode: "index",
                       intersect: false,
-                      displayColors: true,
+                      displayColors: false,
+                      backgroundColor: "rgba(0, 0, 0, 0.8)",
+                      titleColor: "white",
+                      bodyColor: "white",
                       callbacks: {
                         title: function (tooltipItems) {
                           if (tooltipItems.length > 0) {
@@ -773,7 +775,7 @@ export default function StatisticsPage() {
                                 const hour = originalData.hour
                                   .toString()
                                   .padStart(2, "0");
-                                return `Giờ: ${hour}:00 - ${hour}:59`;
+                                return `${hour}:00 - ${hour}:59`;
                               }
                             } else if (statisticsData?.dailyData) {
                               const originalData =
@@ -783,7 +785,7 @@ export default function StatisticsPage() {
                                 const date = new Date(originalData.date);
                                 const formattedDate =
                                   date.toLocaleDateString("vi-VN");
-                                return `Ngày: ${formattedDate}`;
+                                return formattedDate;
                               }
                             }
 
@@ -801,25 +803,14 @@ export default function StatisticsPage() {
                           }
                           return label;
                         },
-                        footer: function (tooltipItems) {
-                          // Add period-specific footer
-                          const periodText =
-                            selectedPeriod === "today"
-                              ? "trong giờ này"
-                              : selectedPeriod === "week"
-                              ? "trong ngày này"
-                              : selectedPeriod === "month"
-                              ? "trong ngày này"
-                              : "trong khoảng thời gian này";
-                          return [`Tổng số xe ${periodText}`];
-                        },
                       },
                     },
                   },
                   elements: {
                     line: {
-                      tension: 0.3,
+                      tension: 0.4,
                       borderJoinStyle: "round",
+                      spanGaps: true,
                     },
                     point: {
                       radius: 4,

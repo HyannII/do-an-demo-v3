@@ -603,18 +603,20 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
     <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-4">
-          Quản lý Pattern Đèn Giao Thông
+          Quản lý mẫu pha đèn giao thông
         </h1>
 
-        {/* Junction Filter */}
+        {/* Junction Selection */}
         <div className="mb-4">
-          <label className="block text-white mb-2">Chọn nút giao:</label>
+          <label className="block text-white mb-2 font-medium">
+            Chọn nút giao để quản lý:
+          </label>
           <select
             value={selectedJunctionId}
             onChange={(e) => setSelectedJunctionId(e.target.value)}
-            className="px-3 py-2 bg-gray-800 text-white border border-gray-600 rounded-lg"
+            className="px-4 py-3 bg-gray-800 text-white border border-gray-600 rounded-lg w-full md:w-1/2 focus:outline-none focus:border-blue-500"
           >
-            <option value="">Tất cả nút giao</option>
+            <option value="">-- Vui lòng chọn nút giao --</option>
             {junctions.map((junction) => (
               <option
                 key={junction.junctionId}
@@ -626,75 +628,143 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
           </select>
         </div>
 
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-          disabled={!selectedJunctionId}
-        >
-          Thêm Pattern Mới
-        </button>
+        {/* Show button only when junction is selected */}
+        {selectedJunctionId && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Thêm mẫu pha mới
+          </button>
+        )}
       </div>
 
-      {/* Pattern List */}
-      <div className="space-y-4">
-        {filteredPatterns.map((pattern) => (
-          <div
-            key={pattern.patternId}
-            className="bg-gray-800 p-4 rounded-lg"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">
-                {pattern.patternName}
-              </h3>
-              <div className="space-x-2">
-                <button
-                  onClick={() =>
-                    setSelectedPattern(
-                      selectedPattern?.patternId === pattern.patternId
-                        ? null
-                        : pattern
-                    )
-                  }
-                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
+      {/* Content based on junction selection */}
+      {!selectedJunctionId ? (
+        <div className="bg-gray-800 p-8 rounded-lg text-center">
+          <div className="mb-4">
+            <svg
+              className="mx-auto h-16 w-16 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            Chọn nút giao để bắt đầu
+          </h3>
+          <p className="text-gray-400">
+            Vui lòng chọn một nút giao từ danh sách trên để xem và quản lý các
+            mẫu pha đèn giao thông tương ứng.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Selected Junction Info */}
+          
+
+          {/* Pattern List */}
+          <div className="space-y-4">
+            {filteredPatterns.length > 0 ? (
+              filteredPatterns.map((pattern) => (
+                <div
+                  key={pattern.patternId}
+                  className="bg-gray-800 p-4 rounded-lg"
                 >
-                  {selectedPattern?.patternId === pattern.patternId
-                    ? "Ẩn"
-                    : "Xem"}
-                </button>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-white">
+                      {pattern.patternName}
+                    </h3>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() =>
+                          setSelectedPattern(
+                            selectedPattern?.patternId === pattern.patternId
+                              ? null
+                              : pattern
+                          )
+                        }
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors"
+                      >
+                        {selectedPattern?.patternId === pattern.patternId
+                          ? "Ẩn"
+                          : "Xem"}
+                      </button>
+                      <button
+                        onClick={() => handleEdit(pattern)}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded transition-colors"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => handleDelete(pattern.patternId)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition-colors"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+
+                  {selectedPattern?.patternId === pattern.patternId && (
+                    <GanttChart
+                      pattern={pattern}
+                      directionMapping={
+                        (pattern.timingConfiguration as PatternConfig)
+                          .lightDirectionMapping || {}
+                      }
+                    />
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="bg-gray-800 p-8 rounded-lg text-center">
+                <div className="mb-4">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Chưa có mẫu pha đèn nào
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  Nút giao này chưa có mẫu pha đèn giao thông nào. Hãy tạo mẫu
+                  pha đầu tiên.
+                </p>
                 <button
-                  onClick={() => handleEdit(pattern)}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+                  onClick={() => setShowForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                 >
-                  Sửa
-                </button>
-                <button
-                  onClick={() => handleDelete(pattern.patternId)}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                >
-                  Xóa
+                  Tạo mẫu pha đầu tiên
                 </button>
               </div>
-            </div>
-
-            {selectedPattern?.patternId === pattern.patternId && (
-              <GanttChart
-                pattern={pattern}
-                directionMapping={
-                  (pattern.timingConfiguration as PatternConfig)
-                    .lightDirectionMapping || {}
-                }
-              />
             )}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-white mb-4">
-              {editingPattern ? "Chỉnh sửa Pattern" : "Thêm Pattern Mới"}
+              {editingPattern ? "Chỉnh sửa mẫu pha" : "Thêm mẫu pha mới"}
             </h2>
 
             <form
@@ -702,12 +772,13 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
               className="space-y-4"
             >
               <div>
-                <label className="block text-white mb-2">Tên Pattern:</label>
+                <label className="block text-white mb-2">Tên mẫu pha:</label>
                 <input
                   type="text"
                   value={patternName}
                   onChange={(e) => setPatternName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg"
+                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="Ví dụ: Giờ cao điểm sáng, Giờ thường..."
                   required
                 />
               </div>
@@ -725,7 +796,7 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                       cycleDuration: parseInt(e.target.value),
                     }))
                   }
-                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg"
+                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
                   min="1"
                   required
                 />

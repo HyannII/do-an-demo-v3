@@ -15,6 +15,8 @@ import {
   FolderKey,
   KeyRound,
   ScrollText,
+  Calculator,
+  Wrench,
 } from "lucide-react";
 
 import React from "react";
@@ -82,6 +84,19 @@ export const navItems: NavItem[] = [
   },
   {
     type: "folder",
+    title: "Tiện ích",
+    icon: <Wrench className="w-5 h-5" />,
+    children: [
+      {
+        type: "link",
+        title: "Tính toán thời gian đèn",
+        href: "/utility/traffic-light-calculation",
+        icon: <Calculator className="w-4 h-4" />,
+      },
+    ],
+  },
+  {
+    type: "folder",
     title: "Quản lý người dùng",
     icon: <Users className="w-5 h-5" />,
     children: [
@@ -107,7 +122,7 @@ export const navItems: NavItem[] = [
   },
   {
     type: "link",
-    title: "Cài đặt",
+    title: "Cài đặt tài khoản",
     href: "/settings",
     icon: <Settings className="w-5 h-5" />,
   },
