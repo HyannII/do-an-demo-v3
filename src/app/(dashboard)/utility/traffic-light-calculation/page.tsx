@@ -129,8 +129,8 @@ export default function TrafficLightCalculationPage() {
   const [result, setResult] = useState<string[]>([]);
 
   return (
-    <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
-      <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
+      <div className="bg-gray-100 dark:bg-gray-800 shadow-sm rounded-lg p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Tính toán thời gian đèn giao thông
@@ -180,7 +180,7 @@ export default function TrafficLightCalculationPage() {
                             },
                           }))
                         }
-                        className="w-20 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
+                        className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       />
                     </div>
                   ))}
@@ -194,7 +194,7 @@ export default function TrafficLightCalculationPage() {
             <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-2">
               Tham số tính toán thời gian đèn
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Điều chỉnh các tham số dưới đây để tối ưu hóa thuật toán tính toán
               thời gian đèn giao thông
             </p>
@@ -217,7 +217,7 @@ export default function TrafficLightCalculationPage() {
                       minCycleTime: parseInt(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
@@ -239,7 +239,7 @@ export default function TrafficLightCalculationPage() {
                       adjustmentFactor: parseFloat(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
@@ -261,7 +261,7 @@ export default function TrafficLightCalculationPage() {
                       minGreenTime: parseInt(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
@@ -283,7 +283,7 @@ export default function TrafficLightCalculationPage() {
                       yellowTime: parseInt(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
@@ -306,7 +306,7 @@ export default function TrafficLightCalculationPage() {
                       allRedTime: parseInt(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -322,7 +322,7 @@ export default function TrafficLightCalculationPage() {
             <button
               type="button"
               onClick={() => setTimingParams(defaultTimingParams)}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
             >
               Reset về mặc định
             </button>

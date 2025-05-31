@@ -513,8 +513,8 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
     };
 
     return (
-      <div className="bg-gray-800 p-6 rounded-lg">
-        <h4 className="text-lg font-semibold mb-6 text-white">
+      <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg">
+        <h4 className="text-lg font-semibold mb-6 text-gray-900 dark:text-white">
           Dòng thời gian pha đèn trong một chu kỳ ({cycleDuration} giây) -{" "}
           {pattern.patternName}
         </h4>
@@ -533,8 +533,8 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                   key={direction}
                   className="relative"
                 >
-                  <div className="text-sm text-gray-300 mb-2 font-medium">
-                    Hướng {direction} ({lightIds.length} đèn)
+                  <div className="text-sm text-gray-900 dark:text-gray-300 mb-2 font-medium">
+                    Hướng {direction} 
                   </div>
                   <div className="relative h-8 bg-gray-700 rounded overflow-hidden">
                     {timeline.length > 0 ? (
@@ -580,18 +580,18 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
 
           {/* Legend */}
           <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
-            <span className="text-gray-300 font-medium">Chú thích:</span>
+            <span className="text-gray-900 dark:text-gray-300 font-medium">Chú thích:</span>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded"></div>
-              <span className="text-gray-300">Đèn xanh</span>
+              <span className="text-gray-900 dark:text-gray-300">Đèn xanh</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-              <span className="text-gray-300">Đèn vàng</span>
+              <span className="text-gray-900 dark:text-gray-300">Đèn vàng</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-red-500 rounded"></div>
-              <span className="text-gray-300">Đèn đỏ</span>
+              <span className="text-gray-900 dark:text-gray-300">Đèn đỏ</span>
             </div>
           </div>
         </div>
@@ -600,21 +600,21 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
   };
 
   return (
-    <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           Quản lý mẫu pha đèn giao thông
         </h1>
 
         {/* Junction Selection */}
         <div className="mb-4">
-          <label className="block text-white mb-2 font-medium">
+          <label className="block text-gray-900 dark:text-white mb-2 font-medium">
             Chọn nút giao để quản lý:
           </label>
           <select
             value={selectedJunctionId}
             onChange={(e) => setSelectedJunctionId(e.target.value)}
-            className="px-4 py-3 bg-gray-800 text-white border border-gray-600 rounded-lg w-full md:w-1/2 focus:outline-none focus:border-blue-500"
+            className="px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg w-full md:w-1/2 focus:outline-none focus:border-blue-500"
           >
             <option value="">-- Vui lòng chọn nút giao --</option>
             {junctions.map((junction) => (
@@ -641,10 +641,10 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
 
       {/* Content based on junction selection */}
       {!selectedJunctionId ? (
-        <div className="bg-gray-800 p-8 rounded-lg text-center">
+        <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg text-center">
           <div className="mb-4">
             <svg
-              className="mx-auto h-16 w-16 text-gray-400"
+              className="mx-auto h-16 w-16 text-gray-500 dark:text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -657,10 +657,10 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
               />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Chọn nút giao để bắt đầu
           </h3>
-          <p className="text-gray-400">
+          <p className="text-gray-700 dark:text-gray-400">
             Vui lòng chọn một nút giao từ danh sách trên để xem và quản lý các
             mẫu pha đèn giao thông tương ứng.
           </p>
@@ -668,7 +668,6 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
       ) : (
         <>
           {/* Selected Junction Info */}
-          
 
           {/* Pattern List */}
           <div className="space-y-4">
@@ -676,10 +675,10 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
               filteredPatterns.map((pattern) => (
                 <div
                   key={pattern.patternId}
-                  className="bg-gray-800 p-4 rounded-lg"
+                  className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600"
                 >
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {pattern.patternName}
                     </h3>
                     <div className="space-x-2">
@@ -724,10 +723,10 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                 </div>
               ))
             ) : (
-              <div className="bg-gray-800 p-8 rounded-lg text-center">
+              <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg text-center border border-gray-200 dark:border-gray-600">
                 <div className="mb-4">
                   <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
+                    className="mx-auto h-12 w-12 text-gray-500 dark:text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -740,10 +739,10 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   Chưa có mẫu pha đèn nào
                 </h3>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-700 dark:text-gray-400 mb-4">
                   Nút giao này chưa có mẫu pha đèn giao thông nào. Hãy tạo mẫu
                   pha đầu tiên.
                 </p>
@@ -762,8 +761,8 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingPattern ? "Chỉnh sửa mẫu pha" : "Thêm mẫu pha mới"}
             </h2>
 
@@ -772,19 +771,21 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
               className="space-y-4"
             >
               <div>
-                <label className="block text-white mb-2">Tên mẫu pha:</label>
+                <label className="block text-gray-900 dark:text-white mb-2">
+                  Tên mẫu pha:
+                </label>
                 <input
                   type="text"
                   value={patternName}
                   onChange={(e) => setPatternName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="Ví dụ: Giờ cao điểm sáng, Giờ thường..."
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-white mb-2">
+                <label className="block text-gray-900 dark:text-white mb-2">
                   Thời gian chu kỳ (giây):
                 </label>
                 <input
@@ -796,16 +797,16 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                       cycleDuration: parseInt(e.target.value),
                     }))
                   }
-                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
                   min="1"
                   required
                 />
               </div>
 
               {/* Quick Setup Section */}
-              <div className="border-t border-gray-600 pt-4">
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-semibold text-white">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Cấu hình nhanh Pattern
                   </h3>
                   <button
@@ -818,11 +819,11 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                 </div>
 
                 {showQuickSetup && (
-                  <div className="bg-gray-700 p-4 rounded-lg space-y-4">
+                  <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg space-y-4">
                     {/* Light Direction Mapping */}
                     {selectedJunctionId && (
                       <div>
-                        <h4 className="text-white font-medium mb-3">
+                        <h4 className="text-gray-900 dark:text-white font-medium mb-3">
                           Phân loại đèn theo hướng (tùy chọn):
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -831,9 +832,9 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                             ?.trafficLights.map((light) => (
                               <div
                                 key={light.trafficLightId}
-                                className="bg-gray-600 p-3 rounded"
+                                className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-200 dark:border-gray-500"
                               >
-                                <div className="text-white text-sm mb-2">
+                                <div className="text-gray-900 dark:text-white text-sm mb-2">
                                   {light.lightName}
                                 </div>
                                 <select
@@ -848,7 +849,7 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                                       [light.trafficLightId]: e.target.value,
                                     }))
                                   }
-                                  className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm"
+                                  className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm"
                                 >
                                   <option value="">Tự động phát hiện</option>
                                   <option value="Bắc">Bắc</option>
@@ -863,29 +864,29 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                     )}
 
                     <div>
-                      <label className="block text-white mb-2 text-sm">
+                      <label className="block text-gray-900 dark:text-white mb-2 text-sm">
                         Nhập cấu hình pattern (một dòng cho mỗi hướng):
                       </label>
                       <textarea
                         value={quickSetupText}
                         onChange={(e) => setQuickSetupText(e.target.value)}
                         placeholder={getQuickSetupExample()}
-                        className="w-full px-3 py-2 bg-gray-600 text-white border border-gray-500 rounded-lg text-sm font-mono"
+                        className="w-full px-3 py-2 bg-white dark:bg-gray-600 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-500 rounded-lg text-sm font-mono"
                         rows={6}
                       />
                     </div>
 
-                    <div className="bg-gray-600 p-3 rounded border-l-4 border-blue-500">
-                      <h4 className="text-white font-medium mb-2">
+                    <div className="bg-blue-50 dark:bg-gray-600 p-3 rounded border-l-4 border-blue-500">
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">
                         Định dạng:
                       </h4>
-                      <pre className="text-gray-300 text-xs font-mono whitespace-pre-wrap">
+                      <pre className="text-gray-700 dark:text-gray-300 text-xs font-mono whitespace-pre-wrap">
                         {getQuickSetupExample()}
                       </pre>
                     </div>
 
-                    <div className="bg-yellow-800 p-3 rounded border-l-4 border-yellow-500">
-                      <p className="text-yellow-200 text-sm">
+                    <div className="bg-yellow-50 dark:bg-yellow-800 p-3 rounded border-l-4 border-yellow-500">
+                      <p className="text-yellow-800 dark:text-yellow-200 text-sm">
                         <strong>Lưu ý:</strong> Hệ thống sẽ tự động phát hiện
                         hướng từ trường "Vị trí" của đèn (ví dụ: "Ngã tư ABC,
                         hướng Bắc"). Nếu không tự động phát hiện được, hãy phân
@@ -919,7 +920,9 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
               {/* Phases Management */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-white">Các pha đèn:</label>
+                  <label className="block text-gray-900 dark:text-white">
+                    Các pha đèn:
+                  </label>
                   <button
                     type="button"
                     onClick={addPhase}
@@ -938,11 +941,11 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                     return (
                       <div
                         key={phase.phaseId}
-                        className="bg-gray-700 p-4 rounded-lg"
+                        className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600"
                       >
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                           <div>
-                            <label className="block text-white text-sm mb-1">
+                            <label className="block text-gray-900 dark:text-white text-sm mb-1">
                               Tên pha:
                             </label>
                             <input
@@ -953,12 +956,12 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                                   phaseName: e.target.value,
                                 })
                               }
-                              className="w-full px-2 py-1 bg-gray-600 text-white border border-gray-500 rounded"
+                              className="w-full px-2 py-1 bg-white dark:bg-gray-600 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-500 rounded"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-white text-sm mb-1">
+                            <label className="block text-gray-900 dark:text-white text-sm mb-1">
                               Thời gian bắt đầu (s):
                             </label>
                             <input
@@ -969,13 +972,13 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                                   startTime: parseInt(e.target.value),
                                 })
                               }
-                              className="w-full px-2 py-1 bg-gray-600 text-white border border-gray-500 rounded"
+                              className="w-full px-2 py-1 bg-white dark:bg-gray-600 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-500 rounded"
                               min="0"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-white text-sm mb-1">
+                            <label className="block text-gray-900 dark:text-white text-sm mb-1">
                               Thời lượng (s):
                             </label>
                             <input
@@ -986,13 +989,13 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                                   duration: parseInt(e.target.value),
                                 })
                               }
-                              className="w-full px-2 py-1 bg-gray-600 text-white border border-gray-500 rounded"
+                              className="w-full px-2 py-1 bg-white dark:bg-gray-600 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-500 rounded"
                               min="1"
                             />
                           </div>
 
                           <div className="flex items-center space-x-2">
-                            <label className="text-white text-sm">
+                            <label className="text-gray-900 dark:text-white text-sm">
                               Hoạt động:
                             </label>
                             <input
@@ -1018,17 +1021,17 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                         {/* Traffic Light States for this phase */}
                         {selectedJunction &&
                           selectedJunction.trafficLights.length > 0 && (
-                            <div className="border-t border-gray-600 pt-4">
-                              <label className="block text-white text-sm mb-2">
+                            <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                              <label className="block text-gray-900 dark:text-white text-sm mb-2">
                                 Trạng thái đèn trong pha này:
                               </label>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {selectedJunction.trafficLights.map((light) => (
                                   <div
                                     key={light.trafficLightId}
-                                    className="bg-gray-600 p-3 rounded"
+                                    className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-200 dark:border-gray-500"
                                   >
-                                    <div className="text-white text-sm mb-2">
+                                    <div className="text-gray-900 dark:text-white text-sm mb-2">
                                       {light.lightName}
                                     </div>
                                     <select
@@ -1049,7 +1052,7 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                                           },
                                         })
                                       }
-                                      className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm"
+                                      className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm"
                                     >
                                       <option value="red">🔴 Đỏ</option>
                                       <option value="yellow">🟡 Vàng</option>
@@ -1076,7 +1079,7 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
                 >
                   Hủy
                 </button>

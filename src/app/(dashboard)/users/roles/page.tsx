@@ -242,9 +242,9 @@ function RoleManagementPage() {
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-64px)]">
-        <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
+        <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
           <div className="flex justify-center items-center h-full">
-            <div className="text-white">Đang tải...</div>
+            <div className="text-gray-900 dark:text-white">Đang tải...</div>
           </div>
         </div>
       </div>
@@ -253,9 +253,9 @@ function RoleManagementPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
-      <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
+      <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
         {/* Header */}
-        <h1 className="text-xl font-semibold text-white mb-4">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Quản lý vai trò và phân quyền
         </h1>
 
@@ -263,16 +263,16 @@ function RoleManagementPage() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={openCreateModal}
-            className="bg-blue-500 text-white px-4 py-2 rounded transition-colors hover:bg-blue-600"
+            className="bg-blue-600 text-white px-4 py-2 rounded transition-colors hover:bg-blue-700"
           >
             Thêm vai trò
           </button>
           <button
             onClick={handleBulkDelete}
-            className={`bg-red-500 text-white px-4 py-2 rounded transition-colors ${
+            className={`bg-red-600 text-white px-4 py-2 rounded transition-colors ${
               selectedItems.length === 0
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-red-600"
+                : "hover:bg-red-700"
             }`}
             disabled={selectedItems.length === 0}
           >
@@ -281,9 +281,9 @@ function RoleManagementPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-600">
           <table className="w-full">
-            <thead className="bg-gray-700">
+            <thead className="bg-gray-200 dark:bg-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left">
                   <input
@@ -293,41 +293,41 @@ function RoleManagementPage() {
                       currentItems.length > 0
                     }
                     onChange={handleSelectAll}
-                    className="rounded border-gray-600 bg-gray-700"
+                    className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-white font-medium">
+                <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                   Tên vai trò
                 </th>
-                <th className="px-4 py-3 text-left text-white font-medium">
+                <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                   Số quyền
                 </th>
-                <th className="px-4 py-3 text-left text-white font-medium">
+                <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                   Ngày tạo
                 </th>
-                <th className="px-4 py-3 text-left text-white font-medium">
+                <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                   Thao tác
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {currentItems.map((role) => (
                 <tr
                   key={role.roleId}
-                  className="hover:bg-gray-700 transition-colors"
+                  className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedItems.includes(role.roleId)}
                       onChange={() => handleSelectItem(role.roleId)}
-                      className="rounded border-gray-600 bg-gray-700"
+                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                     />
                   </td>
-                  <td className="px-4 py-3 text-white font-medium">
+                  <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">
                     {role.roleName}
                   </td>
-                  <td className="px-4 py-3 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {
                       Object.values(role.permissions || {}).filter(
                         (p) => p === true
@@ -335,7 +335,7 @@ function RoleManagementPage() {
                     }{" "}
                     / {getAllPermissionKeys().length}
                   </td>
-                  <td className="px-4 py-3 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {role.createdAt
                       ? new Date(role.createdAt).toLocaleDateString("vi-VN")
                       : "N/A"}
@@ -344,13 +344,13 @@ function RoleManagementPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => openEditModal(role)}
-                        className="bg-yellow-500 text-white px-3 py-1 rounded text-sm transition-colors hover:bg-yellow-600"
+                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors hover:bg-blue-700"
                       >
                         Sửa
                       </button>
                       <button
                         onClick={() => handleDelete(role.roleId)}
-                        className="bg-red-500 text-white px-3 py-1 rounded text-sm transition-colors hover:bg-red-600"
+                        className="bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors hover:bg-red-700"
                       >
                         Xóa
                       </button>
@@ -362,7 +362,7 @@ function RoleManagementPage() {
           </table>
 
           {roles.length === 0 && (
-            <div className="text-center text-gray-400 py-8">
+            <div className="text-center text-gray-700 dark:text-gray-400 py-8">
               Chưa có vai trò nào được tạo.
             </div>
           )}
@@ -374,11 +374,11 @@ function RoleManagementPage() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
             >
               {"<"}
             </button>
-            <span className="px-3 py-1 text-gray-300">
+            <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
               Page {currentPage} of {totalPages}
             </span>
             <button
@@ -386,12 +386,12 @@ function RoleManagementPage() {
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
             >
               {">"}
             </button>
           </div>
-          <span className="text-gray-300">
+          <span className="text-gray-700 dark:text-gray-300">
             Displaying {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
             {totalItems}
           </span>
@@ -401,8 +401,8 @@ function RoleManagementPage() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {isEditMode ? "Chỉnh sửa vai trò" : "Thêm vai trò mới"}
             </h2>
 
@@ -412,7 +412,9 @@ function RoleManagementPage() {
             >
               {/* Role Name */}
               <div>
-                <label className="block text-white mb-2">Tên vai trò:</label>
+                <label className="block text-gray-900 dark:text-white mb-2">
+                  Tên vai trò:
+                </label>
                 <input
                   type="text"
                   value={formData.roleName}
@@ -422,7 +424,7 @@ function RoleManagementPage() {
                       roleName: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500"
                   placeholder="Nhập tên vai trò..."
                   required
                 />
@@ -430,7 +432,7 @@ function RoleManagementPage() {
 
               {/* Preset Permissions */}
               <div>
-                <label className="block text-white mb-2">
+                <label className="block text-gray-900 dark:text-white mb-2">
                   Mẫu quyền sẵn có:
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -449,7 +451,7 @@ function RoleManagementPage() {
 
               {/* Permissions by Category */}
               <div>
-                <label className="block text-white mb-3">
+                <label className="block text-gray-900 dark:text-white mb-3">
                   Phân quyền chi tiết:
                 </label>
                 <div className="space-y-4">
@@ -464,18 +466,20 @@ function RoleManagementPage() {
                     return (
                       <div
                         key={category}
-                        className="bg-gray-700 p-4 rounded-lg"
+                        className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg"
                       >
                         <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-white font-medium">{category}</h3>
+                          <h3 className="text-gray-900 dark:text-white font-medium">
+                            {category}
+                          </h3>
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-300 text-sm">
+                            <span className="text-gray-700 dark:text-gray-300 text-sm">
                               {selectedCount}/{totalCount}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleCategoryToggle(category)}
-                              className="bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs transition-colors"
+                              className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-2 py-1 rounded text-xs transition-colors"
                             >
                               {selectedCount === totalCount
                                 ? "Bỏ chọn tất cả"
@@ -487,7 +491,7 @@ function RoleManagementPage() {
                           {categoryPermissions.map((permission) => (
                             <label
                               key={permission.key}
-                              className="flex items-start space-x-3 text-gray-300 hover:text-white transition-colors cursor-pointer"
+                              className="flex items-start space-x-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
                             >
                               <input
                                 type="checkbox"
@@ -500,13 +504,13 @@ function RoleManagementPage() {
                                     e.target.checked
                                   )
                                 }
-                                className="mt-1 rounded border-gray-600 bg-gray-600 text-blue-500"
+                                className="mt-1 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-blue-500"
                               />
                               <div>
                                 <div className="font-medium">
                                   {permission.label}
                                 </div>
-                                <div className="text-xs text-gray-400">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
                                   {permission.description}
                                 </div>
                               </div>
@@ -530,7 +534,7 @@ function RoleManagementPage() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition-colors"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
                 >
                   Hủy
                 </button>

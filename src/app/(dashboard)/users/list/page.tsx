@@ -357,8 +357,8 @@ export default function UserManagementPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
-      <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
-        <h1 className="text-xl font-semibold text-white mb-4">
+      <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Quản lý người dùng
         </h1>
 
@@ -366,17 +366,17 @@ export default function UserManagementPage() {
           {isAdmin() && (
             <button
               onClick={openCreateModal}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
             >
               Thêm mới
             </button>
           )}
           <button
             onClick={openEditModal}
-            className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+            className={`bg-blue-600 text-white px-4 py-2 rounded transition-colors ${
               selectedItems.length !== 1
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-blue-600"
+                : "hover:bg-blue-700"
             }`}
             disabled={selectedItems.length !== 1}
           >
@@ -384,10 +384,10 @@ export default function UserManagementPage() {
           </button>
           <button
             onClick={openPasswordModal}
-            className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+            className={`bg-orange-600 text-white px-4 py-2 rounded transition-colors ${
               selectedItems.length !== 1
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-blue-600"
+                : "hover:bg-orange-700"
             }`}
             disabled={selectedItems.length !== 1}
           >
@@ -396,10 +396,10 @@ export default function UserManagementPage() {
           {isAdmin() && (
             <button
               onClick={handleDelete}
-              className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+              className={`bg-red-600 text-white px-4 py-2 rounded transition-colors ${
                 selectedItems.length === 0
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-blue-600"
+                  : "hover:bg-red-700"
               }`}
               disabled={selectedItems.length === 0 || isSubmitting}
             >
@@ -409,10 +409,10 @@ export default function UserManagementPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
+          <table className="w-full border-separate border-spacing-0 border-2 border-gray-300 dark:border-gray-600">
             <thead>
               <tr>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   <input
                     type="checkbox"
                     checked={
@@ -422,25 +422,25 @@ export default function UserManagementPage() {
                     onChange={handleSelectAll}
                   />
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   #
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Tên người dùng
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Họ tên
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Email
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Vai trò
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Trạng thái
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Ngày tạo
                 </th>
               </tr>
@@ -450,7 +450,7 @@ export default function UserManagementPage() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                    className="border-2 border-gray-300 dark:border-gray-600 p-2 text-center text-gray-700 dark:text-gray-300"
                   >
                     Đang tải...
                   </td>
@@ -458,31 +458,31 @@ export default function UserManagementPage() {
               ) : currentItems.length > 0 ? (
                 currentItems.map((user, index) => (
                   <tr key={user.userId}>
-                    <td className="border-2 border-gray-600 p-2">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2">
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(parseInt(user.userId))}
                         onChange={() => handleSelectItem(parseInt(user.userId))}
                       />
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {startIndex + index + 1}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.username}
                       {parseInt(user.userId) ===
                         parseInt(loggedInUser?.userId || "0") && " (Bạn)"}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.fullName}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.email}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {getRoleName(user.roleId)}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       <span
                         className={`inline-block px-2 py-1 rounded text-white ${
                           user.isActive ? "bg-green-500" : "bg-red-500"
@@ -491,7 +491,7 @@ export default function UserManagementPage() {
                         {user.isActive ? "Hoạt động" : "Không hoạt động"}
                       </span>
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -500,7 +500,7 @@ export default function UserManagementPage() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                    className="border-2 border-gray-300 dark:border-gray-600 p-2 text-center text-gray-700 dark:text-gray-300"
                   >
                     Không có người dùng nào
                   </td>
@@ -515,11 +515,11 @@ export default function UserManagementPage() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
             >
               {"<"}
             </button>
-            <span className="px-3 py-1 text-gray-300">
+            <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
               Page {currentPage} of {totalPages}
             </span>
             <button
@@ -527,12 +527,12 @@ export default function UserManagementPage() {
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
             >
               {">"}
             </button>
           </div>
-          <span className="text-gray-300">
+          <span className="text-gray-700 dark:text-gray-300">
             Displaying {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
             {totalItems}
           </span>
@@ -541,13 +541,13 @@ export default function UserManagementPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {isEditMode ? "Sửa người dùng" : "Thêm người dùng"}
             </h2>
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-gray-300 mb-1">
+                <label className="block text-gray-700 dark:text-gray-300 mb-1">
                   Tên người dùng
                 </label>
                 <input
@@ -555,35 +555,39 @@ export default function UserManagementPage() {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-300 mb-1">Họ tên</label>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                  Họ tên
+                </label>
                 <input
                   type="text"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleInputChange}
-                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-300 mb-1">Email</label>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                  Email
+                </label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
               {!isEditMode && (
                 <div className="mb-4">
-                  <label className="block text-gray-300 mb-1">
+                  <label className="block text-gray-700 dark:text-gray-300 mb-1">
                     Mật khẩu ban đầu
                   </label>
                   <input
@@ -591,18 +595,20 @@ export default function UserManagementPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                    className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
               )}
               <div className="mb-4">
-                <label className="block text-gray-300 mb-1">Vai trò</label>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                  Vai trò
+                </label>
                 <select
                   name="roleId"
                   value={formData.roleId}
                   onChange={handleInputChange}
-                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                   required
                   disabled={!isAdmin()}
                 >
@@ -618,7 +624,7 @@ export default function UserManagementPage() {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="flex items-center text-gray-300">
+                <label className="flex items-center text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     name="isActive"
@@ -634,14 +640,14 @@ export default function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="mr-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                  className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors dark:bg-gray-500 dark:text-white dark:hover:bg-gray-600"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors ${
+                  className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors ${
                     isSubmitting ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
@@ -659,12 +665,14 @@ export default function UserManagementPage() {
 
       {isPasswordModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold text-white mb-4">Đổi mật khẩu</h2>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Đổi mật khẩu
+            </h2>
             <form onSubmit={handlePasswordSubmit}>
               {!isAdmin() && (
                 <div className="mb-4">
-                  <label className="block text-gray-300 mb-1">
+                  <label className="block text-gray-700 dark:text-gray-300 mb-1">
                     Mật khẩu cũ
                   </label>
                   <input
@@ -672,24 +680,26 @@ export default function UserManagementPage() {
                     name="oldPassword"
                     value={passwordFormData.oldPassword}
                     onChange={handlePasswordInputChange}
-                    className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                    className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
               )}
               <div className="mb-4">
-                <label className="block text-gray-300 mb-1">Mật khẩu mới</label>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                  Mật khẩu mới
+                </label>
                 <input
                   type="password"
                   name="newPassword"
                   value={passwordFormData.newPassword}
                   onChange={handlePasswordInputChange}
-                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-300 mb-1">
+                <label className="block text-gray-700 dark:text-gray-300 mb-1">
                   Xác nhận mật khẩu mới
                 </label>
                 <input
@@ -697,13 +707,13 @@ export default function UserManagementPage() {
                   name="confirmNewPassword"
                   value={passwordFormData.confirmNewPassword}
                   onChange={handlePasswordInputChange}
-                  className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
               {isAdmin() && (
                 <div className="mb-4">
-                  <label className="block text-gray-300 mb-1">
+                  <label className="block text-gray-700 dark:text-gray-300 mb-1">
                     Mật khẩu admin
                   </label>
                   <input
@@ -711,7 +721,7 @@ export default function UserManagementPage() {
                     name="adminPassword"
                     value={passwordFormData.adminPassword}
                     onChange={handlePasswordInputChange}
-                    className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                    className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               )}
@@ -719,14 +729,14 @@ export default function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="mr-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                  className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors dark:bg-gray-500 dark:text-white dark:hover:bg-gray-600"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors ${
+                  className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors ${
                     isSubmitting ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >

@@ -229,18 +229,20 @@ export default function TrafficLightManagement({
   const currentItems = filteredTrafficLights.slice(startIndex, endIndex);
 
   return (
-    <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
-      <h1 className="text-xl font-semibold text-white mb-4">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
+      <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
         Danh sách đèn giao thông
       </h1>
 
       {/* Junction Filter */}
       <div className="mb-4">
-        <label className="block text-gray-300 mb-1">Lọc theo nút giao</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Lọc theo nút giao:
+        </label>
         <select
           value={filterJunctionId}
           onChange={handleFilterChange}
-          className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+          className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
         >
           <option value="">Tất cả nút giao</option>
           {junctions.map((junction) => (
@@ -258,16 +260,16 @@ export default function TrafficLightManagement({
       <div className="flex gap-2 mb-4">
         <button
           onClick={openCreateModal}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         >
           Thêm mới
         </button>
         <button
           onClick={openEditModal}
-          className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+          className={`bg-blue-600 text-white px-4 py-2 rounded transition-colors ${
             selectedItems.length !== 1
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-blue-600"
+              : "hover:bg-blue-700"
           }`}
           disabled={selectedItems.length !== 1}
         >
@@ -275,10 +277,10 @@ export default function TrafficLightManagement({
         </button>
         <button
           onClick={handleDelete}
-          className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+          className={`bg-red-600 text-white px-4 py-2 rounded transition-colors ${
             selectedItems.length === 0
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-blue-600"
+              : "hover:bg-red-700"
           }`}
           disabled={selectedItems.length === 0}
         >
@@ -287,11 +289,11 @@ export default function TrafficLightManagement({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
-          <thead>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+        <table className="w-full">
+          <thead className="bg-gray-200 dark:bg-gray-700">
             <tr>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left">
                 <input
                   type="checkbox"
                   checked={
@@ -299,58 +301,63 @@ export default function TrafficLightManagement({
                     currentItems.length > 0
                   }
                   onChange={handleSelectAll}
+                  className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                 />
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 #
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Tên đèn
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Trạng thái
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Vị trí
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Kinh độ
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Vĩ độ
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Nút giao
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
                 <td
                   colSpan={8}
-                  className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                  className="px-4 py-3 text-center text-gray-700 dark:text-gray-300"
                 >
                   Đang tải...
                 </td>
               </tr>
             ) : currentItems.length > 0 ? (
               currentItems.map((item, index) => (
-                <tr key={item.trafficLightId}>
-                  <td className="border-2 border-gray-600 p-2">
+                <tr
+                  key={item.trafficLightId}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedItems.includes(item.trafficLightId)}
                       onChange={() => handleSelectItem(item.trafficLightId)}
+                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                     />
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {startIndex + index + 1}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">
                     {item.lightName}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-block px-2 py-1 rounded text-white ${
                         item.isActive ? "bg-green-500" : "bg-red-500"
@@ -359,16 +366,16 @@ export default function TrafficLightManagement({
                       {item.isActive ? "Hoạt động" : "Không hoạt động"}
                     </span>
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {item.location}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {item.latitude || "N/A"}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {item.longitude || "N/A"}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {junctions.find((j) => j.junctionId === item.junctionId)
                       ?.junctionName || "N/A"}
                   </td>
@@ -378,7 +385,7 @@ export default function TrafficLightManagement({
               <tr>
                 <td
                   colSpan={8}
-                  className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                  className="px-4 py-3 text-center text-gray-700 dark:text-gray-300"
                 >
                   Không có đèn giao thông nào
                 </td>
@@ -394,11 +401,11 @@ export default function TrafficLightManagement({
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
           >
             {"<"}
           </button>
-          <span className="px-3 py-1 text-gray-300">
+          <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
             Page {currentPage} of {totalPages}
           </span>
           <button
@@ -406,12 +413,12 @@ export default function TrafficLightManagement({
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
           >
             {">"}
           </button>
         </div>
-        <span className="text-gray-300">
+        <span className="text-gray-700 dark:text-gray-300">
           Displaying {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
           {totalItems}
         </span>
@@ -420,15 +427,15 @@ export default function TrafficLightManagement({
       {/* Full-Screen Modal for Create/Edit Item */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-gray-800 w-full h-full flex flex-col">
+          <div className="bg-white dark:bg-gray-800 w-full h-full flex flex-col">
             {/* Modal Header */}
-            <div className="p-4 border-b border-gray-600 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {isEditMode ? "Sửa Đèn Giao Thông" : "Thêm Đèn Giao Thông"}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-300 hover:text-white"
+                className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
               >
                 ✕
               </button>
@@ -437,21 +444,23 @@ export default function TrafficLightManagement({
             {/* Modal Body */}
             <div className="flex flex-1 overflow-hidden">
               {/* Form Fields */}
-              <div className="w-1/3 p-6 overflow-y-auto">
+              <div className="w-1/3 p-6 overflow-y-auto bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-600">
                 <form onSubmit={handleSubmit}>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">Tên Đèn</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Tên Đèn
+                    </label>
                     <input
                       type="text"
                       name="lightName"
                       value={formData.lightName}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       IP Address
                     </label>
                     <input
@@ -459,19 +468,19 @@ export default function TrafficLightManagement({
                       name="ipAddress"
                       value={formData.ipAddress}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Trạng thái
                     </label>
                     <select
                       name="status"
                       value={formData.status}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     >
                       <option value="red">Đỏ</option>
@@ -480,47 +489,55 @@ export default function TrafficLightManagement({
                     </select>
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">Vị trí</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Vị trí
+                    </label>
                     <input
                       type="text"
                       name="location"
                       value={formData.location}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">Kinh độ</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Kinh độ
+                    </label>
                     <input
                       type="number"
                       step="0.000001"
                       name="latitude"
                       value={formData.latitude}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       readOnly
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">Vĩ độ</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Vĩ độ
+                    </label>
                     <input
                       type="number"
                       step="0.000001"
                       name="longitude"
                       value={formData.longitude}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       readOnly
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">nút giao</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nút giao
+                    </label>
                     <select
                       name="junctionId"
                       value={formData.junctionId}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     >
                       <option value="">Chọn nút giao</option>
@@ -535,13 +552,13 @@ export default function TrafficLightManagement({
                     </select>
                   </div>
                   <div className="mb-4">
-                    <label className="flex items-center text-gray-300">
+                    <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
                       <input
                         type="checkbox"
                         name="isActive"
                         checked={formData.isActive}
                         onChange={handleInputChange}
-                        className="mr-2"
+                        className="mr-2 rounded border-gray-300 dark:border-gray-600"
                       />
                       Hoạt động
                     </label>
@@ -550,17 +567,19 @@ export default function TrafficLightManagement({
               </div>
 
               {/* Map for Selecting Location */}
-              <div className="w-2/3 p-6 flex flex-col">
+              <div className="w-2/3 p-6 flex flex-col bg-gray-100 dark:bg-gray-900">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-gray-300">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium">
                     Chọn vị trí trên bản đồ
                   </label>
                   <div>
-                    <label className="text-gray-300 mr-2">Chế độ bản đồ</label>
+                    <label className="text-gray-700 dark:text-gray-300 mr-2">
+                      Chế độ bản đồ
+                    </label>
                     <select
                       value={modalMapStyle}
                       onChange={handleMapStyleChange}
-                      className="p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                     >
                       {mapStyles.map((style) => (
                         <option
@@ -603,18 +622,18 @@ export default function TrafficLightManagement({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-600 flex justify-end">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-600 flex justify-end bg-gray-100 dark:bg-gray-900">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="mr-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors dark:bg-gray-500 dark:hover:bg-gray-600 dark:text-white"
               >
                 Hủy
               </button>
               <button
                 type="submit"
                 onClick={handleSubmit}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
               >
                 {isEditMode ? "Cập nhật" : "Thêm"}
               </button>

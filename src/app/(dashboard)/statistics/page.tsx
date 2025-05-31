@@ -701,10 +701,18 @@ export default function StatisticsPage() {
                       title: {
                         display: true,
                         text: getXAxisTitle(),
-                        color: "white",
+                        color: document.documentElement.classList.contains(
+                          "dark"
+                        )
+                          ? "white"
+                          : "#374151",
                       },
                       ticks: {
-                        color: "white",
+                        color: document.documentElement.classList.contains(
+                          "dark"
+                        )
+                          ? "white"
+                          : "#374151",
                         maxRotation: 45,
                         minRotation: 0,
                         autoSkip: true,
@@ -718,7 +726,11 @@ export default function StatisticsPage() {
                             : 12,
                       },
                       grid: {
-                        color: "transparent",
+                        color: document.documentElement.classList.contains(
+                          "dark"
+                        )
+                          ? "transparent"
+                          : "rgba(156, 163, 175, 0.3)",
                         display: true,
                       },
                     },
@@ -726,17 +738,29 @@ export default function StatisticsPage() {
                       title: {
                         display: true,
                         text: "Số lượng xe",
-                        color: "white",
+                        color: document.documentElement.classList.contains(
+                          "dark"
+                        )
+                          ? "white"
+                          : "#374151",
                       },
                       ticks: {
-                        color: "white",
+                        color: document.documentElement.classList.contains(
+                          "dark"
+                        )
+                          ? "white"
+                          : "#374151",
                         precision: 0,
                         callback: function (value) {
                           return value.toLocaleString();
                         },
                       },
                       grid: {
-                        color: "rgba(255, 255, 255, 0.1)",
+                        color: document.documentElement.classList.contains(
+                          "dark"
+                        )
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(156, 163, 175, 0.3)",
                       },
                       min: 0,
                       suggestedMax: undefined,
@@ -745,7 +769,11 @@ export default function StatisticsPage() {
                   plugins: {
                     legend: {
                       labels: {
-                        color: "white",
+                        color: document.documentElement.classList.contains(
+                          "dark"
+                        )
+                          ? "white"
+                          : "#374151",
                         usePointStyle: true,
                         boxWidth: 10,
                         boxHeight: 10,
@@ -756,7 +784,10 @@ export default function StatisticsPage() {
                       mode: "index",
                       intersect: false,
                       displayColors: false,
-                      backgroundColor: "rgba(0, 0, 0, 0.8)",
+                      backgroundColor:
+                        document.documentElement.classList.contains("dark")
+                          ? "rgba(0, 0, 0, 0.8)"
+                          : "rgba(0, 0, 0, 0.8)",
                       titleColor: "white",
                       bodyColor: "white",
                       callbacks: {
@@ -858,7 +889,11 @@ export default function StatisticsPage() {
                       legend: {
                         position: "right",
                         labels: {
-                          color: "white",
+                          color: document.documentElement.classList.contains(
+                            "dark"
+                          )
+                            ? "white"
+                            : "#374151",
                         },
                       },
                     },

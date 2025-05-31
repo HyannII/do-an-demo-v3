@@ -262,17 +262,19 @@ export default function MapComponent() {
 
   const renderJunctionPopup = (junction: Junction) => (
     <div className="p-2">
-      <h3 className="text-lg font-bold">{junction.junctionName}</h3>
-      <p>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+        {junction.junctionName}
+      </h3>
+      <p className="text-gray-700 dark:text-gray-300">
         <strong>Location:</strong> {junction.location}
       </p>
       <Link href={`/liveCamera`}>
-        <button className="w-full mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+        <button className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors">
           Xem camera
         </button>
       </Link>
       <Link href={`/trafficLight`}>
-        <button className="w-full mt-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+        <button className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors">
           Xem đèn giao thông
         </button>
       </Link>

@@ -159,41 +159,41 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-64px)]">
-        <div className="text-white">Đang tải...</div>
+        <div className="text-gray-900 dark:text-white">Đang tải...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 p-6 bg-gray-900 overflow-y-auto h-full">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto h-full">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Cài đặt tài khoản
           </h1>
-          <p className="text-gray-400">
+          <p className="text-gray-500 dark:text-gray-400">
             Quản lý thông tin cá nhân và bảo mật tài khoản của bạn
           </p>
         </div>
 
         {/* Alert Messages */}
         {success && (
-          <div className="mb-6 p-4 bg-green-900/30 border border-green-600 rounded-lg text-green-400">
+          <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-600 rounded-lg text-green-700 dark:text-green-400">
             {success}
           </div>
         )}
 
         {error && (
-          <div className="mb-6 p-4 bg-red-900/30 border border-red-600 rounded-lg text-red-400">
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-600 rounded-lg text-red-700 dark:text-red-400">
             {error}
           </div>
         )}
 
         <div className="space-y-6">
           {/* Profile Information Section */}
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Thông tin cá nhân
               </h2>
               {!isEditing && (
@@ -213,7 +213,7 @@ export default function SettingsPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Tên đăng nhập
                     </label>
                     <input
@@ -225,11 +225,11 @@ export default function SettingsPage() {
                           username: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Email
                     </label>
                     <input
@@ -241,11 +241,11 @@ export default function SettingsPage() {
                           email: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Họ và tên
                     </label>
                     <input
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                           fullName: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export default function SettingsPage() {
                         fullName: userInfo?.fullName || "",
                       });
                     }}
-                    className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                    className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
                   >
                     Hủy
                   </button>
@@ -288,28 +288,36 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                       Tên đăng nhập
                     </label>
-                    <div className="text-white">{userInfo?.username}</div>
+                    <div className="text-gray-900 dark:text-white">
+                      {userInfo?.username}
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                       Email
                     </label>
-                    <div className="text-white">{userInfo?.email}</div>
+                    <div className="text-gray-900 dark:text-white">
+                      {userInfo?.email}
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                       Họ và tên
                     </label>
-                    <div className="text-white">{userInfo?.fullName}</div>
+                    <div className="text-gray-900 dark:text-white">
+                      {userInfo?.fullName}
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                       Vai trò
                     </label>
-                    <div className="text-white">{userInfo?.role?.roleName}</div>
+                    <div className="text-gray-900 dark:text-white">
+                      {userInfo?.role?.roleName}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -317,9 +325,11 @@ export default function SettingsPage() {
           </div>
 
           {/* Password Change Section */}
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-white">Đổi mật khẩu</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Đổi mật khẩu
+              </h2>
               {!isChangingPassword && (
                 <button
                   onClick={() => setIsChangingPassword(true)}
@@ -337,7 +347,7 @@ export default function SettingsPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Mật khẩu hiện tại
                     </label>
                     <input
@@ -349,11 +359,11 @@ export default function SettingsPage() {
                           currentPassword: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Mật khẩu mới
                     </label>
                     <input
@@ -365,11 +375,11 @@ export default function SettingsPage() {
                           newPassword: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Xác nhận mật khẩu mới
                     </label>
                     <input
@@ -381,7 +391,7 @@ export default function SettingsPage() {
                           confirmPassword: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -402,53 +412,53 @@ export default function SettingsPage() {
                         confirmPassword: "",
                       });
                     }}
-                    className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                    className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
                   >
                     Hủy
                   </button>
                 </div>
               </form>
             ) : (
-              <div className="text-gray-400">
+              <div className="text-gray-500 dark:text-gray-400">
                 Nhấn "Đổi mật khẩu" để thay đổi mật khẩu hiện tại của bạn
               </div>
             )}
           </div>
 
           {/* Account Information Section */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Thông tin tài khoản
             </h2>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                     ID Người dùng
                   </label>
-                  <div className="text-white font-mono text-sm">
+                  <div className="text-gray-900 dark:text-white font-mono text-sm">
                     {userInfo?.userId}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                     Ngày tạo tài khoản
                   </label>
-                  <div className="text-white">
+                  <div className="text-gray-900 dark:text-white">
                     {userInfo?.createdAt
                       ? new Date(userInfo.createdAt).toLocaleDateString("vi-VN")
                       : "N/A"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                     Trạng thái tài khoản
                   </label>
                   <div
                     className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                       userInfo?.isActive
-                        ? "bg-green-900/30 text-green-400"
-                        : "bg-red-900/30 text-red-400"
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                        : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                     }`}
                   >
                     {userInfo?.isActive ? "Hoạt động" : "Đã khóa"}

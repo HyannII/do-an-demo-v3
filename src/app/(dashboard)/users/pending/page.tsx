@@ -283,9 +283,9 @@ export default function PendingUsersPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
-      <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
+      <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
         {/* Header */}
-        <h1 className="text-xl font-semibold text-white mb-4">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Phê duyệt người dùng
         </h1>
 
@@ -293,10 +293,10 @@ export default function PendingUsersPage() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={handleBulkApprove}
-            className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+            className={`bg-blue-600 text-white px-4 py-2 rounded transition-colors ${
               selectedItems.length === 0
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-blue-600"
+                : "hover:bg-blue-700"
             }`}
             disabled={selectedItems.length === 0 || isSubmitting}
           >
@@ -304,10 +304,10 @@ export default function PendingUsersPage() {
           </button>
           <button
             onClick={handleBulkReject}
-            className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+            className={`bg-red-600 text-white px-4 py-2 rounded transition-colors ${
               selectedItems.length === 0
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-blue-600"
+                : "hover:bg-red-700"
             }`}
             disabled={selectedItems.length === 0 || isSubmitting}
           >
@@ -317,23 +317,23 @@ export default function PendingUsersPage() {
 
         {/* Alert Messages */}
         {error && (
-          <div className="bg-red-900 border border-red-600 text-red-200 px-4 py-3 rounded mb-4">
+          <div className="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-900 border border-green-600 text-green-200 px-4 py-3 rounded mb-4">
+          <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-600 text-green-700 dark:text-green-400 px-4 py-3 rounded mb-4">
             {success}
           </div>
         )}
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
+          <table className="w-full border-separate border-spacing-0 border-2 border-gray-300 dark:border-gray-600">
             <thead>
               <tr>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   <input
                     type="checkbox"
                     checked={
@@ -343,22 +343,22 @@ export default function PendingUsersPage() {
                     onChange={handleSelectAll}
                   />
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   #
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Tên người dùng
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Họ tên
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Email
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Ngày đăng ký
                 </th>
-                <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+                <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                   Thao tác
                 </th>
               </tr>
@@ -368,7 +368,7 @@ export default function PendingUsersPage() {
                 <tr>
                   <td
                     colSpan={7}
-                    className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                    className="border-2 border-gray-300 dark:border-gray-600 p-2 text-center text-gray-700 dark:text-gray-300"
                   >
                     Đang tải...
                   </td>
@@ -376,40 +376,40 @@ export default function PendingUsersPage() {
               ) : currentItems.length > 0 ? (
                 currentItems.map((user, index) => (
                   <tr key={user.userId}>
-                    <td className="border-2 border-gray-600 p-2">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2">
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(user.userId)}
                         onChange={() => handleSelectItem(user.userId)}
                       />
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {startIndex + index + 1}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.username}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.fullName}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.email}
                     </td>
-                    <td className="border-2 border-gray-600 p-2 text-gray-300">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {formatDate(user.pendingApproval)}
                     </td>
-                    <td className="border-2 border-gray-600 p-2">
+                    <td className="border-2 border-gray-300 dark:border-gray-600 p-2">
                       {currentUser?.userId === user.userId ? (
-                        <div className="space-y-3 p-3 bg-gray-700 rounded">
+                        <div className="space-y-3 p-3 bg-gray-100 dark:bg-gray-700 rounded">
                           <div className="mb-2">
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                               Gán vai trò
                             </label>
                             <select
                               name="roleId"
                               value={approvalData.roleId}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 rounded bg-gray-600 text-gray-300 border border-gray-500 focus:outline-none focus:border-blue-500"
+                              className="w-full px-3 py-2 rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-500 focus:outline-none focus:border-blue-500"
                             >
                               <option value="">Chọn vai trò</option>
                               {roles.map((role) => (
@@ -424,7 +424,7 @@ export default function PendingUsersPage() {
                           </div>
 
                           <div className="mb-2">
-                            <label className="flex items-center text-sm font-medium text-gray-300">
+                            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
                               <input
                                 type="checkbox"
                                 name="isActive"
@@ -439,21 +439,21 @@ export default function PendingUsersPage() {
                           <div className="flex justify-end space-x-2">
                             <button
                               onClick={() => setCurrentUser(null)}
-                              className="py-1 px-3 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                              className="py-1 px-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition-colors dark:bg-gray-500 dark:text-white dark:hover:bg-gray-600"
                             >
                               Hủy
                             </button>
                             <button
                               onClick={() => handleApprove(user.userId)}
                               disabled={isSubmitting}
-                              className="py-1 px-3 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 transition-colors"
+                              className="py-1 px-3 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
                             >
                               {isSubmitting ? "Đang xử lý..." : "Phê duyệt"}
                             </button>
                             <button
                               onClick={() => handleReject(user.userId)}
                               disabled={isSubmitting}
-                              className="py-1 px-3 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 transition-colors"
+                              className="py-1 px-3 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
                             >
                               {isSubmitting ? "Đang xử lý..." : "Từ chối"}
                             </button>
@@ -462,7 +462,7 @@ export default function PendingUsersPage() {
                       ) : (
                         <button
                           onClick={() => openApprovalModal(user)}
-                          className="py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                          className="py-1 px-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                         >
                           Xem xét
                         </button>
@@ -474,7 +474,7 @@ export default function PendingUsersPage() {
                 <tr>
                   <td
                     colSpan={7}
-                    className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                    className="border-2 border-gray-300 dark:border-gray-600 p-2 text-center text-gray-700 dark:text-gray-300"
                   >
                     Không có người dùng nào đang chờ phê duyệt
                   </td>
@@ -490,11 +490,11 @@ export default function PendingUsersPage() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
             >
               {"<"}
             </button>
-            <span className="px-3 py-1 text-gray-300">
+            <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
               Page {currentPage} of {totalPages}
             </span>
             <button
@@ -502,12 +502,12 @@ export default function PendingUsersPage() {
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
             >
               {">"}
             </button>
           </div>
-          <span className="text-gray-300">
+          <span className="text-gray-700 dark:text-gray-300">
             Displaying {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
             {totalItems}
           </span>

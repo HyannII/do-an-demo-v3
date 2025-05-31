@@ -193,8 +193,8 @@ export default function JunctionManagement({
   const currentItems = junctions.slice(startIndex, endIndex);
 
   return (
-    <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
-      <h1 className="text-xl font-semibold text-white mb-4">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
+      <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
         Danh sách nút giao
       </h1>
 
@@ -202,16 +202,16 @@ export default function JunctionManagement({
       <div className="flex gap-2 mb-4">
         <button
           onClick={openCreateModal}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         >
           Thêm mới
         </button>
         <button
           onClick={openEditModal}
-          className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+          className={`bg-blue-600 text-white px-4 py-2 rounded transition-colors ${
             selectedItems.length !== 1
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-blue-600"
+              : "hover:bg-blue-700"
           }`}
           disabled={selectedItems.length !== 1}
         >
@@ -219,10 +219,10 @@ export default function JunctionManagement({
         </button>
         <button
           onClick={handleDelete}
-          className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+          className={`bg-red-600 text-white px-4 py-2 rounded transition-colors ${
             selectedItems.length === 0
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-blue-600"
+              : "hover:bg-red-700"
           }`}
           disabled={selectedItems.length === 0}
         >
@@ -232,10 +232,10 @@ export default function JunctionManagement({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
+        <table className="w-full border-separate border-spacing-0 border-2 border-gray-300 dark:border-gray-600">
           <thead>
             <tr>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                 <input
                   type="checkbox"
                   checked={
@@ -245,19 +245,19 @@ export default function JunctionManagement({
                   onChange={handleSelectAll}
                 />
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                 #
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                 Tên nút giao
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                 Vị trí
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                 Kinh độ
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="border-2 border-gray-300 dark:border-gray-600 p-2 text-left text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700">
                 Vĩ độ
               </th>
             </tr>
@@ -267,7 +267,7 @@ export default function JunctionManagement({
               <tr>
                 <td
                   colSpan={6}
-                  className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                  className="border-2 border-gray-300 dark:border-gray-600 p-2 text-center text-gray-700 dark:text-gray-300"
                 >
                   Đang tải...
                 </td>
@@ -275,26 +275,26 @@ export default function JunctionManagement({
             ) : currentItems.length > 0 ? (
               currentItems.map((item, index) => (
                 <tr key={item.junctionId}>
-                  <td className="border-2 border-gray-600 p-2">
+                  <td className="border-2 border-gray-300 dark:border-gray-600 p-2">
                     <input
                       type="checkbox"
                       checked={selectedItems.includes(item.junctionId)}
                       onChange={() => handleSelectItem(item.junctionId)}
                     />
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                     {startIndex + index + 1}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                     {item.junctionName}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                     {item.location}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                     {item.latitude || "N/A"}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                     {item.longitude || "N/A"}
                   </td>
                 </tr>
@@ -303,7 +303,7 @@ export default function JunctionManagement({
               <tr>
                 <td
                   colSpan={6}
-                  className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                  className="border-2 border-gray-300 dark:border-gray-600 p-2 text-center text-gray-700 dark:text-gray-300"
                 >
                   Không có nút giao nào
                 </td>
@@ -319,11 +319,11 @@ export default function JunctionManagement({
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
           >
             {"<"}
           </button>
-          <span className="px-3 py-1 text-gray-300">
+          <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
             Page {currentPage} of {totalPages}
           </span>
           <button
@@ -331,12 +331,12 @@ export default function JunctionManagement({
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
           >
             {">"}
           </button>
         </div>
-        <span className="text-gray-300">
+        <span className="text-gray-700 dark:text-gray-300">
           Displaying {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
           {totalItems}
         </span>
@@ -345,15 +345,15 @@ export default function JunctionManagement({
       {/* Full-Screen Modal for Create/Edit Item */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-gray-800 w-full h-full flex flex-col">
+          <div className="bg-white dark:bg-gray-800 w-full h-full flex flex-col">
             {/* Modal Header */}
-            <div className="p-4 border-b border-gray-600 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {isEditMode ? "Sửa Nút Giao" : "Thêm Nút Giao"}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-300 hover:text-white"
+                className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
               >
                 ✕
               </button>
@@ -365,7 +365,7 @@ export default function JunctionManagement({
               <div className="w-1/3 p-6 overflow-y-auto">
                 <form onSubmit={handleSubmit}>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">
+                    <label className="block text-gray-700 dark:text-gray-300 mb-1">
                       Tên Nút Giao
                     </label>
                     <input
@@ -373,42 +373,48 @@ export default function JunctionManagement({
                       name="junctionName"
                       value={formData.junctionName}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">Vị trí</label>
+                    <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                      Vị trí
+                    </label>
                     <input
                       type="text"
                       name="location"
                       value={formData.location}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">Kinh độ</label>
+                    <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                      Kinh độ
+                    </label>
                     <input
                       type="number"
                       step="0.000001"
                       name="latitude"
                       value={formData.latitude}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       readOnly
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-gray-300 mb-1">Vĩ độ</label>
+                    <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                      Vĩ độ
+                    </label>
                     <input
                       type="number"
                       step="0.000001"
                       name="longitude"
                       value={formData.longitude}
                       onChange={handleInputChange}
-                      className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="w-full p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       readOnly
                     />
                   </div>
@@ -418,15 +424,17 @@ export default function JunctionManagement({
               {/* Map for Selecting Location */}
               <div className="w-2/3 p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-gray-300">
+                  <label className="block text-gray-700 dark:text-gray-300">
                     Chọn vị trí trên bản đồ
                   </label>
                   <div>
-                    <label className="text-gray-300 mr-2">Chế độ bản đồ</label>
+                    <label className="text-gray-700 dark:text-gray-300 mr-2">
+                      Chế độ bản đồ
+                    </label>
                     <select
                       value={modalMapStyle}
                       onChange={handleMapStyleChange}
-                      className="p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      className="p-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                     >
                       {mapStyles.map((style) => (
                         <option
@@ -470,18 +478,18 @@ export default function JunctionManagement({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-600 flex justify-end">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-600 flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="mr-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors dark:bg-gray-500 dark:text-white dark:hover:bg-gray-600"
               >
                 Hủy
               </button>
               <button
                 type="submit"
                 onClick={handleSubmit}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
               >
                 {isEditMode ? "Cập nhật" : "Thêm"}
               </button>

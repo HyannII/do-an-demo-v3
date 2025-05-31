@@ -353,21 +353,21 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
   };
 
   return (
-    <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           Quản lý lịch trình hoạt động đèn giao thông
         </h1>
 
         {/* Junction Selection */}
         <div className="mb-4">
-          <label className="block text-white mb-2 font-medium">
+          <label className="block text-gray-900 dark:text-white mb-2 font-medium">
             Chọn nút giao để quản lý:
           </label>
           <select
             value={selectedJunctionId}
             onChange={(e) => setSelectedJunctionId(e.target.value)}
-            className="px-4 py-3 bg-gray-800 text-white border border-gray-600 rounded-lg w-full md:w-1/2 focus:outline-none focus:border-blue-500"
+            className="px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg w-full md:w-1/2 focus:outline-none focus:border-blue-500"
           >
             <option value="">-- Vui lòng chọn nút giao --</option>
             {junctions.map((junction) => (
@@ -394,10 +394,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
 
       {/* Content based on junction selection */}
       {!selectedJunctionId ? (
-        <div className="bg-gray-800 p-8 rounded-lg text-center">
+        <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg text-center">
           <div className="mb-4">
             <svg
-              className="mx-auto h-16 w-16 text-gray-400"
+              className="mx-auto h-16 w-16 text-gray-500 dark:text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -410,10 +410,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
               />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Chọn nút giao để bắt đầu
           </h3>
-          <p className="text-gray-400">
+          <p className="text-gray-700 dark:text-gray-400">
             Vui lòng chọn một nút giao từ danh sách trên để xem và quản lý các
             lịch trình hoạt động tương ứng.
           </p>
@@ -426,10 +426,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
               filteredSchedules.map((schedule) => (
                 <div
                   key={schedule.scheduleId}
-                  className={`p-4 rounded-lg relative ${
+                  className={`p-4 rounded-lg relative border ${
                     schedule.isActive
-                      ? "bg-gray-800 border-2 border-green-500"
-                      : "bg-gray-800"
+                      ? "bg-green-50 dark:bg-gray-800 border-2 border-green-500"
+                      : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600"
                   }`}
                 >
                   {/* Active badge */}
@@ -443,18 +443,22 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                     <div>
                       <h3
                         className={`text-lg font-semibold ${
-                          schedule.isActive ? "text-green-400" : "text-white"
+                          schedule.isActive
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-gray-900 dark:text-white"
                         }`}
                       >
                         {schedule.scheduleName}
                       </h3>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-gray-700 dark:text-gray-400 text-sm">
                         Chế độ:{" "}
                         {schedule.mode === "auto" ? "Tự động" : "Lên lịch"}
                       </p>
                       <p
                         className={`text-sm ${
-                          schedule.isActive ? "text-green-300" : "text-gray-400"
+                          schedule.isActive
+                            ? "text-green-600 dark:text-green-300"
+                            : "text-gray-700 dark:text-gray-400"
                         }`}
                       >
                         Trạng thái:{" "}
@@ -494,7 +498,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
 
                   {/* Schedule Details */}
                   {schedule.mode === "auto" ? (
-                    <div className="text-gray-300 text-sm">
+                    <div className="text-gray-700 dark:text-gray-300 text-sm">
                       <p>
                         Pattern tự động:{" "}
                         {trafficPatterns.find(
@@ -503,7 +507,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                       </p>
                     </div>
                   ) : (
-                    <div className="text-gray-300 text-sm">
+                    <div className="text-gray-700 dark:text-gray-300 text-sm">
                       <p className="mb-2">Lịch trình theo ngày:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                         {schedule.daySchedules.map((ds) => {
@@ -514,7 +518,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                           return (
                             <div
                               key={ds.dayOfWeek}
-                              className="bg-gray-700 p-2 rounded"
+                              className="bg-white dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600"
                             >
                               <div className="font-medium mb-1">{dayLabel}</div>
                               <div className="text-xs space-y-1">
@@ -526,9 +530,9 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                     return (
                                       <div
                                         key={slot.slotId}
-                                        className="bg-gray-600 p-1 rounded"
+                                        className="bg-gray-100 dark:bg-gray-600 p-1 rounded"
                                       >
-                                        <div className="text-yellow-300">
+                                        <div className="text-blue-600 dark:text-yellow-300">
                                           {slot.startTime} - {slot.endTime}
                                         </div>
                                         <div>
@@ -553,10 +557,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                 </div>
               ))
             ) : (
-              <div className="bg-gray-800 p-8 rounded-lg text-center">
+              <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg text-center border border-gray-200 dark:border-gray-600">
                 <div className="mb-4">
                   <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
+                    className="mx-auto h-12 w-12 text-gray-500 dark:text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -569,10 +573,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   Chưa có lịch trình nào
                 </h3>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-700 dark:text-gray-400 mb-4">
                   Nút giao này chưa có lịch trình hoạt động nào. Hãy tạo lịch
                   trình đầu tiên.
                 </p>
@@ -591,8 +595,8 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingSchedule ? "Chỉnh sửa lịch trình" : "Thêm lịch trình mới"}
             </h2>
 
@@ -601,23 +605,25 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
               className="space-y-4"
             >
               <div>
-                <label className="block text-white mb-2">Tên lịch trình:</label>
+                <label className="block text-gray-900 dark:text-white mb-2">
+                  Tên lịch trình:
+                </label>
                 <input
                   type="text"
                   value={scheduleName}
                   onChange={(e) => setScheduleName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="Ví dụ: Lịch trình giờ cao điểm, Lịch trình cuối tuần..."
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-white mb-2">
+                <label className="block text-gray-900 dark:text-white mb-2">
                   Chế độ hoạt động:
                 </label>
                 <div className="space-y-2">
-                  <label className="flex items-center text-white">
+                  <label className="flex items-center text-gray-900 dark:text-white">
                     <input
                       type="radio"
                       value="auto"
@@ -629,7 +635,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                     />
                     Tự động (sử dụng một mẫu pha cố định)
                   </label>
-                  <label className="flex items-center text-white">
+                  <label className="flex items-center text-gray-900 dark:text-white">
                     <input
                       type="radio"
                       value="schedule"
@@ -647,13 +653,13 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
               {/* Auto Mode Settings */}
               {mode === "auto" && (
                 <div>
-                  <label className="block text-white mb-2">
+                  <label className="block text-gray-900 dark:text-white mb-2">
                     Mẫu pha tự động:
                   </label>
                   <select
                     value={autoPatternId}
                     onChange={(e) => setAutoPatternId(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
                     required
                   >
                     <option value="">Chọn mẫu pha</option>
@@ -668,7 +674,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                   </select>
 
                   {getAutoPattern() && (
-                    <p className="text-yellow-400 text-sm mt-2">
+                    <p className="text-yellow-600 dark:text-yellow-400 text-sm mt-2">
                       💡 Gợi ý: Tìm thấy mẫu pha "
                       {getAutoPattern()?.patternName}" - có thể là mẫu pha tự
                       động
@@ -680,7 +686,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
               {/* Schedule Mode Settings */}
               {mode === "schedule" && (
                 <div>
-                  <label className="block text-white mb-3">
+                  <label className="block text-gray-900 dark:text-white mb-3">
                     Lịch trình theo ngày:
                   </label>
                   <div className="space-y-4">
@@ -693,7 +699,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                       return (
                         <div
                           key={day.value}
-                          className="bg-gray-700 p-4 rounded-lg"
+                          className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600"
                         >
                           <div className="flex items-center mb-3">
                             <input
@@ -706,7 +712,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                               }
                               className="mr-3"
                             />
-                            <h4 className="text-white font-medium">
+                            <h4 className="text-gray-900 dark:text-white font-medium">
                               {day.label}
                             </h4>
                           </div>
@@ -716,10 +722,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                               {daySchedule.timeSlots.map((slot, slotIndex) => (
                                 <div
                                   key={slot.slotId}
-                                  className="bg-gray-600 p-3 rounded-lg"
+                                  className="bg-white dark:bg-gray-600 p-3 rounded-lg border border-gray-200 dark:border-gray-500"
                                 >
                                   <div className="flex justify-between items-center mb-3">
-                                    <h5 className="text-white font-medium text-sm">
+                                    <h5 className="text-gray-900 dark:text-white font-medium text-sm">
                                       Khung giờ {slotIndex + 1}
                                     </h5>
                                     <button
@@ -738,7 +744,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
 
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div>
-                                      <label className="block text-gray-300 text-sm mb-1">
+                                      <label className="block text-gray-700 dark:text-gray-300 text-sm mb-1">
                                         Mẫu pha:
                                       </label>
                                       <select
@@ -752,7 +758,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                             }
                                           )
                                         }
-                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
+                                        className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
                                         required
                                       >
                                         <option value="">Chọn mẫu pha</option>
@@ -769,7 +775,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                       </select>
                                     </div>
                                     <div>
-                                      <label className="block text-gray-300 text-sm mb-1">
+                                      <label className="block text-gray-700 dark:text-gray-300 text-sm mb-1">
                                         Bắt đầu:
                                       </label>
                                       <input
@@ -784,12 +790,12 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                             }
                                           )
                                         }
-                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
+                                        className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
                                         required
                                       />
                                     </div>
                                     <div>
-                                      <label className="block text-gray-300 text-sm mb-1">
+                                      <label className="block text-gray-700 dark:text-gray-300 text-sm mb-1">
                                         Kết thúc:
                                       </label>
                                       <input
@@ -804,7 +810,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                                             }
                                           )
                                         }
-                                        className="w-full px-2 py-1 bg-gray-500 text-white border border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
+                                        className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm focus:outline-none focus:border-blue-500"
                                         required
                                       />
                                     </div>
@@ -838,7 +844,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white transition-colors"
                 >
                   Hủy
                 </button>

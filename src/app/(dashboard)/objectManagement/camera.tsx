@@ -246,18 +246,20 @@ export default function CameraManagement({
   const currentItems = filteredCameras.slice(startIndex, endIndex);
 
   return (
-    <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
-      <h1 className="text-xl font-semibold text-white mb-4">
+    <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
+      <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
         Danh sách camera
       </h1>
 
       {/* Junction Filter */}
       <div className="mb-4">
-        <label className="block text-gray-300 mb-1">Lọc theo nút giao</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Lọc theo nút giao:
+        </label>
         <select
           value={filterJunctionId}
           onChange={handleFilterChange}
-          className="w-full p-2 rounded bg-gray-700 text-gray-300 border border-gray-600 focus:outline-none focus:border-blue-500"
+          className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
         >
           <option value="">Tất cả nút giao</option>
           {junctions.map((junction) => (
@@ -275,16 +277,16 @@ export default function CameraManagement({
       <div className="flex gap-2 mb-4">
         <button
           onClick={openCreateModal}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         >
           Thêm mới
         </button>
         <button
           onClick={openEditModal}
-          className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+          className={`bg-blue-600 text-white px-4 py-2 rounded transition-colors ${
             selectedItems.length !== 1
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-blue-600"
+              : "hover:bg-blue-700"
           }`}
           disabled={selectedItems.length !== 1}
         >
@@ -292,10 +294,10 @@ export default function CameraManagement({
         </button>
         <button
           onClick={handleDelete}
-          className={`bg-blue-500 text-white px-4 py-2 rounded transition-colors ${
+          className={`bg-red-600 text-white px-4 py-2 rounded transition-colors ${
             selectedItems.length === 0
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-blue-600"
+              : "hover:bg-red-700"
           }`}
           disabled={selectedItems.length === 0}
         >
@@ -304,11 +306,11 @@ export default function CameraManagement({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-0 border-2 border-gray-600">
-          <thead>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+        <table className="w-full">
+          <thead className="bg-gray-200 dark:bg-gray-700">
             <tr>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left">
                 <input
                   type="checkbox"
                   checked={
@@ -316,52 +318,57 @@ export default function CameraManagement({
                     currentItems.length > 0
                   }
                   onChange={handleSelectAll}
+                  className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                 />
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 #
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Tên camera
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Trạng thái
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Vị trí
               </th>
-              <th className="border-2 border-gray-600 p-2 text-left text-white bg-gray-700">
+              <th className="px-4 py-3 text-left text-gray-900 dark:text-white font-medium">
                 Nút giao
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                  className="px-4 py-3 text-center text-gray-700 dark:text-gray-300"
                 >
                   Đang tải...
                 </td>
               </tr>
             ) : currentItems.length > 0 ? (
               currentItems.map((item, index) => (
-                <tr key={item.cameraId}>
-                  <td className="border-2 border-gray-600 p-2">
+                <tr
+                  key={item.cameraId}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedItems.includes(item.cameraId)}
                       onChange={() => handleSelectItem(item.cameraId)}
+                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                     />
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {startIndex + index + 1}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">
                     {item.cameraName}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-block px-2 py-1 rounded text-white ${
                         item.isActive ? "bg-green-500" : "bg-red-500"
@@ -370,10 +377,10 @@ export default function CameraManagement({
                       {item.isActive ? "Hoạt động" : "Không hoạt động"}
                     </span>
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {item.location}
                   </td>
-                  <td className="border-2 border-gray-600 p-2 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {junctions.find((j) => j.junctionId === item.junctionId)
                       ?.junctionName || "N/A"}
                   </td>
@@ -383,7 +390,7 @@ export default function CameraManagement({
               <tr>
                 <td
                   colSpan={6}
-                  className="border-2 border-gray-600 p-2 text-center text-gray-300"
+                  className="px-4 py-3 text-center text-gray-700 dark:text-gray-300"
                 >
                   Không có camera nào
                 </td>
@@ -399,11 +406,11 @@ export default function CameraManagement({
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
           >
             {"<"}
           </button>
-          <span className="px-3 py-1 text-gray-300">
+          <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
             Page {currentPage} of {totalPages}
           </span>
           <button
@@ -411,12 +418,12 @@ export default function CameraManagement({
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:bg-gray-600 disabled:text-gray-500"
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-500"
           >
             {">"}
           </button>
         </div>
-        <span className="text-gray-300">
+        <span className="text-gray-700 dark:text-gray-300">
           Displaying {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
           {totalItems}
         </span>
