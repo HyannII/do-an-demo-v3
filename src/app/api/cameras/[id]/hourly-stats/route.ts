@@ -17,27 +17,54 @@ export async function GET(
   const prisma = createPrismaClient();
 
   try {
-    // Get current date and time
-    const now = new Date();
+    // Get current date in UTC
+    const nowUTC = new Date();
 
-    // Create start date at 00:00:00 today
-    const startDate = new Date(now);
-    startDate.setHours(0, 0, 0, 0);
+    // Add 7 hours to get GMT+7 time (for determining current day)
+    const nowGMT7 = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
 
-    // End date is current time
-    const endDate = new Date(now);
+    // Extract date components from GMT+7 time
+    const year = nowGMT7.getUTCFullYear();
+    const month = nowGMT7.getUTCMonth();
+    const day = nowGMT7.getUTCDate();
 
-    console.log(
-      `Fetching hourly stats for camera ${id} from ${startDate.toISOString()} to ${endDate.toISOString()}`
+    // Create start of today at 00:00:00 UTC using the date from GMT+7
+    const startOfTodayUTC = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+
+    // Create start of next day at 00:00:00 UTC
+    const startOfNextDayUTC = new Date(
+      Date.UTC(year, month, day + 1, 0, 0, 0, 0)
     );
 
-    // Fetch camera data for today
+    console.log(`\n=== TIME INFORMATION ===`);
+    console.log(`Current time UTC: ${nowUTC.toISOString()}`);
+    console.log(`Current time GMT+7: ${nowGMT7.toISOString()} (UTC + 7h)`);
+    console.log(
+      `Extracted date from GMT+7: ${year}-${String(month + 1).padStart(
+        2,
+        "0"
+      )}-${String(day).padStart(2, "0")}`
+    );
+    console.log(`Today start UTC: ${startOfTodayUTC.toISOString()}`);
+    console.log(`Tomorrow start UTC: ${startOfNextDayUTC.toISOString()}`);
+    console.log(`=========================`);
+
+    // Log the equivalent PostgreSQL query
+    console.log("\n=== EQUIVALENT POSTGRESQL QUERY ===");
+    console.log('SELECT * FROM "CameraData"');
+    console.log(`WHERE "cameraId" = '${id}'`);
+    console.log(`  AND "timestamp" >= '${startOfTodayUTC.toISOString()}'`);
+    console.log(`  AND "timestamp" < '${startOfNextDayUTC.toISOString()}'`);
+    console.log('ORDER BY "timestamp" ASC;');
+    console.log("=====================================\n");
+
+    // Fetch all camera data for today
     const cameraData = await prisma.cameraData.findMany({
       where: {
         cameraId: id,
         timestamp: {
-          gte: startDate,
-          lte: endDate,
+          gte: startOfTodayUTC,
+          lt: startOfNextDayUTC,
         },
       },
       orderBy: {
@@ -47,8 +74,7 @@ export async function GET(
 
     console.log(`Found ${cameraData.length} records for camera ${id}`);
 
-    // Initialize hourly buckets from 00:00 to current hour
-    const currentHour = now.getHours();
+    // Initialize hourly buckets for 24 hours (0-23) in UTC
     const hourlyData: {
       hour: number;
       time: string;
@@ -58,10 +84,10 @@ export async function GET(
       busCount: number;
     }[] = [];
 
-    // Create buckets for each hour from 0 to current hour
-    for (let hour = 0; hour <= currentHour; hour++) {
-      const hourDate = new Date(startDate);
-      hourDate.setHours(hour, 0, 0, 0);
+    // Create buckets for all 24 hours (0-23) in UTC
+    for (let hour = 0; hour < 24; hour++) {
+      const hourDate = new Date(startOfTodayUTC);
+      hourDate.setUTCHours(hour, 0, 0, 0);
 
       hourlyData.push({
         hour,
@@ -73,10 +99,10 @@ export async function GET(
       });
     }
 
-    // Aggregate data by hour
+    // Aggregate data by hour - sum up all records in each 1-hour interval (UTC)
     cameraData.forEach((entry) => {
-      const entryDate = new Date(entry.timestamp);
-      const entryHour = entryDate.getHours();
+      // Get the UTC hour directly from the timestamp
+      const entryHour = entry.timestamp.getUTCHours();
 
       // Find the corresponding hour bucket
       const hourBucket = hourlyData.find((h) => h.hour === entryHour);
@@ -88,7 +114,7 @@ export async function GET(
       }
     });
 
-    // Calculate total counts
+    // Calculate total counts for pie chart - sum all records
     const totalMotorcycleCount = cameraData.reduce(
       (sum, entry) => sum + entry.motorcycleCount,
       0
@@ -113,8 +139,8 @@ export async function GET(
     const response = NextResponse.json(
       {
         cameraId: id,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: startOfTodayUTC.toISOString(),
+        endDate: startOfNextDayUTC.toISOString(),
         totalMotorcycleCount,
         totalCarCount,
         totalTruckCount,

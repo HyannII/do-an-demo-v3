@@ -86,15 +86,6 @@ interface HourlyStatisticsData {
   lastUpdated: string;
 }
 
-// Process raw camera data for today's hourly statistics
-const processTodayHourlyData = (cameraEntries: any[]) => {
-  console.log(`Total camera entries received: ${cameraEntries.length}`);
-
-  // TODO: Implement new logic here
-
-  return [];
-};
-
 export default function StatisticsPage() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
   const [selectedJunction, setSelectedJunction] = useState<Junction | null>(
