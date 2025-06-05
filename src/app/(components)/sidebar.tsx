@@ -21,6 +21,7 @@ const routePermissions: Record<string, string> = {
   "/liveCamera": "can-access-live-camera",
   "/trafficLight": "can-access-traffic-light",
   "/utility/traffic-light-calculation": "can-access-traffic-light-calculator",
+  "/utility/tcp-testing": "can-access-tcp-testing",
   "/statistics": "can-access-statistics",
   "/objectManagement": "can-access-object-management",
   "/settings": "can-access-settings",
@@ -41,6 +42,7 @@ const defaultAccessibleRoutes = [
   "/liveCamera",
   "/trafficLight",
   "/utility/traffic-light-calculation",
+  "/utility/tcp-testing",
   "/statistics",
 ];
 

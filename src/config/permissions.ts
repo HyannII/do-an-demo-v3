@@ -43,6 +43,12 @@ export const PERMISSIONS: Permission[] = [
     category: PERMISSION_CATEGORIES.UTILITY,
   },
   {
+    key: "can-access-tcp-testing",
+    label: "Truy cập TCP Testing",
+    description: "Quyền sử dụng công cụ kiểm tra TCP Server",
+    category: PERMISSION_CATEGORIES.UTILITY,
+  },
+  {
     key: "can-access-statistics",
     label: "Truy cập Thống kê",
     description: "Quyền xem các báo cáo và thống kê",

@@ -1,0 +1,11 @@
+{
+  "activeServers": [
+    {
+      "port": 7000,
+      "echo": false,
+      "redirectToUDP": false,
+      "startedAt": "2025-06-05T06:32:56.782Z"
+    }
+  ],
+  "lastUpdated": "2025-06-05T06:32:56.782Z"
+}

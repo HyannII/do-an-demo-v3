@@ -93,6 +93,12 @@ export const navItems: NavItem[] = [
         href: "/utility/traffic-light-calculation",
         icon: <Calculator className="w-4 h-4" />,
       },
+      {
+        type: "link",
+        title: "TCP Testing",
+        href: "/utility/tcp-testing",
+        icon: <Wrench className="w-4 h-4" />,
+      },
     ],
   },
   {
