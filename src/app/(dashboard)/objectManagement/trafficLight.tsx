@@ -30,7 +30,6 @@ export default function TrafficLightManagement({
     latitude: "",
     longitude: "",
     junctionId: "",
-    status: "red",
     isActive: true,
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -77,7 +76,6 @@ export default function TrafficLightManagement({
       latitude: "",
       longitude: "",
       junctionId: "",
-      status: "red",
       isActive: true,
     });
     setModalMapStyle("mapbox://styles/mapbox/streets-v12");
@@ -102,7 +100,6 @@ export default function TrafficLightManagement({
       latitude: item.latitude?.toString() || "",
       longitude: item.longitude?.toString() || "",
       junctionId: item.junctionId,
-      status: item.status,
       isActive: item.isActive,
     });
     setModalMapStyle("mapbox://styles/mapbox/streets-v12");
@@ -119,6 +116,22 @@ export default function TrafficLightManagement({
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
+
+    // Handle junction selection - flyTo junction location
+    if (name === "junctionId" && value && mapRef.current) {
+      const selectedJunction = junctions.find((j) => j.junctionId === value);
+      if (
+        selectedJunction &&
+        selectedJunction.latitude &&
+        selectedJunction.longitude
+      ) {
+        mapRef.current.flyTo({
+          center: [selectedJunction.longitude, selectedJunction.latitude],
+          zoom: 16,
+          duration: 1000,
+        });
+      }
+    }
   };
 
   // Handle map click to set latitude and longitude
@@ -162,7 +175,6 @@ export default function TrafficLightManagement({
           latitude: formData.latitude ? parseFloat(formData.latitude) : null,
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           junctionId: formData.junctionId,
-          status: formData.status,
           isActive: formData.isActive,
         }),
       });
@@ -472,22 +484,7 @@ export default function TrafficLightManagement({
                       required
                     />
                   </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Trạng thái
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
-                      required
-                    >
-                      <option value="red">Đỏ</option>
-                      <option value="yellow">Vàng</option>
-                      <option value="green">Xanh</option>
-                    </select>
-                  </div>
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Vị trí

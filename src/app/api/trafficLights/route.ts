@@ -28,7 +28,6 @@ export async function POST(request: Request) {
       latitude,
       longitude,
       junctionId,
-      status,
       isActive,
     } = body;
 
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
         latitude,
         longitude,
         junctionId,
-        status,
+        status: "red",
         isActive: isActive ?? true,
       },
       include: { junction: true },

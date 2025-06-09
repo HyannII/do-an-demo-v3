@@ -51,8 +51,14 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
   });
   const [quickSetupText, setQuickSetupText] = useState<string>("");
   const [showQuickSetup, setShowQuickSetup] = useState<boolean>(false);
-  const [lightDirectionMapping, setLightDirectionMapping] = useState<{
-    [lightId: string]: string;
+  const [quickSetupLights, setQuickSetupLights] = useState<{
+    [lightId: string]: {
+      lightName: string;
+      greenStart: number;
+      greenDuration: number;
+      yellowDuration: number;
+      redDuration: number;
+    };
   }>({});
 
   // Filter patterns by selected junction
@@ -74,10 +80,61 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
       phases: [],
     });
     setQuickSetupText("");
+    setQuickSetupLights({});
     setShowQuickSetup(false);
-    setLightDirectionMapping({});
     setEditingPattern(null);
     setShowForm(false);
+  };
+
+  // Add light to structured quick setup
+  const addLightToQuickSetup = (lightId: string, lightName: string) => {
+    // Tự động tính toán thời gian bắt đầu dựa trên đèn cuối cùng
+    const existingLights = Object.values(quickSetupLights);
+    let suggestedStart = 0;
+
+    if (existingLights.length > 0) {
+      const lastLight = existingLights[existingLights.length - 1];
+      suggestedStart =
+        lastLight.greenStart +
+        lastLight.greenDuration +
+        lastLight.yellowDuration +
+        lastLight.redDuration;
+    }
+
+    setQuickSetupLights((prev) => ({
+      ...prev,
+      [lightId]: {
+        lightName,
+        greenStart: suggestedStart,
+        greenDuration: 45,
+        yellowDuration: 3,
+        redDuration: 3,
+      },
+    }));
+  };
+
+  // Remove light from structured quick setup
+  const removeLightFromQuickSetup = (lightId: string) => {
+    setQuickSetupLights((prev) => {
+      const newLights = { ...prev };
+      delete newLights[lightId];
+      return newLights;
+    });
+  };
+
+  // Update light config in structured quick setup
+  const updateLightQuickSetup = (
+    lightId: string,
+    field: string,
+    value: number
+  ) => {
+    setQuickSetupLights((prev) => ({
+      ...prev,
+      [lightId]: {
+        ...prev[lightId],
+        [field]: value,
+      },
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,7 +151,6 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
         junctionId: selectedJunctionId,
         timingConfiguration: {
           ...patternConfig,
-          lightDirectionMapping,
         },
       };
 
@@ -139,8 +195,6 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
     setSelectedJunctionId(pattern.junctionId);
     const config = pattern.timingConfiguration as PatternConfig;
     setPatternConfig(config);
-    // Load mapping đã lưu hoặc reset về rỗng
-    setLightDirectionMapping(config.lightDirectionMapping || {});
     setShowForm(true);
   };
 
@@ -200,7 +254,122 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
     }));
   };
 
-  // Parse quick setup text and create phases automatically
+  // Parse structured quick setup and create phases automatically
+  const parseStructuredQuickSetup = () => {
+    if (!selectedJunctionId || Object.keys(quickSetupLights).length === 0) {
+      alert("Vui lòng chọn nút giao và cấu hình ít nhất một đèn!");
+      return;
+    }
+
+    const selectedJunction = junctions.find(
+      (j) => j.junctionId === selectedJunctionId
+    );
+    if (!selectedJunction) {
+      alert("Không tìm thấy nút giao được chọn!");
+      return;
+    }
+
+    try {
+      const phases: PhaseConfig[] = [];
+      let maxTime = 0;
+
+      Object.entries(quickSetupLights).forEach(([lightId, config]) => {
+        const {
+          lightName,
+          greenStart,
+          greenDuration,
+          yellowDuration,
+          redDuration,
+        } = config;
+
+        // Validate times
+        if (
+          greenStart < 0 ||
+          greenDuration <= 0 ||
+          yellowDuration <= 0 ||
+          redDuration <= 0
+        ) {
+          throw new Error(`Thời gian không hợp lệ cho đèn ${lightName}`);
+        }
+
+        // Phase xanh
+        const greenEndTime = greenStart + greenDuration;
+        phases.push({
+          phaseId: `${lightName}_green_${Date.now()}_${Math.random()}`,
+          phaseName: `${lightName} - Xanh`,
+          startTime: greenStart,
+          duration: greenDuration,
+          isActive: true,
+          lightStates: {
+            ...Object.fromEntries(
+              selectedJunction.trafficLights.map((l) => [
+                l.trafficLightId,
+                "red" as const,
+              ])
+            ),
+            [lightId]: "green",
+          },
+        });
+
+        // Phase vàng
+        phases.push({
+          phaseId: `${lightName}_yellow_${Date.now()}_${Math.random()}`,
+          phaseName: `${lightName} - Vàng`,
+          startTime: greenEndTime,
+          duration: yellowDuration,
+          isActive: true,
+          lightStates: {
+            ...Object.fromEntries(
+              selectedJunction.trafficLights.map((l) => [
+                l.trafficLightId,
+                "red" as const,
+              ])
+            ),
+            [lightId]: "yellow",
+          },
+        });
+
+        // Phase đỏ chung
+        const yellowEndTime = greenEndTime + yellowDuration;
+        phases.push({
+          phaseId: `${lightName}_red_${Date.now()}_${Math.random()}`,
+          phaseName: `${lightName} - Đỏ chung`,
+          startTime: yellowEndTime,
+          duration: redDuration,
+          isActive: true,
+          lightStates: Object.fromEntries(
+            selectedJunction.trafficLights.map((l) => [
+              l.trafficLightId,
+              "red" as const,
+            ])
+          ),
+        });
+
+        maxTime = Math.max(maxTime, yellowEndTime + redDuration);
+      });
+
+      // Sắp xếp phases theo thời gian bắt đầu
+      phases.sort((a, b) => a.startTime - b.startTime);
+
+      setPatternConfig((prev) => ({
+        ...prev,
+        cycleDuration: maxTime,
+        phases,
+      }));
+
+      setShowQuickSetup(false);
+      alert("Đã tạo pattern thành công từ cấu hình structured!");
+    } catch (error) {
+      console.error("Error parsing structured quick setup:", error);
+      alert(
+        `Có lỗi xảy ra: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  // Parse quick setup text and create phases automatically (legacy)
   const parseQuickSetup = () => {
     if (!selectedJunctionId || !quickSetupText.trim()) {
       alert("Vui lòng chọn nút giao và nhập cấu hình pattern!");
@@ -220,45 +389,23 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
       const phases: PhaseConfig[] = [];
       let maxTime = 0;
 
-      // Map hướng theo tên đèn (giả sử đèn được đặt tên theo hướng)
-      const directionMap: { [key: string]: string[] } = {
-        Bắc: [],
-        Nam: [],
-        Đông: [],
-        Tây: [],
-      };
+      // Map tên đèn và id
+      const lightNameToIdMap: { [lightName: string]: string } = {};
+      const lightIdToNameMap: { [lightId: string]: string } = {};
 
-      // Tìm đèn theo hướng dựa trên tên đèn và mapping thủ công
       selectedJunction.trafficLights.forEach((light) => {
-        // Ưu tiên sử dụng mapping thủ công
-        if (lightDirectionMapping[light.trafficLightId]) {
-          const direction = lightDirectionMapping[light.trafficLightId];
-          if (directionMap[direction]) {
-            directionMap[direction].push(light.trafficLightId);
-          }
-        } else {
-          // Auto-detect từ trường location (vị trí)
-          const directionMatch = light.location.match(/hướng\s+([^\s,]+)/i);
-          if (directionMatch) {
-            const direction = directionMatch[1];
-            if (direction === "Bắc" && directionMap["Bắc"]) {
-              directionMap["Bắc"].push(light.trafficLightId);
-            } else if (direction === "Nam" && directionMap["Nam"]) {
-              directionMap["Nam"].push(light.trafficLightId);
-            } else if (direction === "Đông" && directionMap["Đông"]) {
-              directionMap["Đông"].push(light.trafficLightId);
-            } else if (direction === "Tây" && directionMap["Tây"]) {
-              directionMap["Tây"].push(light.trafficLightId);
-            }
-          }
-        }
+        lightNameToIdMap[light.lightName] = light.trafficLightId;
+        lightIdToNameMap[light.trafficLightId] = light.lightName;
       });
+
+      // Tạo map để lưu trữ các đèn theo tên/nhãn
+      const lightMap: { [key: string]: string[] } = {};
 
       lines.forEach((line) => {
         const match = line.match(/^([^:]+):\s*(.+)$/);
         if (!match) return;
 
-        const direction = match[1].trim();
+        const lightName = match[1].trim();
         const configs = match[2];
 
         // Parse các trạng thái đèn: Xanh (0–58), Vàng (58–61), Đỏ chung (61–64)
@@ -266,7 +413,14 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
           /(Xanh|Vàng|Đỏ chung)\s*\((\d+)–(\d+)\)/g
         );
 
-        if (stateMatches && directionMap[direction]) {
+        // Kiểm tra xem tên đèn có tồn tại trong junction không
+        const lightId = lightNameToIdMap[lightName];
+        if (stateMatches && lightId) {
+          // Thêm lightId vào lightMap nếu chưa có
+          if (!lightMap[lightName]) {
+            lightMap[lightName] = [lightId];
+          }
+
           stateMatches.forEach((stateMatch) => {
             const stateDetail = stateMatch.match(
               /(Xanh|Vàng|Đỏ chung)\s*\((\d+)–(\d+)\)/
@@ -289,20 +443,18 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
                 lightStates[light.trafficLightId] = "red";
               });
 
-              // Đặt trạng thái cho đèn của hướng hiện tại
+              // Đặt trạng thái cho đèn hiện tại
               const lightColor =
                 state === "Xanh"
                   ? "green"
                   : state === "Vàng"
                   ? "yellow"
                   : "red";
-              directionMap[direction].forEach((lightId) => {
-                lightStates[lightId] = lightColor;
-              });
+              lightStates[lightId] = lightColor;
 
               phases.push({
-                phaseId: `${direction}_${state}_${Date.now()}_${Math.random()}`,
-                phaseName: `${direction} - ${state}`,
+                phaseId: `${lightName}_${state}_${Date.now()}_${Math.random()}`,
+                phaseName: `${lightName} - ${state}`,
                 startTime,
                 duration,
                 isActive: true,
@@ -315,19 +467,19 @@ const TrafficPatternManagement: React.FC<TrafficPatternManagementProps> = ({
 
       if (phases.length === 0) {
         // Hiển thị thông tin debug để giúp người dùng
-        const debugInfo = Object.entries(directionMap)
-          .map(([dir, lights]) => `${dir}: ${lights.length} đèn`)
-          .join("\n");
+        const availableLights = selectedJunction.trafficLights
+          .map((light) => light.lightName)
+          .join(", ");
 
         alert(`Không thể parse cấu hình pattern. 
         
-Thông tin debug:
-${debugInfo}
+Đèn có sẵn trong nút giao:
+${availableLights}
 
 Vui lòng kiểm tra:
 1. Định dạng text đúng như ví dụ
-2. Tên đèn có chứa từ khóa hướng hoặc đã được phân loại thủ công
-3. Có ít nhất một đèn được gán cho mỗi hướng cần cấu hình`);
+2. Tên đèn phải khớp chính xác với tên đèn trong hệ thống
+3. Có ít nhất một pha được cấu hình cho pattern`);
         return;
       }
 
@@ -338,7 +490,6 @@ Vui lòng kiểm tra:
         ...prev,
         cycleDuration: maxTime,
         phases,
-        lightDirectionMapping,
       }));
 
       setShowQuickSetup(false);
@@ -347,13 +498,6 @@ Vui lòng kiểm tra:
       console.error("Error parsing quick setup:", error);
       alert("Có lỗi xảy ra khi parse cấu hình pattern!");
     }
-  };
-
-  const getQuickSetupExample = () => {
-    return `Bắc: Xanh (0–58), Vàng (58–61), Đỏ chung (61–64).
-Nam: Xanh (64–106), Vàng (106–109), Đỏ chung (109–112).
-Đông: Xanh (112–122), Vàng (122–125), Đỏ chung (125–128).
-Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
   };
 
   // Helper to check if a state is considered 'red' (red or gray)
@@ -392,51 +536,40 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
     const cycleDuration = config.cycleDuration || 179;
     const timeScale = chartWidth / cycleDuration; // pixels per second, full width
 
-    // Tạo map hướng và đèn
-    const directionMap: { [key: string]: string[] } = {
-      Bắc: [],
-      Nam: [],
-      Đông: [],
-      Tây: [],
-    };
+    // Tạo map đèn theo tên
+    const lightMap: { [lightName: string]: string } = {};
+    const lightIdToNameMap: { [lightId: string]: string } = {};
 
-    // Phân loại đèn theo hướng
+    // Mapping tên đèn với ID
     selectedJunction.trafficLights.forEach((light) => {
-      if (directionMapping[light.trafficLightId]) {
-        const direction = directionMapping[light.trafficLightId];
-        if (directionMap[direction]) {
-          directionMap[direction].push(light.trafficLightId);
-        }
-      } else {
-        // Auto-detect từ trường location (vị trí)
-        const directionMatch = light.location.match(/hướng\s+([^\s,]+)/i);
-        if (directionMatch) {
-          const direction = directionMatch[1];
-          if (direction === "Bắc" && directionMap["Bắc"]) {
-            directionMap["Bắc"].push(light.trafficLightId);
-          } else if (direction === "Nam" && directionMap["Nam"]) {
-            directionMap["Nam"].push(light.trafficLightId);
-          } else if (direction === "Đông" && directionMap["Đông"]) {
-            directionMap["Đông"].push(light.trafficLightId);
-          } else if (direction === "Tây" && directionMap["Tây"]) {
-            directionMap["Tây"].push(light.trafficLightId);
-          }
-        }
-      }
+      lightMap[light.lightName] = light.trafficLightId;
+      lightIdToNameMap[light.trafficLightId] = light.lightName;
     });
 
-    // Tạo timeline cho mỗi hướng, gộp đỏ và đỏ chung liền nhau
-    const getDirectionTimelineMerged = (direction: string) => {
-      const lightIds = directionMap[direction];
-      if (!lightIds || lightIds.length === 0) return [];
+    // Lấy danh sách các đèn có pha được cấu hình
+    const activeLights = new Set<string>();
+    config.phases.forEach((phase) => {
+      Object.keys(phase.lightStates).forEach((lightId) => {
+        if (
+          selectedJunction.trafficLights.find(
+            (l) => l.trafficLightId === lightId
+          )
+        ) {
+          activeLights.add(lightId);
+        }
+      });
+    });
 
+    // Tạo timeline cho mỗi đèn, gộp đỏ và đỏ chung liền nhau
+    const getLightTimelineMerged = (lightId: string) => {
       const sortedPhases = [...config.phases].sort(
         (a, b) => a.startTime - b.startTime
       );
       const timeline = [];
       let prev: any = null;
+
       for (const phase of sortedPhases) {
-        const state = phase.lightStates[lightIds[0]];
+        const state = phase.lightStates[lightId] || "red";
         // Gộp đỏ ("red") và đỏ chung ("gray") nếu liền nhau
         if (
           prev &&
@@ -462,8 +595,8 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
     // Debug information
     console.log("GanttChart Debug Info:", {
       pattern: pattern.patternName,
-      directionMapping,
-      directionMap,
+      lightMap,
+      activeLights: Array.from(activeLights),
       phases: config.phases,
       trafficLights: selectedJunction?.trafficLights,
     });
@@ -523,18 +656,19 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
           className="relative w-full"
           ref={chartRef}
         >
-          {/* Direction timelines */}
+          {/* Light timelines */}
           <div className="space-y-4">
-            {Object.entries(directionMap).map(([direction, lightIds]) => {
-              const timeline = getDirectionTimelineMerged(direction);
+            {Array.from(activeLights).map((lightId) => {
+              const lightName = lightIdToNameMap[lightId];
+              const timeline = getLightTimelineMerged(lightId);
 
               return (
                 <div
-                  key={direction}
+                  key={lightId}
                   className="relative"
                 >
                   <div className="text-sm text-gray-900 dark:text-gray-300 mb-2 font-medium">
-                    Hướng {direction} 
+                    {lightName}
                   </div>
                   <div className="relative h-8 bg-gray-700 rounded overflow-hidden">
                     {timeline.length > 0 ? (
@@ -567,9 +701,7 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                       })
                     ) : (
                       <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                        {lightIds.length === 0
-                          ? "Không có đèn được phân loại"
-                          : "Không có dữ liệu timeline"}
+                        Không có dữ liệu timeline
                       </div>
                     )}
                   </div>
@@ -580,7 +712,9 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
 
           {/* Legend */}
           <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
-            <span className="text-gray-900 dark:text-gray-300 font-medium">Chú thích:</span>
+            <span className="text-gray-900 dark:text-gray-300 font-medium">
+              Chú thích:
+            </span>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded"></div>
               <span className="text-gray-900 dark:text-gray-300">Đèn xanh</span>
@@ -714,10 +848,7 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                   {selectedPattern?.patternId === pattern.patternId && (
                     <GanttChart
                       pattern={pattern}
-                      directionMapping={
-                        (pattern.timingConfiguration as PatternConfig)
-                          .lightDirectionMapping || {}
-                      }
+                      directionMapping={{}}
                     />
                   )}
                 </div>
@@ -814,98 +945,247 @@ Tây: Xanh (128–173), Vàng (173–176), Đỏ chung (176–179).`;
                     onClick={() => setShowQuickSetup(!showQuickSetup)}
                     className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm"
                   >
-                    {showQuickSetup ? "Ẩn" : "Hiện"} Quick Setup
+                    {showQuickSetup ? "Ẩn" : "Hiện"} Cấu hình nhanh
                   </button>
                 </div>
 
                 {showQuickSetup && (
                   <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg space-y-4">
-                    {/* Light Direction Mapping */}
+                    {/* Available Traffic Lights Info */}
                     {selectedJunctionId && (
                       <div>
                         <h4 className="text-gray-900 dark:text-white font-medium mb-3">
-                          Phân loại đèn theo hướng (tùy chọn):
+                          Đèn giao thông có sẵn trong nút giao:
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {junctions
-                            .find((j) => j.junctionId === selectedJunctionId)
-                            ?.trafficLights.map((light) => (
-                              <div
-                                key={light.trafficLightId}
-                                className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-200 dark:border-gray-500"
-                              >
-                                <div className="text-gray-900 dark:text-white text-sm mb-2">
+                        <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded border border-blue-200 dark:border-blue-700">
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {junctions
+                              .find((j) => j.junctionId === selectedJunctionId)
+                              ?.trafficLights.map((light) => (
+                                <div
+                                  key={light.trafficLightId}
+                                  className="bg-white dark:bg-gray-700 px-2 py-1 rounded text-sm text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600"
+                                >
                                   {light.lightName}
                                 </div>
-                                <select
-                                  value={
-                                    lightDirectionMapping[
-                                      light.trafficLightId
-                                    ] || ""
-                                  }
-                                  onChange={(e) =>
-                                    setLightDirectionMapping((prev) => ({
-                                      ...prev,
-                                      [light.trafficLightId]: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm"
-                                >
-                                  <option value="">Tự động phát hiện</option>
-                                  <option value="Bắc">Bắc</option>
-                                  <option value="Nam">Nam</option>
-                                  <option value="Đông">Đông</option>
-                                  <option value="Tây">Tây</option>
-                                </select>
-                              </div>
-                            ))}
+                              ))}
+                          </div>
+                          <p className="text-blue-700 dark:text-blue-300 text-xs mt-2">
+                            💡 Sử dụng chính xác các tên đèn này trong cấu hình
+                            quick setup bên dưới
+                          </p>
                         </div>
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-gray-900 dark:text-white mb-2 text-sm">
-                        Nhập cấu hình pattern (một dòng cho mỗi hướng):
-                      </label>
-                      <textarea
-                        value={quickSetupText}
-                        onChange={(e) => setQuickSetupText(e.target.value)}
-                        placeholder={getQuickSetupExample()}
-                        className="w-full px-3 py-2 bg-white dark:bg-gray-600 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-500 rounded-lg text-sm font-mono"
-                        rows={6}
-                      />
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="block text-gray-900 dark:text-white text-sm font-medium">
+                          Cấu hình thời gian cho từng đèn:
+                        </label>
+                        {selectedJunctionId && (
+                          <select
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                const selectedLight = junctions
+                                  .find(
+                                    (j) => j.junctionId === selectedJunctionId
+                                  )
+                                  ?.trafficLights.find(
+                                    (l) => l.trafficLightId === e.target.value
+                                  );
+                                if (selectedLight) {
+                                  addLightToQuickSetup(
+                                    selectedLight.trafficLightId,
+                                    selectedLight.lightName
+                                  );
+                                }
+                                e.target.value = ""; // Reset selection
+                              }
+                            }}
+                            className="px-3 py-1 bg-blue-600 text-white border border-blue-600 rounded text-sm hover:bg-blue-700"
+                          >
+                            <option value="">+ Thêm đèn</option>
+                            {junctions
+                              .find((j) => j.junctionId === selectedJunctionId)
+                              ?.trafficLights.filter(
+                                (light) =>
+                                  !quickSetupLights[light.trafficLightId]
+                              )
+                              .map((light) => (
+                                <option
+                                  key={light.trafficLightId}
+                                  value={light.trafficLightId}
+                                >
+                                  {light.lightName}
+                                </option>
+                              ))}
+                          </select>
+                        )}
+                      </div>
+
+                      {Object.keys(quickSetupLights).length > 0 && (
+                        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900 rounded border border-green-200 dark:border-green-700">
+                          <div className="text-green-800 dark:text-green-200 text-sm font-medium">
+                            📊 Tổng quan Pattern:{" "}
+                            {Math.max(
+                              ...Object.values(quickSetupLights).map(
+                                (config) =>
+                                  config.greenStart +
+                                  config.greenDuration +
+                                  config.yellowDuration +
+                                  config.redDuration
+                              )
+                            )}
+                            s chu kỳ
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        {Object.entries(quickSetupLights).map(
+                          ([lightId, config]) => (
+                            <div
+                              key={lightId}
+                              className="bg-white dark:bg-gray-600 p-4 rounded-lg border border-gray-200 dark:border-gray-500"
+                            >
+                              <div className="flex justify-between items-center mb-3">
+                                <h5 className="text-gray-900 dark:text-white font-medium">
+                                  {config.lightName}
+                                </h5>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeLightFromQuickSetup(lightId)
+                                  }
+                                  className="text-red-600 hover:text-red-800 text-sm"
+                                >
+                                  ✕ Xóa
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div>
+                                  <label className="block text-gray-700 dark:text-gray-300 text-xs mb-1">
+                                    Bắt đầu xanh (s):
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={config.greenStart}
+                                    onChange={(e) =>
+                                      updateLightQuickSetup(
+                                        lightId,
+                                        "greenStart",
+                                        parseInt(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm"
+                                    min="0"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-gray-700 dark:text-gray-300 text-xs mb-1">
+                                    Thời gian xanh (s):
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={config.greenDuration}
+                                    onChange={(e) =>
+                                      updateLightQuickSetup(
+                                        lightId,
+                                        "greenDuration",
+                                        parseInt(e.target.value) || 1
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm"
+                                    min="1"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-gray-700 dark:text-gray-300 text-xs mb-1">
+                                    Thời gian vàng (s):
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={config.yellowDuration}
+                                    onChange={(e) =>
+                                      updateLightQuickSetup(
+                                        lightId,
+                                        "yellowDuration",
+                                        parseInt(e.target.value) || 1
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm"
+                                    min="1"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-gray-700 dark:text-gray-300 text-xs mb-1">
+                                    Thời gian đỏ (s):
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={config.redDuration}
+                                    onChange={(e) =>
+                                      updateLightQuickSetup(
+                                        lightId,
+                                        "redDuration",
+                                        parseInt(e.target.value) || 1
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 bg-white dark:bg-gray-500 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-400 rounded text-sm"
+                                    min="1"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                Kết thúc:{" "}
+                                {config.greenStart +
+                                  config.greenDuration +
+                                  config.yellowDuration +
+                                  config.redDuration}
+                                s
+                              </div>
+                            </div>
+                          )
+                        )}
+
+                        {Object.keys(quickSetupLights).length === 0 && (
+                          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <p>Chưa có đèn nào được cấu hình.</p>
+                            <p className="text-sm">
+                              Sử dụng dropdown "Thêm đèn" ở trên để bắt đầu.
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="bg-blue-50 dark:bg-gray-600 p-3 rounded border-l-4 border-blue-500">
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">
-                        Định dạng:
-                      </h4>
-                      <pre className="text-gray-700 dark:text-gray-300 text-xs font-mono whitespace-pre-wrap">
-                        {getQuickSetupExample()}
-                      </pre>
-                    </div>
-
-                    <div className="bg-yellow-50 dark:bg-yellow-800 p-3 rounded border-l-4 border-yellow-500">
-                      <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                        <strong>Lưu ý:</strong> Hệ thống sẽ tự động phát hiện
-                        hướng từ trường "Vị trí" của đèn (ví dụ: "Ngã tư ABC,
-                        hướng Bắc"). Nếu không tự động phát hiện được, hãy phân
-                        loại thủ công ở mục trên.
+                    <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded border-l-4 border-blue-500">
+                      <p className="text-blue-800 dark:text-blue-200 text-sm">
+                        <strong>💡 Hướng dẫn:</strong> Chọn đèn từ dropdown và
+                        cấu hình thời gian cho từng pha. Hệ thống sẽ tự động tạo
+                        các pha Xanh → Vàng → Đỏ cho mỗi đèn.
                       </p>
                     </div>
 
                     <div className="flex space-x-3">
                       <button
                         type="button"
-                        onClick={parseQuickSetup}
+                        onClick={parseStructuredQuickSetup}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
+                        disabled={Object.keys(quickSetupLights).length === 0}
                       >
-                        Áp dụng Quick Setup
+                        Tạo Pattern từ Cấu hình
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          setQuickSetupText("");
+                          setQuickSetupLights({});
                           setPatternConfig((prev) => ({ ...prev, phases: [] }));
                         }}
                         className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"

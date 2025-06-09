@@ -17,13 +17,13 @@ load_dotenv()
 pygame.init()
 
 # Cấu hình cửa sổ
-WINDOW_WIDTH = 1200
-WINDOW_HEIGHT = 700
+WINDOW_WIDTH = 1600  # Tăng từ 1200 lên 1600
+WINDOW_HEIGHT = 900  # Tăng từ 700 lên 900
 WINDOW = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Mô phỏng đèn giao thông 4 pha")
 
 # Cấu hình layout
-MENU_WIDTH = 350
+MENU_WIDTH = 450  # Tăng từ 350 lên 450 (tỷ lệ 1.29)
 SIMULATION_WIDTH = WINDOW_WIDTH - MENU_WIDTH
 SIMULATION_HEIGHT = WINDOW_HEIGHT
 
@@ -57,13 +57,15 @@ PHASES = []
 JUNCTION_ID = ""
 JUNCTION_NAME = ""
 CONFIG_SOURCE = "unknown"  # Nguồn cấu hình hiện tại: database, cache, minimal_fallback
+TRAFFIC_LIGHTS = []  # Danh sách đèn giao thông thực tế
+LIGHT_ORDER = []  # Thứ tự hiển thị đèn theo chiều kim đồng hồ
 
 # File cache cho cấu hình
 CACHE_FILE = "traffic_config_cache.json"
 
 # Biến để lưu trạng thái đèn và thời gian đếm ngược
-lights_state = {"Bắc": "red", "Nam": "red", "Đông": "red", "Tây": "red"}
-countdowns = {"Bắc": None, "Nam": None, "Đông": None, "Tây": None}
+lights_state = {}  # Sẽ được khởi tạo động theo đèn thực tế
+countdowns = {}  # Sẽ được khởi tạo động theo đèn thực tế
 current_time = 0
 last_config_update = 0  # Biến để theo dõi thời điểm cập nhật cấu hình cuối cùng
 
@@ -85,9 +87,9 @@ search_text = ""
 search_active = False
 show_info_panel = False  # Show detailed info panel
 
-# Search input box (positioned in top half)
-search_box = pygame.Rect(10, 50, MENU_WIDTH - 20, 25)
-stop_button = pygame.Rect(10, 80, 80, 25)
+# Search input box (positioned in top half) - Scale up
+search_box = pygame.Rect(10, 50, MENU_WIDTH - 20, 35)  # Tăng height từ 25 lên 35
+stop_button = pygame.Rect(10, 90, 100, 35)  # Tăng từ 80x25 lên 100x35
 
 # Khởi tạo FastAPI
 app = FastAPI()
@@ -308,10 +310,10 @@ def get_junction_traffic_lights(junction_id):
         cursor = conn.cursor()
 
         query = """
-        SELECT "trafficLightId", "location"
+        SELECT "trafficLightId", "lightName", "location"
         FROM "TrafficLight"
         WHERE "junctionId" = %s
-        ORDER BY "location"
+        ORDER BY "lightName"
         """
         cursor.execute(query, (junction_id,))
         results = cursor.fetchall()
@@ -319,38 +321,17 @@ def get_junction_traffic_lights(junction_id):
         cursor.close()
         conn.close()
 
-        # Trích xuất hướng từ location field
+        # Trả về danh sách đèn với tên thực tế
         traffic_lights = []
         for result in results:
             traffic_light_id = result[0]
-            location = result[1]
-            
-            # Trích xuất hướng từ location string
-            direction = None
-            if "hướng Bắc" in location or "Hướng Bắc" in location:
-                direction = "Bắc"
-            elif "hướng Nam" in location or "Hướng Nam" in location:
-                direction = "Nam"
-            elif "hướng Đông" in location or "Hướng Đông" in location:
-                direction = "Đông"
-            elif "hướng Tây" in location or "Hướng Tây" in location:
-                direction = "Tây"
-            else:
-                # Fallback: tìm các từ khóa khác
-                location_lower = location.lower()
-                if "bắc" in location_lower:
-                    direction = "Bắc"
-                elif "nam" in location_lower:
-                    direction = "Nam"
-                elif "đông" in location_lower:
-                    direction = "Đông"
-                elif "tây" in location_lower:
-                    direction = "Tây"
+            light_name = result[1]
+            location = result[2]
             
             traffic_lights.append({
                 "trafficLightId": traffic_light_id,
-                "location": location,
-                "direction": direction
+                "lightName": light_name,
+                "location": location
             })
             
         return traffic_lights
@@ -405,7 +386,7 @@ def load_config_from_cache():
 
 # Hàm kết nối và đọc dữ liệu từ PostgreSQL (có thể chạy đồng bộ hoặc bất đồng bộ)
 def load_config_from_db(sync=True):
-    global new_config, CYCLE_TIME, YELLOW_TIME, ALL_RED_TIME, PHASES, CONFIG_SOURCE
+    global new_config, CYCLE_TIME, YELLOW_TIME, ALL_RED_TIME, PHASES, CONFIG_SOURCE, TRAFFIC_LIGHTS, LIGHT_ORDER
     try:
         # Lấy active schedule
         schedule = get_active_schedule(JUNCTION_ID)
@@ -432,6 +413,9 @@ def load_config_from_db(sync=True):
             else:
                 return load_minimal_config(sync)
 
+        # Lấy thông tin traffic lights của junction trước
+        traffic_lights = get_junction_traffic_lights(JUNCTION_ID)
+
         # Lấy pattern từ schedule
         timing_config = get_current_pattern_from_schedule(schedule, JUNCTION_ID)
         if not timing_config:
@@ -457,6 +441,13 @@ def load_config_from_db(sync=True):
             else:
                 return load_minimal_config(sync)
 
+        # Tạo mapping tên đèn với ID
+        light_name_to_id = {}
+        light_id_to_name = {}
+        for light in traffic_lights:
+            light_name_to_id[light["lightName"]] = light["trafficLightId"]
+            light_id_to_name[light["trafficLightId"]] = light["lightName"]
+
         # Xử lý hai định dạng timing configuration
         if "cycleDuration" in timing_config:
             # Định dạng mới (từ web interface)
@@ -464,17 +455,13 @@ def load_config_from_db(sync=True):
             yellow_time = timing_config.get("yellowTime", 3)
             all_red_time = timing_config.get("allRedTime", 2)
             
-            # Lấy thông tin traffic lights của junction
-            traffic_lights = get_junction_traffic_lights(JUNCTION_ID)
-            light_direction_map = {}
-            for light in traffic_lights:
-                light_direction_map[light["trafficLightId"]] = light["direction"]
-            
-            # Giữ nguyên định dạng mới với lightStates
+            # Xử lý phases với lightStates mới
             phases = []
             raw_phases = timing_config.get("phases", [])
             
-            # Xử lý phases với lightStates
+            # Tạo set để theo dõi thứ tự đèn xuất hiện
+            light_order_set = []
+            
             for phase in raw_phases:
                 if not phase.get("isActive", True):
                     continue
@@ -484,56 +471,94 @@ def load_config_from_db(sync=True):
                 light_states = phase.get("lightStates", {})
                 phase_name = phase.get("phaseName", "")
                 
-                # Xác định hướng từ phaseName (đáng tin cậy hơn)
-                direction = None
-                if "Bắc" in phase_name:
-                    direction = "Bắc"
-                elif "Nam" in phase_name:
-                    direction = "Nam"
-                elif "Đông" in phase_name:
-                    direction = "Đông"
-                elif "Tây" in phase_name:
-                    direction = "Tây"
+                # Xác định tên đèn từ phaseName
+                light_name = None
+                for name in light_name_to_id.keys():
+                    if name in phase_name:
+                        light_name = name
+                        break
                 
-                # Xác định màu đèn từ lightStates
-                direction_color = "red"  # mặc định
-                if direction and direction in light_direction_map.values():
-                    # Tìm traffic light ID tương ứng với direction
-                    for light_id, light_direction in light_direction_map.items():
-                        if light_direction == direction and light_id in light_states:
-                            direction_color = light_states[light_id]
+                # Nếu không tìm thấy từ phase name, tìm từ light_states
+                if not light_name:
+                    for light_id, state in light_states.items():
+                        if state in ["green", "yellow"] and light_id in light_id_to_name:
+                            light_name = light_id_to_name[light_id]
                             break
                 
-                # Nếu không tìm thấy từ light mapping, dùng pattern từ phase name
-                if direction_color == "red" and direction:
-                    if "Xanh" in phase_name:
-                        direction_color = "green" 
+                # Xác định màu đèn
+                light_color = "red"  # mặc định
+                if light_name and light_name_to_id[light_name] in light_states:
+                    light_color = light_states[light_name_to_id[light_name]]
+                elif "Xanh" in phase_name:
+                    light_color = "green"
                     elif "Vàng" in phase_name:
-                        direction_color = "yellow"
+                    light_color = "yellow"
                     elif "Đỏ" in phase_name:
-                        direction_color = "red"
+                    light_color = "red"
                 
-                if direction:  # Chỉ thêm phase nếu xác định được direction
+                if light_name:  # Chỉ thêm phase nếu xác định được tên đèn
+                    # Thêm vào thứ tự đèn nếu chưa có
+                    if light_name not in light_order_set:
+                        light_order_set.append(light_name)
+                    
                     phases.append({
                         "startTime": start_time,
                         "duration": duration,
-                        "direction": direction,
-                        "color": direction_color,
+                        "lightName": light_name,
+                        "color": light_color,
                         "lightStates": light_states,
                         "phaseName": phase_name
                     })
         else:
-            # Định dạng cũ (simulator format)
+            # Định dạng cũ (simulator format) - cần chuyển đổi
             cycle_time = timing_config.get("cycleTime", 60)
             yellow_time = timing_config.get("yellowTime", 3)
             all_red_time = timing_config.get("allRedTime", 2)
-            phases = timing_config.get("phases", [])
+            old_phases = timing_config.get("phases", [])
+            
+            # Chuyển đổi phases cũ sang định dạng mới
+            phases = []
+            light_order_set = []
+            
+            # Tạo mapping từ tên đèn đầu tiên (fallback)
+            if traffic_lights:
+                for i, light in enumerate(traffic_lights):
+                    light_order_set.append(light["lightName"])
+            
+            for phase in old_phases:
+                # Chuyển từ "direction" sang "lightName"
+                direction = phase.get("direction", "")
+                light_name = None
+                
+                # Tìm đèn tương ứng với direction cũ (fallback)
+                if direction == "Bắc" and len(traffic_lights) >= 1:
+                    light_name = traffic_lights[0]["lightName"]
+                elif direction == "Nam" and len(traffic_lights) >= 2:
+                    light_name = traffic_lights[1]["lightName"]
+                elif direction == "Đông" and len(traffic_lights) >= 3:
+                    light_name = traffic_lights[2]["lightName"]
+                elif direction == "Tây" and len(traffic_lights) >= 4:
+                    light_name = traffic_lights[3]["lightName"]
+                elif len(traffic_lights) >= 1:
+                    light_name = traffic_lights[0]["lightName"]  # Fallback
+                
+                if light_name:
+                    phases.append({
+                        "startTime": phase.get("startTime", 0),
+                        "duration": phase.get("duration", 0),
+                        "lightName": light_name,
+                        "color": phase.get("color", "red"),
+                        "lightStates": {},
+                        "phaseName": f"{light_name} - {phase.get('color', 'red')}"
+                    })
 
         config_data = {
             "CYCLE_TIME": cycle_time,
             "YELLOW_TIME": yellow_time,
             "ALL_RED_TIME": all_red_time,
-            "PHASES": phases
+            "PHASES": phases,
+            "TRAFFIC_LIGHTS": traffic_lights,
+            "LIGHT_ORDER": light_order_set
         }
 
         if sync:
@@ -543,22 +568,35 @@ def load_config_from_db(sync=True):
                 YELLOW_TIME = config_data["YELLOW_TIME"]
                 ALL_RED_TIME = config_data["ALL_RED_TIME"]
                 PHASES = config_data["PHASES"]
+                TRAFFIC_LIGHTS = config_data["TRAFFIC_LIGHTS"]
+                LIGHT_ORDER = config_data["LIGHT_ORDER"]
                 CONFIG_SOURCE = "database"
+                
+                # Cập nhật vị trí đèn và khởi tạo trạng thái
+                update_light_positions()
+                initialize_light_states()
+                
             print(f"Main thread - Đã đọc cấu hình từ schedule active. CYCLE_TIME: {CYCLE_TIME}s, Phases: {len(PHASES)}")
+            print(f"  Traffic Lights: {[light['lightName'] for light in TRAFFIC_LIGHTS]}")
+            print(f"  Light Order: {LIGHT_ORDER}")
             # In thông tin chi tiết về phases
             for i, phase in enumerate(PHASES):
                 color = phase.get('color', 'unknown')
-                print(f"  Phase {i+1}: {phase['direction']} - Start: {phase['startTime']}s, Duration: {phase['duration']}s, Color: {color}")
+                light_name = phase.get('lightName', 'unknown')
+                print(f"  Phase {i+1}: {light_name} - Start: {phase['startTime']}s, Duration: {phase['duration']}s, Color: {color}")
         else:
             # Lưu vào new_config nếu chạy bất đồng bộ
             with config_lock:
                 new_config = config_data.copy()
                 new_config["CONFIG_SOURCE"] = "database"
             print(f"Worker thread - Đã đọc cấu hình từ schedule active. CYCLE_TIME: {new_config['CYCLE_TIME']}s, Phases: {len(new_config['PHASES'])}")
+            print(f"  Traffic Lights: {[light['lightName'] for light in new_config['TRAFFIC_LIGHTS']]}")
+            print(f"  Light Order: {new_config['LIGHT_ORDER']}")
             # In thông tin chi tiết về phases
             for i, phase in enumerate(new_config['PHASES']):
                 color = phase.get('color', 'unknown')
-                print(f"  Phase {i+1}: {phase['direction']} - Start: {phase['startTime']}s, Duration: {phase['duration']}s, Color: {color}")
+                light_name = phase.get('lightName', 'unknown')
+                print(f"  Phase {i+1}: {light_name} - Start: {phase['startTime']}s, Duration: {phase['duration']}s, Color: {color}")
 
         # Lưu cấu hình thành công vào cache
         save_config_to_cache(config_data, "database")
@@ -586,21 +624,70 @@ def load_config_from_db(sync=True):
             # Không có cache, dùng cấu hình minimal
             load_minimal_config(sync)
 
+# Hàm cập nhật vị trí đèn dựa trên LIGHT_ORDER
+def update_light_positions():
+    global LIGHT_POSITIONS, COUNTDOWN_POSITIONS, LABEL_POSITIONS
+    
+    if not LIGHT_ORDER:
+        return
+        
+    num_lights = len(LIGHT_ORDER)
+    positions, countdown_pos, label_pos = calculate_light_positions(num_lights)
+    
+    # Map từ light_0, light_1, ... sang tên đèn thực tế
+    LIGHT_POSITIONS = {}
+    COUNTDOWN_POSITIONS = {}
+    LABEL_POSITIONS = {}
+    
+    for i, light_name in enumerate(LIGHT_ORDER):
+        light_key = f"light_{i}"
+        if light_key in positions:
+            LIGHT_POSITIONS[light_name] = positions[light_key]
+            COUNTDOWN_POSITIONS[light_name] = countdown_pos[light_key]
+            LABEL_POSITIONS[light_name] = label_pos[light_key]
+
+# Hàm khởi tạo trạng thái đèn
+def initialize_light_states():
+    global lights_state, countdowns
+    
+    lights_state = {}
+    countdowns = {}
+    
+    for light_name in LIGHT_ORDER:
+        lights_state[light_name] = "red"
+        countdowns[light_name] = None
+
 # Hàm load cấu hình minimal (khi không có cache và không kết nối được database)
 def load_minimal_config(sync=True):
-    global new_config, CYCLE_TIME, YELLOW_TIME, ALL_RED_TIME, PHASES, CONFIG_SOURCE
+    global new_config, CYCLE_TIME, YELLOW_TIME, ALL_RED_TIME, PHASES, CONFIG_SOURCE, TRAFFIC_LIGHTS, LIGHT_ORDER
     
-    # Cấu hình minimal với 4 pha đơn giản: Bắc xanh, Bắc vàng, Đông xanh, Đông vàng
+    # Cấu hình minimal với 3 đèn để demo tốt hơn
+    minimal_lights = [
+        {"trafficLightId": "light1", "lightName": "Đèn Bắc", "location": "Hướng Bắc"},
+        {"trafficLightId": "light2", "lightName": "Đèn Nam", "location": "Hướng Nam"},
+        {"trafficLightId": "light3", "lightName": "Đèn Tây", "location": "Hướng Tây"}
+    ]
+    
+    # Tạo phases cho 3 đèn với thời gian hợp lý
     config_data = {
-        "CYCLE_TIME": 60,
+        "CYCLE_TIME": 90,  # Tăng chu kỳ để phù hợp với 3 đèn
         "YELLOW_TIME": 3,
         "ALL_RED_TIME": 2,
         "PHASES": [
-            {"startTime": 0, "duration": 25, "direction": "Bắc", "color": "green"},
-            {"startTime": 25, "duration": 3, "direction": "Bắc", "color": "yellow"},
-            {"startTime": 30, "duration": 25, "direction": "Đông", "color": "green"},
-            {"startTime": 55, "duration": 3, "direction": "Đông", "color": "yellow"}
-        ]
+            # Đèn Bắc (0-27s)
+            {"startTime": 0, "duration": 25, "lightName": "Đèn Bắc", "color": "green", "phaseName": "Đèn Bắc - Xanh"},
+            {"startTime": 25, "duration": 3, "lightName": "Đèn Bắc", "color": "yellow", "phaseName": "Đèn Bắc - Vàng"},
+            
+            # Đèn Nam (30-57s)
+            {"startTime": 30, "duration": 25, "lightName": "Đèn Nam", "color": "green", "phaseName": "Đèn Nam - Xanh"},
+            {"startTime": 55, "duration": 3, "lightName": "Đèn Nam", "color": "yellow", "phaseName": "Đèn Nam - Vàng"},
+            
+            # Đèn Tây (60-87s)
+            {"startTime": 60, "duration": 25, "lightName": "Đèn Tây", "color": "green", "phaseName": "Đèn Tây - Xanh"},
+            {"startTime": 85, "duration": 3, "lightName": "Đèn Tây", "color": "yellow", "phaseName": "Đèn Tây - Vàng"}
+        ],
+        "TRAFFIC_LIGHTS": minimal_lights,
+        "LIGHT_ORDER": ["Đèn Bắc", "Đèn Nam", "Đèn Tây"]
     }
     
     if sync:
@@ -609,19 +696,56 @@ def load_minimal_config(sync=True):
             YELLOW_TIME = config_data["YELLOW_TIME"]
             ALL_RED_TIME = config_data["ALL_RED_TIME"]
             PHASES = config_data["PHASES"]
+            TRAFFIC_LIGHTS = config_data["TRAFFIC_LIGHTS"]
+            LIGHT_ORDER = config_data["LIGHT_ORDER"]
             CONFIG_SOURCE = "minimal_fallback"
-        print(f"Main thread - Sử dụng cấu hình minimal (offline). CYCLE_TIME: {CYCLE_TIME}s, Phases: {len(PHASES)}")
+            
+            # Cập nhật vị trí đèn và khởi tạo trạng thái
+            update_light_positions()
+            initialize_light_states()
+            
+        print(f"Main thread - Sử dụng cấu hình minimal ({len(LIGHT_ORDER)} đèn). CYCLE_TIME: {CYCLE_TIME}s, Phases: {len(PHASES)}")
         # Lưu cấu hình minimal vào cache cho lần sau
         save_config_to_cache(config_data, "minimal_fallback")
     else:
         with config_lock:
             new_config = config_data.copy()
             new_config["CONFIG_SOURCE"] = "minimal_fallback"
-        print(f"Worker thread - Sử dụng cấu hình minimal (offline). CYCLE_TIME: {new_config['CYCLE_TIME']}s, Phases: {len(new_config['PHASES'])}")
+        print(f"Worker thread - Sử dụng cấu hình minimal ({len(new_config['LIGHT_ORDER'])} đèn). CYCLE_TIME: {new_config['CYCLE_TIME']}s, Phases: {len(new_config['PHASES'])}")
+
+# Hàm test cấu hình với 2 đèn
+def load_two_lights_config():
+    """Tạo cấu hình test với 2 đèn để kiểm tra hiển thị"""
+    global new_config
+    
+    two_lights = [
+        {"trafficLightId": "light1", "lightName": "Đèn A", "location": "Vị trí A"},
+        {"trafficLightId": "light2", "lightName": "Đèn B", "location": "Vị trí B"}
+    ]
+    
+    config_data = {
+        "CYCLE_TIME": 60,
+        "YELLOW_TIME": 3,
+        "ALL_RED_TIME": 2,
+        "PHASES": [
+            {"startTime": 0, "duration": 25, "lightName": "Đèn A", "color": "green", "phaseName": "Đèn A - Xanh"},
+            {"startTime": 25, "duration": 3, "lightName": "Đèn A", "color": "yellow", "phaseName": "Đèn A - Vàng"},
+            {"startTime": 30, "duration": 25, "lightName": "Đèn B", "color": "green", "phaseName": "Đèn B - Xanh"},
+            {"startTime": 55, "duration": 3, "lightName": "Đèn B", "color": "yellow", "phaseName": "Đèn B - Vàng"}
+        ],
+        "TRAFFIC_LIGHTS": two_lights,
+        "LIGHT_ORDER": ["Đèn A", "Đèn B"]
+    }
+    
+    with config_lock:
+        new_config = config_data.copy()
+        new_config["CONFIG_SOURCE"] = "test_2_lights"
+    
+    print(f"Đã tải cấu hình test với 2 đèn")
 
 # Hàm cập nhật cấu hình từ new_config
 def update_config():
-    global new_config, CYCLE_TIME, YELLOW_TIME, ALL_RED_TIME, PHASES, CONFIG_SOURCE
+    global new_config, CYCLE_TIME, YELLOW_TIME, ALL_RED_TIME, PHASES, CONFIG_SOURCE, TRAFFIC_LIGHTS, LIGHT_ORDER
     with config_lock:
         if new_config is not None:
             with state_lock:
@@ -629,8 +753,21 @@ def update_config():
                 YELLOW_TIME = new_config["YELLOW_TIME"]
                 ALL_RED_TIME = new_config["ALL_RED_TIME"]
                 PHASES = new_config["PHASES"]
+                TRAFFIC_LIGHTS = new_config.get("TRAFFIC_LIGHTS", [])
+                LIGHT_ORDER = new_config.get("LIGHT_ORDER", [])
                 CONFIG_SOURCE = new_config.get("CONFIG_SOURCE", "unknown")
-            print(f"Main thread - Cập nhật cấu hình mới từ {CONFIG_SOURCE}. CYCLE_TIME: {CYCLE_TIME}s")
+                
+                # Cập nhật vị trí đèn và khởi tạo trạng thái
+                update_light_positions()
+                initialize_light_states()
+                
+                # Cập nhật tiêu đề cửa sổ với số lượng đèn
+                if JUNCTION_NAME and LIGHT_ORDER:
+                    pygame.display.set_caption(f"Mô phỏng đèn giao thông - {JUNCTION_NAME} ({len(LIGHT_ORDER)} đèn)")
+                elif JUNCTION_NAME:
+                    pygame.display.set_caption(f"Mô phỏng đèn giao thông - {JUNCTION_NAME}")
+                
+            print(f"Main thread - Cập nhật cấu hình mới từ {CONFIG_SOURCE}. CYCLE_TIME: {CYCLE_TIME}s, Đèn: {len(LIGHT_ORDER)}")
             # Reset new_config để tránh cập nhật lại
             new_config = None
 
@@ -708,47 +845,93 @@ def initialize_junction():
 # print("Đang khởi tạo cấu hình đèn giao thông...")
 # load_config_from_db(sync=True)
 
-# Vị trí và kích thước đèn (điều chỉnh cho nửa trên bên phải)
-LIGHT_RADIUS = 20
+# Vị trí và kích thước đèn (điều chỉnh cho nửa trên bên phải) - Scale up
+LIGHT_RADIUS = 25  # Tăng từ 20 lên 25
 SIM_OFFSET_X = MENU_WIDTH  # Bắt đầu từ sau menu
 SIM_CENTER_X = SIM_OFFSET_X + SIMULATION_WIDTH // 2
 SIM_CENTER_Y = RIGHT_TOP_HEIGHT // 2  # Center of top right area
 
-LIGHT_POSITIONS = {
-    "Bắc": {
-        "red": (SIM_CENTER_X - 45, 120),
-        "yellow": (SIM_CENTER_X, 120),
-        "green": (SIM_CENTER_X + 45, 120)
-    },
-    "Nam": {
-        "red": (SIM_CENTER_X - 45, RIGHT_TOP_HEIGHT - 40),
-        "yellow": (SIM_CENTER_X, RIGHT_TOP_HEIGHT - 40),
-        "green": (SIM_CENTER_X + 45, RIGHT_TOP_HEIGHT - 40)
-    },
-    "Đông": {
-        "red": (SIM_OFFSET_X + SIMULATION_WIDTH - 155, SIM_CENTER_Y + 30),
-        "yellow": (SIM_OFFSET_X + SIMULATION_WIDTH - 110, SIM_CENTER_Y + 30),
-        "green": (SIM_OFFSET_X + SIMULATION_WIDTH - 65, SIM_CENTER_Y + 30)
-    },
-    "Tây": {
-        "red": (SIM_OFFSET_X + 65, SIM_CENTER_Y + 30),
-        "yellow": (SIM_OFFSET_X + 110, SIM_CENTER_Y + 30),
-        "green": (SIM_OFFSET_X + 155, SIM_CENTER_Y + 30)
-    }
-}
+# Hàm tính toán vị trí đèn theo chiều kim đồng hồ
+def calculate_light_positions(num_lights):
+    """Tính toán vị trí đèn theo chiều kim đồng hồ, bắt đầu từ 12h"""
+    import math
+    
+    positions = {}
+    countdown_positions = {}
+    label_positions = {}
+    
+    # Bán kính vòng tròn để đặt đèn - điều chỉnh theo số lượng đèn và scale up + dãn thêm 20px
+    base_radius = min(SIMULATION_WIDTH, RIGHT_TOP_HEIGHT) // 3
+    if num_lights <= 2:
+        circle_radius = base_radius // 1.3 + 20  # Gần trung tâm hơn cho 2 đèn + dãn 20px
+    elif num_lights == 3:
+        circle_radius = base_radius // 1.1 + 20  # Vừa phải cho 3 đèn + dãn 20px
+    else:
+        circle_radius = base_radius + 20  # Khoảng cách tiêu chuẩn cho 4+ đèn + dãn 20px
+    
+    for i in range(num_lights):
+        # Góc theo chiều kim đồng hồ, bắt đầu từ 12h (270 độ)
+        angle = (270 + (360 / num_lights) * i) % 360
+        angle_rad = math.radians(angle)
+        
+        # Tính toán vị trí trung tâm của cụm đèn
+        center_x = SIM_CENTER_X + int(circle_radius * math.cos(angle_rad))
+        center_y = SIM_CENTER_Y + int(circle_radius * math.sin(angle_rad))
+        
+        # Tạo key cho đèn thứ i
+        light_key = f"light_{i}"
+        
+        # Khoảng cách giữa các đèn con - điều chỉnh theo số lượng đèn và scale up + dãn thêm
+        if num_lights <= 3:
+            light_spacing = 50  # Tăng từ 45 lên 50 (+5px)
+        else:
+            light_spacing = 50  # Tăng từ 60 lên 65 (+5px)
+        
+        # Vị trí các đèn con (đỏ, vàng, xanh) theo hướng
+        if angle <= 45 or angle >= 315:  # Top area
+            positions[light_key] = {
+                "red": (center_x - light_spacing, center_y),
+                "yellow": (center_x, center_y),
+                "green": (center_x + light_spacing, center_y)
+            }
+            countdown_positions[light_key] = (center_x + light_spacing + 45, center_y)  # Tăng từ 35 lên 45 (+10px)
+            label_positions[light_key] = (center_x, center_y - 55)  # Tăng từ 45 lên 55 (+10px)
+        elif 45 < angle <= 135:  # Right area
+            positions[light_key] = {
+                "red": (center_x, center_y - light_spacing - 40),
+                "yellow": (center_x, center_y - 40),
+                "green": (center_x, center_y + light_spacing - 40)
+            }
+            countdown_positions[light_key] = (center_x - 50, center_y)  # Tăng từ 40 lên 50 (+10px)
+            label_positions[light_key] = (center_x + 70, center_y)  # Tăng từ 60 lên 70 (+10px)
+        elif 135 < angle <= 225:  # Bottom area
+            positions[light_key] = {
+                "red": (center_x + light_spacing, center_y),
+                "yellow": (center_x, center_y),
+                "green": (center_x - light_spacing, center_y)
+            }
+            countdown_positions[light_key] = (center_x - light_spacing - 45, center_y)  # Tăng từ 35 lên 45 (+10px)
+            label_positions[light_key] = (center_x, center_y + 55)  # Tăng từ 45 lên 55 (+10px)
+        else:  # Left area
+            positions[light_key] = {
+                "red": (center_x, center_y + light_spacing + 40),
+                "yellow": (center_x, center_y + 40),
+                "green": (center_x, center_y - light_spacing + 40)
+            }
+            countdown_positions[light_key] = (center_x + 50, center_y)  # Tăng từ 40 lên 50 (+10px)
+            label_positions[light_key] = (center_x - 70, center_y)  # Tăng từ 60 lên 70 (+10px)
+    
+    return positions, countdown_positions, label_positions
 
-# Vị trí thời gian đếm ngược (phía bên phải mỗi cụm đèn)
-COUNTDOWN_POSITIONS = {
-    "Bắc": (SIM_CENTER_X + 85, 120),  # Right of horizontal lights
-    "Nam": (SIM_CENTER_X + 85, RIGHT_TOP_HEIGHT - 40),  # Right of horizontal lights
-    "Đông": (SIM_OFFSET_X + SIMULATION_WIDTH - 20, SIM_CENTER_Y + 30),  # Right of horizontal lights
-    "Tây": (SIM_OFFSET_X + 200, SIM_CENTER_Y + 30)  # Right of horizontal lights
-}
+# Các biến sẽ được cập nhật động
+LIGHT_POSITIONS = {}
+COUNTDOWN_POSITIONS = {}
+LABEL_POSITIONS = {}
 
-# Font chữ cho thời gian và nhãn (regular, không italic)
-FONT_LARGE = pygame.font.SysFont("Verdana", 24)  # Regular font
-FONT_MEDIUM = pygame.font.SysFont("Verdana", 18)  # Regular font
-FONT_SMALL = pygame.font.SysFont("Verdana", 14)  # Regular font
+# Font chữ cho thời gian và nhãn (regular, không italic) - Scale up cho kích thước cửa sổ mới
+FONT_LARGE = pygame.font.SysFont("Verdana", 32)  # Tăng từ 24 lên 32
+FONT_MEDIUM = pygame.font.SysFont("Verdana", 24)  # Tăng từ 18 lên 24
+FONT_SMALL = pygame.font.SysFont("Verdana", 18)  # Tăng từ 14 lên 18
 
 # Hàm vẽ đèn giao thông
 def draw_traffic_light(positions, active_color):
@@ -758,17 +941,17 @@ def draw_traffic_light(positions, active_color):
     for pos in positions.values():
         pygame.draw.circle(WINDOW, BLACK, pos, LIGHT_RADIUS, 2)
 
-# Hàm vẽ nhãn hướng
+# Hàm vẽ nhãn đèn
 def draw_labels():
-    labels = ["Bắc", "Nam", "Đông", "Tây"]
-    positions = [
-        (SIM_CENTER_X, 150),
-        (SIM_CENTER_X, SIMULATION_HEIGHT - 110),
-        (SIM_OFFSET_X + SIMULATION_WIDTH - 50, SIM_CENTER_Y - 40),
-        (SIM_OFFSET_X + 50, SIM_CENTER_Y - 40)
-    ]
-    for label, pos in zip(labels, positions):
-        text = FONT_LARGE.render(label, True, BLACK)
+    if not LIGHT_ORDER or not LABEL_POSITIONS:
+        return
+        
+    for light_name in LIGHT_ORDER:
+        if light_name in LABEL_POSITIONS:
+            pos = LABEL_POSITIONS[light_name]
+            # Giới hạn độ dài tên đèn để không bị tràn
+            display_name = light_name[:15] + "..." if len(light_name) > 15 else light_name
+            text = FONT_SMALL.render(display_name, True, BLACK)
         text_rect = text.get_rect(center=pos)
         WINDOW.blit(text, text_rect)
 
@@ -790,6 +973,14 @@ def main_gui():
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
+                elif event.key == pygame.K_F1:
+                    # Test cấu hình với 2 đèn
+                    print("F1: Chuyển sang cấu hình 2 đèn (test)")
+                    load_two_lights_config()
+                elif event.key == pygame.K_F2:
+                    # Test cấu hình với 3 đèn
+                    print("F2: Chuyển sang cấu hình 3 đèn (test)")
+                    load_minimal_config(sync=False)
                 elif search_active:
                     # Handle search input
                     if event.key == pygame.K_BACKSPACE:
@@ -830,52 +1021,52 @@ def main_gui():
 
             # Cập nhật trạng thái đèn và đếm ngược trong một khối khóa
             with state_lock:
-                # Khởi tạo trạng thái cho tất cả hướng có thể
-                all_directions = ["Bắc", "Nam", "Đông", "Tây"]
-                lights_state = {direction: "red" for direction in all_directions}
-                countdowns = {direction: None for direction in all_directions}
+                # Khởi tạo trạng thái cho tất cả đèn
+                if LIGHT_ORDER:
+                    lights_state = {light_name: "red" for light_name in LIGHT_ORDER}
+                    countdowns = {light_name: None for light_name in LIGHT_ORDER}
 
-                # Tìm phase đang active cho mỗi hướng
+                    # Tìm phase đang active cho mỗi đèn
                 for phase in PHASES:
-                    direction = phase["direction"]
+                        light_name = phase.get("lightName", "")
                     start_time = phase["startTime"]
                     duration = phase["duration"]
                     phase_end = start_time + duration
                     color = phase.get("color", "red")
                     
                     # Kiểm tra nếu current_time nằm trong phase này
-                    if start_time <= current_time < phase_end:
+                        if start_time <= current_time < phase_end and light_name in lights_state:
                         # Phase này đang active
-                        lights_state[direction] = color
-                        countdowns[direction] = phase_end - current_time
-                
-                # Tính countdown cho các hướng đang đỏ (tìm phase tiếp theo)
-                for direction in all_directions:
-                    if lights_state[direction] == "red":
-                        # Tìm phase tiếp theo gần nhất cho direction này
+                            lights_state[light_name] = color
+                            countdowns[light_name] = phase_end - current_time
+                    
+                    # Tính countdown cho các đèn đang đỏ (tìm phase tiếp theo)
+                    for light_name in LIGHT_ORDER:
+                        if lights_state[light_name] == "red":
+                            # Tìm phase tiếp theo gần nhất cho đèn này
                         next_phase_start = None
                         
                         # Tìm trong các phase sau current_time
                         for phase in PHASES:
-                            if phase["direction"] == direction and phase["startTime"] > current_time:
+                                if phase.get("lightName", "") == light_name and phase["startTime"] > current_time:
                                 if next_phase_start is None or phase["startTime"] < next_phase_start:
                                     next_phase_start = phase["startTime"]
                         
                         if next_phase_start is not None:
                             # Có phase trong chu kỳ hiện tại
-                            countdowns[direction] = next_phase_start - current_time
+                                countdowns[light_name] = next_phase_start - current_time
                         else:
                             # Không có phase nào sau current_time, tìm phase đầu tiên của chu kỳ tiếp theo
                             earliest_phase_start = None
                             for phase in PHASES:
-                                if phase["direction"] == direction:
+                                    if phase.get("lightName", "") == light_name:
                                     if earliest_phase_start is None or phase["startTime"] < earliest_phase_start:
                                         earliest_phase_start = phase["startTime"]
                             
                             if earliest_phase_start is not None:
-                                countdowns[direction] = CYCLE_TIME - current_time + earliest_phase_start
+                                    countdowns[light_name] = CYCLE_TIME - current_time + earliest_phase_start
                             else:
-                                countdowns[direction] = CYCLE_TIME  # Fallback
+                                    countdowns[light_name] = CYCLE_TIME  # Fallback
 
         # Vẽ giao diện
         WINDOW.fill(WHITE)
@@ -969,10 +1160,9 @@ def draw_menu():
         WINDOW.blit(loading_text, loading_rect)
     else:
         # Draw junction list (more space available with 65% height)
-        y_start = 110
-        item_height = 50  # Updated to match draw_menu
-        available_height = LEFT_TOP_HEIGHT - y_start - 10
-        visible_items = available_height // item_height
+        y_start = 140  # Scale từ 110 lên 140
+        item_height = 65  # Scale từ 50 lên 65
+        visible_items = (LEFT_TOP_HEIGHT - y_start - 10) // item_height
         
 
         
@@ -1040,34 +1230,56 @@ def draw_info_detail():
     WINDOW.blit(source_text, (10, y_offset))
     y_offset += 25
     
-    # Schedule info
-    schedule_title = FONT_SMALL.render("Lịch trình:", True, BLACK)
-    WINDOW.blit(schedule_title, (10, y_offset))
+    # Traffic lights info
+    with state_lock:
+        if LIGHT_ORDER:
+            lights_title = FONT_SMALL.render(f"Đèn giao thông ({len(LIGHT_ORDER)}):", True, BLACK)
+            WINDOW.blit(lights_title, (10, y_offset))
     y_offset += 18
     
-    with state_lock:
+            # Hiển thị trạng thái từng đèn
+            max_lights_to_show = 4  # Giới hạn số đèn hiển thị để không tràn màn hình
+            for i, light_name in enumerate(LIGHT_ORDER[:max_lights_to_show]):
+                state = lights_state.get(light_name, "red")
+                state_vi = {"green": "Xanh", "yellow": "Vàng", "red": "Đỏ"}.get(state, state)
+                countdown = countdowns.get(light_name, None)
+                
+                # Hiển thị tên đèn và trạng thái
+                display_name = light_name[:12] + "..." if len(light_name) > 12 else light_name
+                if countdown is not None:
+                    light_info = f"• {display_name}: {state_vi} ({countdown}s)"
+                else:
+                    light_info = f"• {display_name}: {state_vi}"
+                
+                # Màu sắc cho text dựa trên trạng thái
+                color = GREEN if state == "green" else (YELLOW if state == "yellow" else RED)
+                light_text = FONT_SMALL.render(light_info, True, color)
+                WINDOW.blit(light_text, (15, y_offset))
+                y_offset += 16
+            
+            # Hiển thị thông báo nếu có nhiều đèn hơn
+            if len(LIGHT_ORDER) > max_lights_to_show:
+                more_lights = FONT_SMALL.render(f"  và {len(LIGHT_ORDER) - max_lights_to_show} đèn khác...", True, GRAY)
+                WINDOW.blit(more_lights, (15, y_offset))
+                y_offset += 16
+            
+            y_offset += 5  # Khoảng cách trước thông tin chu kỳ
+        
         # Cycle info
-        cycle_text = FONT_SMALL.render(f"• Chu kỳ: {CYCLE_TIME}s", True, BLACK)
+        cycle_title = FONT_SMALL.render("Thông số chu kỳ:", True, BLACK)
+        WINDOW.blit(cycle_title, (10, y_offset))
+        y_offset += 18
+        
+        cycle_text = FONT_SMALL.render(f"• Tổng chu kỳ: {CYCLE_TIME}s", True, BLACK)
         WINDOW.blit(cycle_text, (15, y_offset))
         y_offset += 16
         
-        yellow_text = FONT_SMALL.render(f"• Đèn vàng: {YELLOW_TIME}s", True, BLACK)
+        yellow_text = FONT_SMALL.render(f"• Thời gian vàng: {YELLOW_TIME}s", True, BLACK)
         WINDOW.blit(yellow_text, (15, y_offset))
         y_offset += 16
         
         all_red_text = FONT_SMALL.render(f"• Đèn đỏ chung: {ALL_RED_TIME}s", True, BLACK)
         WINDOW.blit(all_red_text, (15, y_offset))
-        y_offset += 16
-        
-        # Calculate total red time per cycle
-        total_green_yellow = 0
-        for phase in PHASES:
-            if phase.get("color") in ["green", "yellow"]:
-                total_green_yellow += phase["duration"]
-        red_time = max(0, CYCLE_TIME - total_green_yellow - ALL_RED_TIME)
-        
-        red_text = FONT_SMALL.render(f"• Đèn đỏ: {red_time}s", True, BLACK)
-        WINDOW.blit(red_text, (15, y_offset))
         y_offset += 20
         
         # Current phase info
@@ -1075,26 +1287,28 @@ def draw_info_detail():
         WINDOW.blit(current_phase_title, (10, y_offset))
         y_offset += 18
         
-        current_phase_found = False
+        active_phases = []
         for phase in PHASES:
             start_time = phase["startTime"]
             duration = phase["duration"]
             phase_end = start_time + duration
             
             if start_time <= current_time < phase_end:
-                phase_info = f"• {phase['direction']} - {phase.get('color', 'red')}"
+                light_name = phase.get('lightName', 'Unknown')
+                color = phase.get('color', 'red')
+                color_vi = {"green": "Xanh", "yellow": "Vàng", "red": "Đỏ"}.get(color, color)
+                time_left = phase_end - current_time
+                active_phases.append((light_name, color_vi, time_left))
+        
+        if active_phases:
+            for light_name, color_vi, time_left in active_phases:
+                display_name = light_name[:10] + "..." if len(light_name) > 10 else light_name
+                phase_info = f"• {display_name}: {color_vi} ({time_left}s)"
                 phase_text = FONT_SMALL.render(phase_info, True, BLACK)
                 WINDOW.blit(phase_text, (15, y_offset))
                 y_offset += 16
-                
-                time_left = f"• Còn lại: {phase_end - current_time}s"
-                time_text = FONT_SMALL.render(time_left, True, BLACK)
-                WINDOW.blit(time_text, (15, y_offset))
-                current_phase_found = True
-                break
-        
-        if not current_phase_found:
-            no_phase_text = FONT_SMALL.render("• Không xác định", True, GRAY)
+        else:
+            no_phase_text = FONT_SMALL.render("• Tất cả đèn đỏ", True, GRAY)
             WINDOW.blit(no_phase_text, (15, y_offset))
 
 def draw_simulation():
@@ -1119,39 +1333,29 @@ def draw_simulation():
     junction_rect = junction_text.get_rect(center=(SIM_CENTER_X, 20))
     WINDOW.blit(junction_text, junction_rect)
     
-    # Draw direction labels
-    labels = ["Bắc", "Nam", "Đông", "Tây"]
-    label_positions = [
-        (SIM_CENTER_X, 80),  # Above horizontal lights
-        (SIM_CENTER_X, RIGHT_TOP_HEIGHT - 40),  # Below horizontal lights
-        (SIM_OFFSET_X + SIMULATION_WIDTH - 90, SIM_CENTER_Y - 20),  # Above horizontal lights
-        (SIM_OFFSET_X + 90, SIM_CENTER_Y - 20)  # Above horizontal lights
-    ]
-    
-    for label, pos in zip(labels, label_positions):
-        text = FONT_MEDIUM.render(label, True, BLACK)
-        text_rect = text.get_rect(center=pos)
-        WINDOW.blit(text, text_rect)
-    
-    # Draw traffic lights
-    for direction in LIGHT_POSITIONS:
+    # Draw traffic lights and labels
+    if LIGHT_ORDER and LIGHT_POSITIONS:
+        draw_labels()  # Draw light name labels
+        
+        for light_name in LIGHT_ORDER:
+            if light_name in LIGHT_POSITIONS and light_name in lights_state:
         with state_lock:
-            state = lights_state[direction]
-            countdown = countdowns[direction]
-        draw_traffic_light(LIGHT_POSITIONS[direction], state)
-        if countdown is not None:
+                    state = lights_state.get(light_name, "red")
+                    countdown = countdowns.get(light_name, None)
+                draw_traffic_light(LIGHT_POSITIONS[light_name], state)
+                if countdown is not None and light_name in COUNTDOWN_POSITIONS:
             countdown_text = FONT_MEDIUM.render(str(countdown), True, BLACK)
-            countdown_rect = countdown_text.get_rect(center=COUNTDOWN_POSITIONS[direction])
+                    countdown_rect = countdown_text.get_rect(center=COUNTDOWN_POSITIONS[light_name])
             WINDOW.blit(countdown_text, countdown_rect)
     
     # Draw current time and cycle info
     with state_lock:
         time_text = FONT_MEDIUM.render(f"Thời gian: {current_time}s", True, BLACK)
-        time_rect = time_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y))
+        time_rect = time_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y - 10))  # Dịch lên một chút
         WINDOW.blit(time_text, time_rect)
         
         cycle_text = FONT_MEDIUM.render(f"Chu kỳ: {CYCLE_TIME}s", True, BLACK)
-        cycle_rect = cycle_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y + 30))
+        cycle_rect = cycle_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y + 25))  # Tăng khoảng cách từ 30 xuống 25
         WINDOW.blit(cycle_text, cycle_rect)
 
 def handle_menu_click(mouse_pos):
@@ -1184,8 +1388,8 @@ def handle_menu_click(mouse_pos):
     if mouse_pos[1] >= LEFT_TOP_HEIGHT:
         return
     
-    y_start = 110
-    item_height = 50  # Updated to match draw_menu
+    y_start = 140  # Scale từ 110 lên 140
+    item_height = 65  # Scale từ 50 lên 65
     visible_items = (LEFT_TOP_HEIGHT - y_start - 10) // item_height
     
     if mouse_pos[1] < y_start:
@@ -1224,8 +1428,8 @@ def handle_scroll(event):
     if event.button == 4:  # Scroll up
         scroll_offset = max(0, scroll_offset - 1)
     elif event.button == 5:  # Scroll down
-        available_height = LEFT_TOP_HEIGHT - 110 - 10
-        visible_items = available_height // 50  # Updated to match new item height
+        available_height = LEFT_TOP_HEIGHT - 140 - 10  # Scale từ 110 lên 140
+        visible_items = available_height // 65  # Scale từ 50 lên 65
         max_scroll = max(0, len(filtered_junctions) - visible_items)
         scroll_offset = min(max_scroll, scroll_offset + 1)
 
@@ -1242,13 +1446,13 @@ def draw_phase_chart():
         WINDOW.blit(no_data_text, no_data_rect)
         return
     
-    # Chart area setup
-    chart_margin = 20
+    # Chart area setup - Scale up margins
+    chart_margin = 30  # Scale từ 20 lên 30
     chart_rect = pygame.Rect(
         MENU_WIDTH + chart_margin, 
-        RIGHT_TOP_HEIGHT + 40,
+        RIGHT_TOP_HEIGHT + 50,  # Scale từ 40 lên 50
         SIMULATION_WIDTH - 2 * chart_margin, 
-        RIGHT_BOTTOM_HEIGHT - 80
+        RIGHT_BOTTOM_HEIGHT - 100  # Scale từ 80 lên 100
     )
     
     # Draw chart background
@@ -1264,38 +1468,41 @@ def draw_phase_chart():
     title_rect = chart_title.get_rect(centerx=SIM_CENTER_X, y=RIGHT_TOP_HEIGHT + 10)
     WINDOW.blit(chart_title, title_rect)
     
-    # Calculate scale
-    scale_width = chart_rect.width - 60
+    # Calculate scale - Scale up
+    scale_width = chart_rect.width - 80  # Scale từ 60 lên 80
     if scale_width <= 0:
         return
     time_per_pixel = CYCLE_TIME / scale_width
     
     # Draw phases
     colors = {"green": GREEN, "yellow": YELLOW, "red": RED}
-    directions = ["Bắc", "Nam", "Đông", "Tây"]
     
-    row_height = max(20, (chart_rect.height - 20) // len(directions))
+    if not LIGHT_ORDER:
+        return
     
-    for dir_idx, direction in enumerate(directions):
-        y_pos = chart_rect.top + 10 + dir_idx * row_height
+    row_height = max(25, (chart_rect.height - 25) // len(LIGHT_ORDER))  # Scale từ 20 lên 25
+    
+    for light_idx, light_name in enumerate(LIGHT_ORDER):
+        y_pos = chart_rect.top + 15 + light_idx * row_height  # Scale từ 10 lên 15
         
-        # Draw direction label
-        dir_text = FONT_SMALL.render(direction, True, BLACK)
-        WINDOW.blit(dir_text, (chart_rect.left + 5, y_pos + row_height // 4))
+        # Draw light name label (shortened if too long)
+        display_name = light_name[:10] + "..." if len(light_name) > 10 else light_name  # Scale từ 8 lên 10
+        light_text = FONT_SMALL.render(display_name, True, BLACK)
+        WINDOW.blit(light_text, (chart_rect.left + 8, y_pos + row_height // 4))  # Scale từ 5 lên 8
         
         # Draw red background for entire cycle first
         red_rect = pygame.Rect(
-            chart_rect.left + 50, y_pos, 
-            scale_width, row_height - 5
+            chart_rect.left + 80, y_pos,  # Scale từ 60 lên 80
+            scale_width - 15, row_height - 8  # Scale từ 10 lên 15, từ 5 lên 8
         )
         pygame.draw.rect(WINDOW, DIM_RED, red_rect)
         
         # Draw active phases on top
         for phase in PHASES:
-            if phase["direction"] == direction:
-                start_x = chart_rect.left + 50 + int(phase["startTime"] / time_per_pixel)
-                width = max(2, int(phase["duration"] / time_per_pixel))
-                phase_rect = pygame.Rect(start_x, y_pos, width, row_height - 5)
+            if phase.get("lightName", "") == light_name:
+                start_x = chart_rect.left + 80 + int(phase["startTime"] / time_per_pixel)  # Scale từ 60 lên 80
+                width = max(3, int(phase["duration"] / time_per_pixel))  # Scale từ 2 lên 3
+                phase_rect = pygame.Rect(start_x, y_pos, width, row_height - 8)  # Scale từ 5 lên 8
                 
                 color = colors.get(phase.get("color", "red"), RED)
                 pygame.draw.rect(WINDOW, color, phase_rect)
@@ -1305,29 +1512,34 @@ def draw_phase_chart():
     
     # Draw current time indicator
     with state_lock:
-        current_x = chart_rect.left + 50 + int(current_time / time_per_pixel)
+        current_x = chart_rect.left + 80 + int(current_time / time_per_pixel)  # Scale từ 60 lên 80
         pygame.draw.line(WINDOW, BLACK, 
                         (current_x, chart_rect.top), 
-                        (current_x, chart_rect.bottom), 3)
+                        (current_x, chart_rect.bottom), 4)  # Scale từ 3 lên 4
     
     # Draw time labels
     time_step = max(5, CYCLE_TIME // 8)
     for i in range(0, CYCLE_TIME + 1, time_step):
-        x_pos = chart_rect.left + 50 + int(i / time_per_pixel)
-        if x_pos <= chart_rect.right - 20:
+        x_pos = chart_rect.left + 80 + int(i / time_per_pixel)  # Scale từ 60 lên 80
+        if x_pos <= chart_rect.right - 25:  # Scale từ 20 lên 25
             time_text = FONT_SMALL.render(str(i), True, BLACK)
-            time_rect = time_text.get_rect(centerx=x_pos, top=chart_rect.bottom + 5)
+            time_rect = time_text.get_rect(centerx=x_pos, top=chart_rect.bottom + 8)  # Scale từ 5 lên 8
             WINDOW.blit(time_text, time_rect)
 
 if __name__ == "__main__":
-    print("=== MÔ PHỎNG ĐÈN GIAO THÔNG 4 PHA - GUI ===")
+    print("=== MÔ PHỎNG ĐÈN GIAO THÔNG - GUI ===")
     print("🎮 Điều khiển:")
     print("   Click chuột: Chọn nút giao")
     print("   Scroll chuột: Cuộn danh sách nút giao")
     print("   ESC: Thoát mô phỏng")
     print("   Đóng cửa sổ: Thoát mô phỏng")
+    print("\n⌨️  Phím tắt test:")
+    print("   F1: Test cấu hình 2 đèn")
+    print("   F2: Test cấu hình 3 đèn")
     print(f"\n🌐 API server: http://localhost:8000")
     print("   Endpoint: /traffic-light-state")
+    print("\n💡 Hỗ trợ mô phỏng với 2, 3, 4 hoặc nhiều đèn giao thông")
+    print("   Ứng dụng tự động điều chỉnh hiển thị theo số lượng đèn thực tế")
     
     # Chạy FastAPI server trong một thread riêng
     config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="warning")

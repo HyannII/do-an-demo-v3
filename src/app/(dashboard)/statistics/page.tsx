@@ -88,6 +88,7 @@ interface HourlyStatisticsData {
 
 export default function StatisticsPage() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
+  const [filteredJunctions, setFilteredJunctions] = useState<Junction[]>([]);
   const [selectedJunction, setSelectedJunction] = useState<Junction | null>(
     null
   );
@@ -95,6 +96,7 @@ export default function StatisticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
   const [loading, setLoading] = useState<boolean>(true);
   const [dataLoading, setDataLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [statisticsData, setStatisticsData] = useState<StatisticsData | null>(
     null
   );
@@ -261,6 +263,7 @@ export default function StatisticsPage() {
         }
         const data = await response.json();
         setJunctions(data);
+        setFilteredJunctions(data);
         if (data.length > 0) {
           setSelectedJunction(data[0]);
         }
@@ -273,6 +276,19 @@ export default function StatisticsPage() {
 
     fetchJunctions();
   }, []);
+
+  // Filter junctions based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredJunctions(junctions);
+      return;
+    }
+
+    const filtered = junctions.filter((junction) =>
+      junction.junctionName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredJunctions(filtered);
+  }, [searchQuery, junctions]);
 
   // Function to fetch statistics data
   const fetchStatisticsData = async (cameraId: string, period: string) => {
@@ -1004,15 +1020,27 @@ export default function StatisticsPage() {
       <div className="flex flex-col md:flex-row h-[calc(35%-1px)] border-t border-gray-200 dark:border-gray-800">
         {/* Junction List */}
         <div className="w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800 p-3 overflow-hidden">
-          <h2 className="text-md font-bold mb-1 text-gray-900 dark:text-white">
-            Danh sách nút giao
-          </h2>
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-md font-bold text-gray-900 dark:text-white">
+              Danh sách nút giao
+            </h2>
+            {/* Search Bar */}
+            <div className="w-[60%]">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm nút giao..."
+                className="w-full px-3 py-1 text-sm text-gray-900 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 placeholder-gray-500"
+              />
+            </div>
+          </div>
           <div className="h-[calc(100%-2rem)] overflow-y-auto custom-scrollbar">
             {loading ? (
               <p className="text-gray-700 dark:text-gray-300">Đang tải...</p>
-            ) : junctions.length > 0 ? (
+            ) : filteredJunctions.length > 0 ? (
               <ul>
-                {junctions.map((junction) => (
+                {filteredJunctions.map((junction) => (
                   <li
                     key={junction.junctionId}
                     className={`p-1.5 cursor-pointer rounded ${
@@ -1028,7 +1056,7 @@ export default function StatisticsPage() {
               </ul>
             ) : (
               <p className="text-gray-700 dark:text-gray-300">
-                Không có nút giao nào
+                Không tìm thấy nút giao phù hợp
               </p>
             )}
           </div>

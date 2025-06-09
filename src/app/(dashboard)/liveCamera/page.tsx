@@ -11,6 +11,7 @@ import {
 
 export default function LiveCamera() {
   const [junctions, setJunctions] = useState<Junction[]>([]);
+  const [filteredJunctions, setFilteredJunctions] = useState<Junction[]>([]);
   const [selectedJunction, setSelectedJunction] = useState<Junction | null>(
     null
   );
@@ -27,23 +28,20 @@ export default function LiveCamera() {
   >([]);
   const [wasDocumentHidden, setWasDocumentHidden] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [hourlyStatisticsData, setHourlyStatisticsData] = useState<{
-    cameraId: string;
-    startDate: string;
-    endDate: string;
-    totalMotorcycleCount: number;
-    totalCarCount: number;
-    totalTruckCount: number;
-    totalBusCount: number;
-    hourlyData: {
-      hour: number;
-      time: string;
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [latestCameraData, setLatestCameraData] = useState<{
+    status: string;
+    data?: {
+      cameraId: string;
       motorcycleCount: number;
       carCount: number;
       truckCount: number;
       busCount: number;
-    }[];
-    lastUpdated: string;
+      timestamp: string;
+      camera: any;
+      lastUpdated: string;
+    };
+    message?: string;
   } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -87,6 +85,7 @@ export default function LiveCamera() {
         }
         const data = await response.json();
         setJunctions(data);
+        setFilteredJunctions(data);
         if (data.length > 0) {
           setSelectedJunction(data[0]); // Auto-select the first junction, but not the camera
         }
@@ -99,6 +98,19 @@ export default function LiveCamera() {
 
     fetchJunctions();
   }, []);
+
+  // Filter junctions based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredJunctions(junctions);
+      return;
+    }
+
+    const filtered = junctions.filter((junction) =>
+      junction.junctionName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredJunctions(filtered);
+  }, [searchQuery, junctions]);
 
   // Initialize and set up HLS player with error handling and recovery
   const initializeHlsPlayer = useCallback(
@@ -339,17 +351,17 @@ export default function LiveCamera() {
     }
   };
 
-  // Function to fetch hourly statistics data for today (new logic from statistics page)
-  const fetchHourlyStatistics = async (cameraId: string) => {
+  // Function to fetch latest camera data
+  const fetchLatestCameraData = async (cameraId: string) => {
     setDataLoading(true);
     try {
       const timestamp = Date.now();
       console.log(
-        `Fetching hourly statistics for camera ${cameraId} at ${new Date().toISOString()}`
+        `Fetching latest camera data for camera ${cameraId} at ${new Date().toISOString()}`
       );
 
       const response = await fetch(
-        `/api/cameras/${cameraId}/hourly-stats?timestamp=${timestamp}`,
+        `/api/cameras/${cameraId}/latest-data?timestamp=${timestamp}`,
         {
           cache: "no-store",
           headers: {
@@ -360,27 +372,28 @@ export default function LiveCamera() {
       );
 
       if (!response.ok) {
-        console.error("Failed to fetch hourly statistics", response.status);
+        console.error("Failed to fetch latest camera data", response.status);
         return;
       }
       const data = await response.json();
 
-      console.log(`Received hourly statistics:`, {
-        cameraId: data.cameraId,
-        totalHours: data.hourlyData?.length || 0,
-        totalMotorcycles: data.totalMotorcycleCount,
-        totalCars: data.totalCarCount,
-        totalTrucks: data.totalTruckCount,
-        totalBuses: data.totalBusCount,
-        lastUpdated: data.lastUpdated,
+      console.log(`Received latest camera data:`, {
+        status: data.status,
+        cameraId: data.data?.cameraId,
+        timestamp: data.data?.timestamp,
+        motorcycles: data.data?.motorcycleCount,
+        cars: data.data?.carCount,
+        trucks: data.data?.truckCount,
+        buses: data.data?.busCount,
+        lastUpdated: data.data?.lastUpdated,
       });
 
-      setHourlyStatisticsData(data);
+      setLatestCameraData(data);
       setLastUpdated(new Date());
 
-      console.log(`Hourly statistics updated at ${new Date().toISOString()}`);
+      console.log(`Latest camera data updated at ${new Date().toISOString()}`);
     } catch (error) {
-      console.error("Error fetching hourly statistics:", error);
+      console.error("Error fetching latest camera data:", error);
     } finally {
       setDataLoading(false);
     }
@@ -389,7 +402,7 @@ export default function LiveCamera() {
   // Manually force refresh data
   const handleForceRefresh = () => {
     if (selectedCamera) {
-      fetchHourlyStatistics(selectedCamera.cameraId);
+      fetchLatestCameraData(selectedCamera.cameraId);
     }
   };
 
@@ -403,17 +416,17 @@ export default function LiveCamera() {
 
     if (!selectedCamera) {
       setCameraData(null);
-      setHourlyStatisticsData(null);
+      setLatestCameraData(null);
       return;
     }
 
-    // Initial data fetch using hourly statistics
-    fetchHourlyStatistics(selectedCamera.cameraId);
+    // Initial data fetch using latest camera data
+    fetchLatestCameraData(selectedCamera.cameraId);
 
-    // Set up automatic refresh every 5 seconds
+    // Set up automatic refresh every 3 seconds
     intervalRef.current = setInterval(() => {
-      fetchHourlyStatistics(selectedCamera.cameraId);
-    }, 5000);
+      fetchLatestCameraData(selectedCamera.cameraId);
+    }, 3000);
 
     // Clean up on component unmount or when camera changes
     return () => {
@@ -428,14 +441,14 @@ export default function LiveCamera() {
     setSelectedJunction(junction);
     setSelectedCamera(null); // Reset selected camera when changing junctions
     setCameraData(null); // Clear camera data when junction changes
-    setHourlyStatisticsData(null); // Clear hourly statistics data when junction changes
+    setLatestCameraData(null); // Clear latest camera data when junction changes
   };
 
   const handleCameraSelect = (camera: Camera) => {
     // Keep any previous data if changing to a camera of the same type
     // This prevents the table from disappearing during camera switch
     const keepingPreviousData =
-      selectedCamera && (cameraData || hourlyStatisticsData);
+      selectedCamera && (cameraData || latestCameraData);
 
     setSelectedCamera(camera);
     setVideoLoading(true); // Set video as loading when a new camera is selected
@@ -444,7 +457,7 @@ export default function LiveCamera() {
     // Let the data update naturally with the next fetch instead
     if (!keepingPreviousData) {
       setCameraData(null);
-      setHourlyStatisticsData(null);
+      setLatestCameraData(null);
     }
   };
 
@@ -662,10 +675,10 @@ export default function LiveCamera() {
                 Chọn camera để xem dữ liệu
               </span>
             </div>
-          ) : !hourlyStatisticsData ? (
+          ) : !latestCameraData || latestCameraData.status === "error" ? (
             <div className="flex justify-center items-center h-40">
               <span className="text-gray-500 dark:text-gray-400">
-                Không có dữ liệu
+                {latestCameraData?.message || "Không có dữ liệu"}
               </span>
             </div>
           ) : (
@@ -687,7 +700,7 @@ export default function LiveCamera() {
                       Xe máy
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {hourlyStatisticsData?.totalMotorcycleCount || 0}
+                      {latestCameraData?.data?.motorcycleCount || 0}
                     </td>
                   </tr>
                   <tr>
@@ -695,7 +708,7 @@ export default function LiveCamera() {
                       Xe con
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {hourlyStatisticsData?.totalCarCount || 0}
+                      {latestCameraData?.data?.carCount || 0}
                     </td>
                   </tr>
                   <tr>
@@ -703,7 +716,7 @@ export default function LiveCamera() {
                       Xe tải
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {hourlyStatisticsData?.totalTruckCount || 0}
+                      {latestCameraData?.data?.truckCount || 0}
                     </td>
                   </tr>
                   <tr>
@@ -711,7 +724,7 @@ export default function LiveCamera() {
                       Xe khách
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-700 dark:text-gray-300">
-                      {hourlyStatisticsData?.totalBusCount || 0}
+                      {latestCameraData?.data?.busCount || 0}
                     </td>
                   </tr>
                   <tr className="bg-gray-100 dark:bg-gray-800">
@@ -719,29 +732,31 @@ export default function LiveCamera() {
                       Tổng cộng
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-700 p-2 text-center text-gray-800 dark:text-white font-semibold">
-                      {(hourlyStatisticsData?.totalMotorcycleCount || 0) +
-                        (hourlyStatisticsData?.totalCarCount || 0) +
-                        (hourlyStatisticsData?.totalTruckCount || 0) +
-                        (hourlyStatisticsData?.totalBusCount || 0)}
+                      {(latestCameraData?.data?.motorcycleCount || 0) +
+                        (latestCameraData?.data?.carCount || 0) +
+                        (latestCameraData?.data?.truckCount || 0) +
+                        (latestCameraData?.data?.busCount || 0)}
                     </td>
                   </tr>
                 </tbody>
               </table>
-              <div className="mt-2 text-xs text-right text-gray-500 dark:text-gray-400 flex items-center justify-end">
-                <span className="mr-1">
-                  {dataLoading ? (
-                    <span
-                      className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse mr-1"
-                      title="Đang cập nhật dữ liệu"
-                    ></span>
-                  ) : (
-                    <span
-                      className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1"
-                      title="Dữ liệu đã cập nhật"
-                    ></span>
-                  )}
-                </span>
-                Cập nhật lúc: {formatTime(lastUpdated)}
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-end">
+                  <span className="mr-1">
+                    {dataLoading ? (
+                      <span
+                        className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse mr-1"
+                        title="Đang cập nhật dữ liệu"
+                      ></span>
+                    ) : (
+                      <span
+                        className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1"
+                        title="Dữ liệu đã cập nhật"
+                      ></span>
+                    )}
+                  </span>
+                  Cập nhật lúc: {formatTime(lastUpdated)}
+                </div>
               </div>
             </>
           )}
@@ -752,15 +767,27 @@ export default function LiveCamera() {
       <div className="flex h-[30vh] border-t border-gray-200 dark:border-gray-800">
         {/* Junction List */}
         <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 p-4 overflow-hidden">
-          <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-            Danh sách nút giao
-          </h2>
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              Danh sách nút giao
+            </h2>
+            {/* Search Bar */}
+            <div className="w-[60%]">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm nút giao..."
+                className="w-full px-3 py-2 text-gray-900 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 placeholder-gray-500"
+              />
+            </div>
+          </div>
           <div className="h-[calc(100%-2rem)] overflow-y-auto">
             {loading ? (
               <p className="text-gray-700 dark:text-gray-300">Đang tải...</p>
-            ) : junctions.length > 0 ? (
+            ) : filteredJunctions.length > 0 ? (
               <ul>
-                {junctions.map((junction) => (
+                {filteredJunctions.map((junction) => (
                   <li
                     key={junction.junctionId}
                     className={`p-2 cursor-pointer rounded ${
@@ -776,7 +803,7 @@ export default function LiveCamera() {
               </ul>
             ) : (
               <p className="text-gray-700 dark:text-gray-300">
-                Không có nút giao nào
+                Không tìm thấy nút giao phù hợp
               </p>
             )}
           </div>

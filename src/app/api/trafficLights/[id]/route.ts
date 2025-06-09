@@ -25,7 +25,6 @@ export async function PUT(
       latitude,
       longitude,
       junctionId,
-      status,
       isActive,
     } = body;
 
@@ -38,7 +37,6 @@ export async function PUT(
         latitude,
         longitude,
         junctionId,
-        status,
         isActive,
       },
       include: { junction: true },
