@@ -49,12 +49,11 @@ const defaultAccessibleRoutes = [
 export function Sidebar({
   user,
   collapsed,
-  setCollapsed,
   junctionId,
 }: SidebarProps) {
   const pathname = usePathname();
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
-  const { hasPermission, hasAnyPermission, loading, permissions } =
+  const { hasPermission, loading, permissions } =
     usePermissions();
 
   // Auto-open folders based on active path
@@ -103,7 +102,7 @@ export function Sidebar({
   };
 
   // Check if user can access any child in a folder
-  const canAccessFolder = (children: any[], folderTitle?: string): boolean => {
+  const canAccessFolder = (children: NavItem[], folderTitle?: string): boolean => {
     // First check if user has explicit folder permission
     if (folderTitle && folderPermissions[folderTitle]) {
       const folderPermission = folderPermissions[folderTitle];
@@ -116,7 +115,14 @@ export function Sidebar({
     }
 
     // Then check if user can access any child
-    return children.some((child) => canAccessRoute(child.href));
+    return children.some((child) => {
+      // Only check href for link items
+      if (child.type === "link") {
+        return canAccessRoute(child.href);
+      }
+      // For buttons and other types, allow access
+      return true;
+    });
   };
 
   // Filter nav items based on permissions
@@ -135,9 +141,12 @@ export function Sidebar({
           if (!hasAccessToChildren) return false;
 
           // Filter children based on permissions
-          const accessibleChildren = item.children.filter((child) =>
-            canAccessRoute(child.href)
-          );
+          const accessibleChildren = item.children.filter((child) => {
+            if (child.type === "link") {
+              return canAccessRoute(child.href);
+            }
+            return true; // Allow buttons and other types
+          });
           return accessibleChildren.length > 0;
         }
         return true; // Show buttons and other types
@@ -147,9 +156,12 @@ export function Sidebar({
           // Return folder with filtered children
           return {
             ...item,
-            children: item.children.filter((child) =>
-              canAccessRoute(child.href)
-            ),
+            children: item.children.filter((child) => {
+              if (child.type === "link") {
+                return canAccessRoute(child.href);
+              }
+              return true; // Allow buttons and other types
+            }),
           };
         }
         return item;

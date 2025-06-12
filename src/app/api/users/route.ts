@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../../lib/auth";
-import prisma from "../../../../lib/prisma";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 import { hash } from "bcrypt";
 
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    users.map((user) => ({
+    users.map((user: any) => ({
       userId: user.userId,
       username: user.username,
       email: user.email,
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       pendingApproval: isPending ? new Date() : null,
       approvedBy: isPending ? null : session.user.id,
     },
-    include: { role: true },
+    include: { role: true, trafficPatterns: true },
   });
 
   return NextResponse.json(

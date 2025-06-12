@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useTCPServer } from "@/hooks/useTCPServer";
 import { teaEncrypt, teaDecrypt, validateTeaKeys, TEAKeys } from "@/utils/tea";
+import Image from 'next/image';
 
 export default function TCPTestingPage() {
   const {
@@ -34,8 +35,14 @@ export default function TCPTestingPage() {
   const [cursorMode, setCursorMode] = useState<'hex' | 'decimal'>('hex');
   const [cursorValue, setCursorValue] = useState<string>("32");
   
+  // New states for image functionality
+  const [sendMode, setSendMode] = useState<'text' | 'hex' | 'image'>('text');
+  const [sendImagePreview, setSendImagePreview] = useState<string>("");
+  const [receivedImages, setReceivedImages] = useState<{[key: string]: string}>({});
+  
   const receivedDataRef = useRef<HTMLTextAreaElement>(null);
   const sendDataRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Handle server settings changes
   const handleEchoChange = (newEcho: boolean) => {
@@ -54,16 +61,21 @@ export default function TCPTestingPage() {
   const sendMessage = async () => {
     if (sendData.trim() && status === 'running') {
       const targetIP = selectedTargetIP === "all" ? undefined : selectedTargetIP;
-      await tcpSendData(sendData, isHexMode, targetIP);
+      const isSendingImage = sendMode === 'image';
+      await tcpSendData(sendData, sendMode === 'hex', targetIP);
       setSendData("");
+      if (isSendingImage) {
+        setSendImagePreview("");
+        setSendMode('text');
+      }
     }
   };
 
   // Get unique IPs from connected clients
-  const getUniqueClientIPs = () => {
+  const getUniqueClientIPs = useCallback(() => {
     const uniqueIPs = [...new Set(clients.map(client => client.ip))];
     return uniqueIPs;
-  };
+  }, [clients]);
 
   // TEA encryption/decryption functions
   const handleTeaEncrypt = () => {
@@ -151,7 +163,69 @@ export default function TCPTestingPage() {
         setSelectedTargetIP("all");
       }
     }
-  }, [clients, selectedTargetIP]);
+  }, [clients, selectedTargetIP, getUniqueClientIPs]);
+
+  // Image handling functions
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setSendData(base64);
+        setSendImagePreview(base64);
+        setSendMode('image');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearSendImage = () => {
+    setSendData("");
+    setSendImagePreview("");
+    setSendMode('text');
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
+  // Function to detect if data is base64 image
+  const isBase64Image = useCallback((data: string): boolean => {
+    const base64ImageRegex = /^data:image\/(jpeg|jpg|png|gif|bmp|webp);base64,([A-Za-z0-9+/=]+)$/;
+    return base64ImageRegex.test(data.trim());
+  }, []);
+
+  // Function to extract images from received data
+  const extractImagesFromData = useCallback((data: string): {[key: string]: string} => {
+    const images: {[key: string]: string} = {};
+    const lines = data.split('\n');
+    
+    lines.forEach((line, index) => {
+      if (isBase64Image(line.trim())) {
+        images[`image_${index}`] = line.trim();
+      }
+    });
+    
+    return images;
+  }, [isBase64Image]);
+
+  // Update received images when received data changes
+  useEffect(() => {
+    const newImages = extractImagesFromData(receivedData);
+    setReceivedImages(newImages);
+  }, [receivedData, extractImagesFromData]);
+
+  const handleSendModeChange = (mode: 'text' | 'hex' | 'image') => {
+    setSendMode(mode);
+    if (mode !== 'image') {
+      setSendImagePreview("");
+    }
+    if (mode === 'hex') {
+      setIsHexMode(true);
+    } else {
+      setIsHexMode(false);
+    }
+  };
 
   return (
     <div className="flex-1 p-6 bg-white dark:bg-gray-900 overflow-y-auto">
@@ -181,6 +255,29 @@ export default function TCPTestingPage() {
                   Clear
                 </button>
               </div>
+              
+              {/* Received Images Preview */}
+              {Object.keys(receivedImages).length > 0 && (
+                <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-600 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📷 Received Images
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {Object.entries(receivedImages).map(([key, imageData]) => (
+                      <div key={key} className="mt-2">
+                        <Image
+                          src={imageData}
+                          alt={`Received ${key}`}
+                          width={200}
+                          height={200}
+                          className="max-w-full h-auto"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <textarea
                 ref={receivedDataRef}
                 value={receivedData}
@@ -195,14 +292,90 @@ export default function TCPTestingPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Send data
               </label>
-                              <div className="space-y-3">
-                <textarea
-                  ref={sendDataRef}
-                  value={sendData}
-                  onChange={(e) => setSendData(e.target.value)}
-                  className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
-                  placeholder={isHexMode ? "Enter hex data (e.g., 48656C6C6F)" : "Enter text data..."}
-                />
+              <div className="space-y-3">
+                {/* Send Mode Selection */}
+                <div className="flex gap-2 items-center">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Mode:</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleSendModeChange('text')}
+                      className={`px-3 py-1 text-xs rounded ${
+                        sendMode === 'text'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+                      }`}
+                    >
+                      📝 Text
+                    </button>
+                    <button
+                      onClick={() => handleSendModeChange('hex')}
+                      className={`px-3 py-1 text-xs rounded ${
+                        sendMode === 'hex'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+                      }`}
+                    >
+                      🔢 HEX
+                    </button>
+                    <button
+                      onClick={() => handleSendModeChange('image')}
+                      className={`px-3 py-1 text-xs rounded ${
+                        sendMode === 'image'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+                      }`}
+                    >
+                      📷 Image
+                    </button>
+                  </div>
+                </div>
+
+                {/* Image Upload Section */}
+                {sendMode === 'image' && (
+                  <div className="space-y-3">
+                    <div className="flex gap-3 items-center">
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="text-sm text-gray-700 dark:text-gray-300"
+                      />
+                      {sendImagePreview && (
+                        <button
+                          onClick={clearSendImage}
+                          className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Image Preview */}
+                    {sendImagePreview && (
+                      <div className="mt-2">
+                        <Image
+                          src={sendImagePreview}
+                          alt="Preview"
+                          width={200}
+                          height={200}
+                          className="max-w-full h-auto"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Text/Hex Input */}
+                {sendMode !== 'image' && (
+                  <textarea
+                    ref={sendDataRef}
+                    value={sendData}
+                    onChange={(e) => setSendData(e.target.value)}
+                    className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
+                    placeholder={sendMode === 'hex' ? "Enter hex data (e.g., 48656C6C6F)" : "Enter text data..."}
+                  />
+                )}
                 
                 {/* Target IP Selection */}
                 <div className="flex items-center gap-3">
@@ -212,14 +385,14 @@ export default function TCPTestingPage() {
                     onChange={(e) => setSelectedTargetIP(e.target.value)}
                     className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                   >
-                    <option value="all">📡 All connected clients ({clientCount})</option>
+                    <option value="all">All connected clients ({clientCount})</option>
                     {getUniqueClientIPs().map((ip) => {
                       const ipClients = clients.filter(c => c.ip === ip);
                       const connectionCount = ipClients.length;
                       const ports = ipClients.map(c => c.port).join(', ');
                       return (
                         <option key={ip} value={ip}>
-                          🔗 {ip} - {connectionCount} connection{connectionCount > 1 ? 's' : ''} (port: {ports})
+                          {ip} - {connectionCount} connection{connectionCount > 1 ? 's' : ''} (port: {ports})
                         </option>
                       );
                     })}
@@ -229,20 +402,25 @@ export default function TCPTestingPage() {
                 <div className="flex gap-3 items-center">
                   <button
                     onClick={sendMessage}
-                    disabled={status === 'stopped' || loading}
+                    disabled={status === 'stopped' || loading || !sendData.trim()}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {loading ? 'Sending...' : selectedTargetIP === 'all' ? 'Send to All' : `Send to ${selectedTargetIP}`}
+                    {loading ? 'Sending...' : 
+                     sendMode === 'image' ? 'Send Image' :
+                     selectedTargetIP === 'all' ? 'Send to All' : `Send to ${selectedTargetIP}`}
                   </button>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isHexMode}
-                      onChange={(e) => setIsHexMode(e.target.checked)}
-                      className="rounded"
-                    />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">HEX</span>
-                  </label>
+                  
+                  {sendMode !== 'image' && (
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={sendMode === 'hex'}
+                        onChange={(e) => handleSendModeChange(e.target.checked ? 'hex' : 'text')}
+                        className="rounded"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">HEX</span>
+                    </label>
+                  )}
                 </div>
               </div>
             </div>
@@ -328,7 +506,7 @@ export default function TCPTestingPage() {
             </div>
 
             {/* TEA Authorization */}
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+            {/* <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 TEA authorization
               </h3>
@@ -397,15 +575,15 @@ export default function TCPTestingPage() {
                   </button>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Client Authorization */}
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+            {/* <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 Client authorization
               </h3>
               <p className="text-xs text-gray-500">Client authorization settings can be configured here</p>
-            </div>
+            </div> */}
 
             {/* Client Connection Status */}
             <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
@@ -474,7 +652,7 @@ export default function TCPTestingPage() {
                     disabled={loading}
                     className="w-full px-3 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    🔄 Restore Server State
+                    Restore Server State
                   </button>
                   <p className="text-xs text-gray-500 mt-1">
                     Restore previously running servers after refresh

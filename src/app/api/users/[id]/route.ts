@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../../../lib/auth";
-import prisma from "../../../../../lib/prisma";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = params.id;
+  const { id: userId } = await params;
   if (!userId) {
     return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
   }
@@ -62,7 +62,7 @@ export async function PUT(
   const user = await prisma.user.update({
     where: { userId },
     data: updateData,
-    include: { role: true },
+    include: { role: true, trafficPatterns: true },
   });
 
   return NextResponse.json({
@@ -87,14 +87,14 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = params.id;
+  const { id: userId } = await params;
   if (!userId) {
     return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Map, {
   MapRef,
   NavigationControl,
@@ -64,10 +64,10 @@ export default function MapComponent() {
   const mapRef = useRef<MapRef>(null);
   const { collapsed } = useDashboardContext();
 
-  const fastAnimationOptions = {
+  const fastAnimationOptions = useMemo(() => ({
     speed: 2.5,
     curve: 1,
-  };
+  }), []);
 
   useEffect(() => {
     localStorage.setItem("mapDisplayOptions", JSON.stringify(displayOptions));
@@ -234,10 +234,22 @@ export default function MapComponent() {
     }
   }, [currentLocation, mapRef]);
 
+  const handleSuggestionClick = (suggestion: any) => {
+    handleSuggestionSelect(suggestion.title);
+  };
+
   const filteredJunctions = junctions.filter((junction) => {
     if (!searchQuery) return true;
     return matchesQuery(junction.junctionName, searchQuery);
   });
+
+  // Create suggestions for SearchBar
+  const suggestions = filteredJunctions.map((junction) => ({
+    id: junction.junctionId,
+    title: junction.junctionName,
+    subtitle: junction.location,
+    type: 'junction'
+  }));
 
   const flyToCurrentLocation = useCallback(() => {
     if (currentLocation && mapRef.current) {
@@ -247,7 +259,7 @@ export default function MapComponent() {
         ...fastAnimationOptions,
       });
     }
-  }, [currentLocation]);
+  }, [currentLocation, fastAnimationOptions]);
 
   const handleDisplayOptionChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -291,6 +303,8 @@ export default function MapComponent() {
         onSuggestionSelect={handleSuggestionSelect}
         junctions={junctions}
         searchHistory={searchHistory}
+        suggestions={suggestions}
+        onSuggestionClick={handleSuggestionClick}
       />
       <Map
         ref={mapRef}

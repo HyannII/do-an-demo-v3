@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import Map, { MapRef, Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Camera, Junction } from "../../../../types/interface";
+import { Junction } from "../../../../types/interface";
 import { mapStyles } from "../../(dashboard)/map/mapComponent/mapConstants";
 
 interface JunctionManagementProps {
@@ -15,7 +15,6 @@ export default function JunctionManagement({
   junctions,
   setJunctions,
 }: JunctionManagementProps) {
-  const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<Junction | null>(null);
@@ -25,6 +24,7 @@ export default function JunctionManagement({
     location: "",
     latitude: "",
     longitude: "",
+    isActive: true,
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [modalMapStyle, setModalMapStyle] = useState(
@@ -61,6 +61,7 @@ export default function JunctionManagement({
       location: "",
       latitude: "",
       longitude: "",
+      isActive: true,
     });
     setModalMapStyle("mapbox://styles/mapbox/streets-v12");
     setIsModalOpen(true);
@@ -80,6 +81,7 @@ export default function JunctionManagement({
       location: item.location,
       latitude: item.latitude?.toString() || "",
       longitude: item.longitude?.toString() || "",
+      isActive: true, // Default value since Junction doesn't have isActive property
     });
     setModalMapStyle("mapbox://styles/mapbox/streets-v12");
     setIsModalOpen(true);
@@ -87,17 +89,18 @@ export default function JunctionManagement({
 
   // Handle form input changes
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
   // Handle map click to set latitude and longitude
-  const handleMapClick = (event: any) => {
+  const handleMapClick = (event: { lngLat: { lng: number; lat: number } }) => {
     const { lng, lat } = event.lngLat;
     setFormData((prev) => ({
       ...prev,
@@ -263,16 +266,7 @@ export default function JunctionManagement({
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="border-2 border-gray-300 dark:border-gray-600 p-2 text-center text-gray-700 dark:text-gray-300"
-                >
-                  Đang tải...
-                </td>
-              </tr>
-            ) : currentItems.length > 0 ? (
+            {currentItems.length > 0 ? (
               currentItems.map((item, index) => (
                 <tr key={item.junctionId}>
                   <td className="border-2 border-gray-300 dark:border-gray-600 p-2">

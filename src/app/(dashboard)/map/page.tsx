@@ -1,16 +1,15 @@
 "use client";
 
-import { PageHeader } from "@/app/(components)/page-header";
-import { navItems } from "@/config/nav-items";
 import dynamic from "next/dynamic";
 
 const MapComponent = dynamic(() => import("./mapComponent"), {
   ssr: false,
+  loading: () => <div>Loading map...</div>,
 });
 
-export default function Home() {
+export default function MapPage() {
   return (
-    <div className="w-full">
+    <div className="w-full h-full">
       <MapComponent />
     </div>
   );

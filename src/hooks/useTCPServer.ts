@@ -223,7 +223,7 @@ export function useTCPServer(initialPort: number = 7000) {
       }));
       appendReceivedData(`Error starting server: ${errorMessage}`);
     }
-  }, [state.port, state.echo, state.redirectToUDP, appendReceivedData, connectWebSocket]);
+  }, [state.port, state.echo, state.redirectToUDP, state.status, appendReceivedData, connectWebSocket]);
 
   // Stop TCP server
   const stopServer = useCallback(async () => {
@@ -456,4 +456,4 @@ export function useTCPServer(initialPort: number = 7000) {
     appendReceivedData,
     restoreState
   };
-} 
+}

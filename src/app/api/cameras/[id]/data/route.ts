@@ -1,8 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
-
-// Create a new Prisma client for each request to avoid caching issues
-const createPrismaClient = () => new PrismaClient();
+import prisma from "@/lib/prisma";
 
 // Helper function to get date in GMT+7
 const getGMT7Date = (date = new Date()) => {
@@ -14,18 +11,15 @@ const getGMT7Date = (date = new Date()) => {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const { searchParams } = new URL(request.url);
   const timestamp = searchParams.get("timestamp") || Date.now().toString(); // Add timestamp to break cache
 
   if (!id) {
     return NextResponse.json({ error: "Invalid camera ID" }, { status: 400 });
   }
-
-  // Create a new instance of Prisma for this request
-  const prisma = createPrismaClient();
 
   try {
     // Get current GMT+7 time
@@ -158,8 +152,5 @@ export async function GET(
       { error: "Failed to fetch camera data" },
       { status: 500 }
     );
-  } finally {
-    // Disconnect Prisma client to prevent connection pooling issues
-    await prisma.$disconnect();
   }
 }

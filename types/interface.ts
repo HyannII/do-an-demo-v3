@@ -38,6 +38,7 @@ export interface TrafficLight {
   junctionId: string;
   status: string;
   isActive: boolean;
+  description?: string;
 }
 
 export interface TrafficPattern {

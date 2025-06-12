@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 // Create a new Prisma client for each request to avoid caching issues
 const createPrismaClient = () => new PrismaClient();
@@ -139,19 +140,15 @@ const aggregateDataPoints = (
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  // Fix synchronous params access by making it async/await
-  const id = params?.id;
+  const { id } = await params;
   const { searchParams } = new URL(request.url);
   const period = searchParams.get("period") || "today"; // today, week, month, year
 
   if (!id) {
     return NextResponse.json({ error: "Invalid camera ID" }, { status: 400 });
   }
-
-  // Create a new instance of Prisma for this request
-  const prisma = createPrismaClient();
 
   try {
     // Calculate date range based on period using GMT+7
@@ -341,8 +338,5 @@ export async function GET(
       { error: "Failed to fetch camera statistics" },
       { status: 500 }
     );
-  } finally {
-    // Disconnect Prisma client to prevent connection pooling issues
-    await prisma.$disconnect();
   }
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Hls from "hls.js";
 import {
   Camera,
@@ -21,10 +20,6 @@ export default function LiveCamera() {
   const [videoLoading, setVideoLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [streamError, setStreamError] = useState<string | null>(null);
-  const [isAutoQuality, setIsAutoQuality] = useState<boolean>(true);
-  const [qualityLevels, setQualityLevels] = useState<
-    { height: number; bitrate: number; level: number }[]
-  >([]);
   const [wasDocumentHidden, setWasDocumentHidden] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [hourlyStatisticsData, setHourlyStatisticsData] = useState<{
@@ -51,8 +46,8 @@ export default function LiveCamera() {
   const recoveryAttempts = useRef<number>(0);
   const maxRecoveryAttempts = 3;
 
-  // Create HLS config with optimized settings
-  const hlsConfig = {
+  // Create HLS config with optimized settings - moved to useMemo for stable reference
+  const hlsConfig = useMemo(() => ({
     maxBufferLength: 30, // Increase buffer length for smoother playback
     maxMaxBufferLength: 60, // Maximum buffer size
     liveSyncDurationCount: 15, // Live sync window
@@ -74,7 +69,7 @@ export default function LiveCamera() {
     abrEwmaFastLive: 3.0, // Fast live adaptation
     abrEwmaSlowLive: 9.0, // Slow live adaptation
     startFragPrefetch: true, // Prefetch initial fragments
-  };
+  }), []);
 
   // Fetch junctions and their cameras on component mount
   useEffect(() => {
@@ -132,14 +127,7 @@ export default function LiveCamera() {
         hls.attachMedia(video);
 
         // Handle quality levels for adaptive streaming
-        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-          const levels = data.levels.map((level, index) => ({
-            height: level.height,
-            bitrate: level.bitrate,
-            level: index,
-          }));
-          setQualityLevels(levels);
-
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
           // Start playback when manifest is ready
           video.play().catch((error) => {
             console.error("Error playing video:", error);
@@ -225,7 +213,7 @@ export default function LiveCamera() {
         return null;
       }
     },
-    [streamError]
+    [hlsConfig, streamError]
   );
 
   // Handle HLS playback when a camera is selected
@@ -249,7 +237,6 @@ export default function LiveCamera() {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
-      setQualityLevels([]);
     };
   }, [selectedCamera, initializeHlsPlayer]);
 
@@ -297,47 +284,7 @@ export default function LiveCamera() {
     return new Date(utc + gmtOffset);
   };
 
-  // Function to fetch camera data
-  const fetchCameraData = async (cameraId: string) => {
-    setDataLoading(true);
-    try {
-      // Add timestamp parameter to bust cache
-      const timestamp = Date.now();
-      const response = await fetch(
-        `/api/cameras/${cameraId}/data?timestamp=${timestamp}`,
-        {
-          cache: "no-store",
-          headers: {
-            Pragma: "no-cache",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-          },
-        }
-      );
 
-      if (!response.ok) {
-        console.error("Failed to fetch camera data", response.status);
-        return;
-      }
-      const data = await response.json();
-
-      // Update data without showing loading state
-      setCameraData(data);
-      setLastUpdated(getGMT7Date());
-
-      console.log(
-        `Camera data updated at ${getGMT7Date().toISOString()} (GMT+7)`
-      );
-      if (data && data.totalMotorcycleCount !== undefined) {
-        console.log(
-          `Received counts - Motorcycles: ${data.totalMotorcycleCount}, Cars: ${data.totalCarCount}, Trucks: ${data.totalTruckCount}, Buses: ${data.totalBusCount}`
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching camera data:", error);
-    } finally {
-      setDataLoading(false);
-    }
-  };
 
   // Function to fetch hourly statistics data for today (new logic from statistics page)
   const fetchHourlyStatistics = async (cameraId: string) => {

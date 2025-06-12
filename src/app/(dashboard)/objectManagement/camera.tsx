@@ -17,7 +17,6 @@ export default function CameraManagement({
   setCameras,
   junctions,
 }: CameraManagementProps) {
-  const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<Camera | null>(null);
@@ -142,7 +141,7 @@ export default function CameraManagement({
   };
 
   // Handle map click to set latitude and longitude
-  const handleMapClick = (event: any) => {
+  const handleMapClick = (event: { lngLat: { lng: number; lat: number } }) => {
     const { lng, lat } = event.lngLat;
     setFormData((prev) => ({
       ...prev,
@@ -339,16 +338,7 @@ export default function CameraManagement({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-3 text-center text-gray-700 dark:text-gray-300"
-                >
-                  Đang tải...
-                </td>
-              </tr>
-            ) : currentItems.length > 0 ? (
+            {currentItems.length > 0 ? (
               currentItems.map((item, index) => (
                 <tr
                   key={item.cameraId}

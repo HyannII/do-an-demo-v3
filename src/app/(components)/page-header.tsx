@@ -2,12 +2,19 @@
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
-import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useDashboardContext } from "./client-layout";
 import { Clock } from "./clock";
 
+interface NavItem {
+  type: string;
+  title: string;
+  href?: string;
+  children?: NavItem[];
+}
+
 interface PageHeaderProps {
-  navItems: Array<any>;
+  navItems: NavItem[];
 }
 
 export function PageHeader({ navItems }: PageHeaderProps) {
@@ -15,7 +22,7 @@ export function PageHeader({ navItems }: PageHeaderProps) {
   const { collapsed, setCollapsed } = useDashboardContext();
 
   const pageTitle = useMemo(() => {
-    const getTitle = (items: Array<any>): string => {
+    const getTitle = (items: NavItem[]): string => {
       for (const item of items) {
         if (item.type === "link" && item.href === pathname) return item.title;
         if (item.type === "folder" && item.children) {

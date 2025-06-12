@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { Search, X } from "lucide-react";
 
 // Định nghĩa interface cho lịch sử tìm kiếm
 interface SearchHistoryItem {
@@ -9,12 +10,22 @@ interface SearchHistoryItem {
   timestamp: number;
 }
 
+interface SearchResult {
+  id: string;
+  title: string;
+  subtitle?: string;
+  type?: string;
+}
+
 interface SearchBarProps {
-  onSearch: (name: string) => void;
+  onSearch: (query: string) => void;
   onClear: () => void;
   onSuggestionSelect: (name: string) => void; // Thêm prop để xử lý khi chọn gợi ý
   junctions: any[];
   searchHistory: SearchHistoryItem[];
+  suggestions: SearchResult[];
+  onSuggestionClick: (suggestion: SearchResult) => void;
+  placeholder?: string;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -23,9 +34,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onSuggestionSelect,
   junctions,
   searchHistory,
+  suggestions = [],
+  onSuggestionClick,
+  placeholder = "Tìm kiếm vị trí...",
 }) => {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,31 +70,26 @@ const SearchBar: React.FC<SearchBarProps> = ({
   }, [query, junctions]);
 
   useEffect(() => {
-    setSuggestions(filteredSuggestions);
     setShowSuggestions(!!query && filteredSuggestions.length > 0);
   }, [filteredSuggestions, query]);
 
-  const handleClear = () => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+    onSearch(value);
+    setShowSuggestions(value.length > 0);
+  };
+
+  const handleSuggestionClick = (suggestion: SearchResult) => {
+    setQuery(suggestion.title);
+    setShowSuggestions(false);
+    onSuggestionClick(suggestion);
+  };
+
+  const clearSearch = () => {
     setQuery("");
     setShowSuggestions(false);
-    onClear();
-  };
-
-  const clearHistory = () => {
-    localStorage.removeItem("searchHistory");
-    window.dispatchEvent(new Event("storage")); // Trigger sự kiện để cập nhật state
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    setQuery(suggestion);
-    setShowSuggestions(false);
-    onSuggestionSelect(suggestion); // Gọi hàm onSuggestionSelect để lưu vào lịch sử
-  };
-
-  const handleHistoryClick = (historyItem: string) => {
-    setQuery(historyItem);
-    setShowSuggestions(false);
-    onSearch(historyItem); // Tìm kiếm lại khi chọn từ lịch sử
+    onSearch("");
   };
 
   const handleFocus = () => {
@@ -98,68 +106,55 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }, 200); // Delay để cho phép click vào gợi ý trước khi ẩn
   };
 
+  const clearHistory = () => {
+    localStorage.removeItem("searchHistory");
+    window.dispatchEvent(new Event("storage")); // Trigger sự kiện để cập nhật state
+  };
+
   return (
-    <div className="flex absolute top-2 left-2 z-10 bg-white p-2 rounded-lg shadow-md">
+    <div className="relative w-full max-w-md">
       <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
         <input
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={handleInputChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          placeholder="Tìm kiếm..."
-          className="p-2 mr-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder={placeholder}
+          className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
-        {showSuggestions && (
-          <ul className="absolute top-full left-0 right-0 bg-white shadow-md rounded-md max-h-40 overflow-y-auto">
-            {isFocused && !query && searchHistory.length > 0 && (
-              <>
-                <li className="p-2 text-sm font-medium text-gray-500 border-b flex justify-between items-center">
-                  Lịch sử tìm kiếm
-                  <button
-                    onClick={clearHistory}
-                    className="text-red-500 text-xs hover:underline"
-                  >
-                    Xóa lịch sử
-                  </button>
-                </li>
-                {searchHistory.map((historyItem, index) => (
-                  <li
-                    key={index}
-                    onClick={() => handleHistoryClick(historyItem.name)}
-                    className="p-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    {historyItem.name}
-                  </li>
-                ))}
-              </>
-            )}
-            {query && suggestions.length > 0 && (
-              <>
-                <li className="p-2 text-sm font-medium text-gray-500 border-b">
-                  Gợi ý
-                </li>
-                {suggestions.map((suggestion, index) => (
-                  <li
-                    key={index}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="p-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    {suggestion}
-                  </li>
-                ))}
-              </>
-            )}
-          </ul>
+        {query && (
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+            <button
+              onClick={clearSearch}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         )}
       </div>
-      <button
-        onClick={handleClear}
-        className="ml-2 border-1 border-gray-400 rounded-md px-3 py-1 hover:bg-gray-200"
-      >
-        Xóa
-      </button>
+
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {suggestions.map((suggestion) => (
+            <button
+              key={suggestion.id}
+              onClick={() => handleSuggestionClick(suggestion)}
+              className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
+            >
+              <div className="font-medium text-gray-900">{suggestion.title}</div>
+              {suggestion.subtitle && (
+                <div className="text-sm text-gray-500">{suggestion.subtitle}</div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -25,12 +25,11 @@ export default function TrafficLightManagement({
   const [filterJunctionId, setFilterJunctionId] = useState<string>(""); // State for filtering by Junction
   const [formData, setFormData] = useState({
     lightName: "",
-    ipAddress: "",
     location: "",
     latitude: "",
     longitude: "",
     junctionId: "",
-    status: "red",
+    description: "",
     isActive: true,
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -72,12 +71,11 @@ export default function TrafficLightManagement({
     setIsEditMode(false);
     setFormData({
       lightName: "",
-      ipAddress: "",
       location: "",
       latitude: "",
       longitude: "",
       junctionId: "",
-      status: "red",
+      description: "",
       isActive: true,
     });
     setModalMapStyle("mapbox://styles/mapbox/streets-v12");
@@ -97,12 +95,11 @@ export default function TrafficLightManagement({
     setCurrentItem(item);
     setFormData({
       lightName: item.lightName,
-      ipAddress: item.ipAddress,
       location: item.location,
       latitude: item.latitude?.toString() || "",
       longitude: item.longitude?.toString() || "",
-      junctionId: item.junctionId,
-      status: item.status,
+      junctionId: item.junctionId || "",
+      description: item.description || "",
       isActive: item.isActive,
     });
     setModalMapStyle("mapbox://styles/mapbox/streets-v12");
@@ -157,12 +154,11 @@ export default function TrafficLightManagement({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lightName: formData.lightName,
-          ipAddress: formData.ipAddress,
           location: formData.location,
           latitude: formData.latitude ? parseFloat(formData.latitude) : null,
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           junctionId: formData.junctionId,
-          status: formData.status,
+          description: formData.description,
           isActive: formData.isActive,
         }),
       });
@@ -458,35 +454,6 @@ export default function TrafficLightManagement({
                       className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
                       required
                     />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      IP Address
-                    </label>
-                    <input
-                      type="text"
-                      name="ipAddress"
-                      value={formData.ipAddress}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Trạng thái
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500"
-                      required
-                    >
-                      <option value="red">Đỏ</option>
-                      <option value="yellow">Vàng</option>
-                      <option value="green">Xanh</option>
-                    </select>
                   </div>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

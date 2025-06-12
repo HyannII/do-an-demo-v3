@@ -1,20 +1,15 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-
-// Create a new Prisma client for each request to avoid caching issues
-const createPrismaClient = () => new PrismaClient();
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params?.id;
+  const { id } = await params;
 
   if (!id) {
     return NextResponse.json({ error: "Invalid camera ID" }, { status: 400 });
   }
-
-  const prisma = createPrismaClient();
 
   try {
     // Get current date in UTC
@@ -163,7 +158,5 @@ export async function GET(
       { error: "Failed to fetch hourly camera statistics" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

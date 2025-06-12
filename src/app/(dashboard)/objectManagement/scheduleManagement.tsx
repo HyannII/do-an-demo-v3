@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ScheduleConfig,
   DaySchedule,
@@ -37,7 +37,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
   const [autoPatternId, setAutoPatternId] = useState<string>("");
   const [daySchedules, setDaySchedules] = useState<DaySchedule[]>([]);
 
-  const daysOfWeek = [
+  const daysOfWeek = useMemo(() => [
     { value: 1, label: "Thứ Hai" },
     { value: 2, label: "Thứ Ba" },
     { value: 3, label: "Thứ Tư" },
@@ -45,7 +45,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
     { value: 5, label: "Thứ Sáu" },
     { value: 6, label: "Thứ Bảy" },
     { value: 0, label: "Chủ Nhật" },
-  ];
+  ], []);
 
   // Filter schedules by selected junction
   useEffect(() => {
@@ -84,7 +84,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
       }));
       setDaySchedules(initialSchedules);
     }
-  }, [mode]);
+  }, [mode, daySchedules.length, daysOfWeek]);
 
   const resetForm = () => {
     setScheduleName("");
@@ -675,8 +675,8 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
 
                   {getAutoPattern() && (
                     <p className="text-yellow-600 dark:text-yellow-400 text-sm mt-2">
-                      💡 Gợi ý: Tìm thấy mẫu pha "
-                      {getAutoPattern()?.patternName}" - có thể là mẫu pha tự
+                      💡 Gợi ý: Tìm thấy mẫu pha &quot;
+                      {getAutoPattern()?.patternName}&quot; - có thể là mẫu pha tự
                       động
                     </p>
                   )}
