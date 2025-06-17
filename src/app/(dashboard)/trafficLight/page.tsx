@@ -34,7 +34,231 @@ export default function JunctionMap() {
   const [currentPhaseInfo, setCurrentPhaseInfo] =
     useState<CurrentPhaseInfo | null>(null);
 
+  // New state variables for cache logic similar to Python simulator
+  const [cachedPattern, setCachedPattern] = useState<TrafficPattern | null>(
+    null
+  );
+  const [cachedSchedule, setCachedSchedule] = useState<ActiveSchedule | null>(
+    null
+  );
+  const [lastConfigUpdate, setLastConfigUpdate] = useState<number>(0);
+  const [configSource, setConfigSource] = useState<string>("unknown");
+  const [isUpdatingConfig, setIsUpdatingConfig] = useState<boolean>(false);
+
   const mapRef = useRef<MapRef>(null);
+
+  // Helper function to fetch and cache new config (similar to Python's load_config_from_db async)
+  const fetchAndCacheConfig = async (
+    junctionId: string,
+    currentTime: number
+  ) => {
+    if (isUpdatingConfig) return; // Prevent concurrent updates
+
+    setIsUpdatingConfig(true);
+    console.log(
+      `Fetching new config for junction ${junctionId} at time ${currentTime}`
+    );
+
+    try {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTimeInMinutes = currentHour * 60 + currentMinute;
+      const currentDayOfWeek = now.getDay();
+
+      // Query all schedules for this junction
+      const schedulesResponse = await fetch(
+        `/api/schedules?junctionId=${junctionId}`
+      );
+
+      if (schedulesResponse.ok) {
+        const schedules = await schedulesResponse.json();
+
+        // Find the active schedule
+        const activeSchedule = schedules.find(
+          (schedule: any) => schedule.isActive === true
+        );
+
+        if (activeSchedule) {
+          if (activeSchedule.mode === "auto" && activeSchedule.autoPatternId) {
+            // Auto mode - use the auto pattern
+            const patternResponse = await fetch(
+              `/api/trafficPatterns/${activeSchedule.autoPatternId}`
+            );
+            if (patternResponse.ok) {
+              const patternData = await patternResponse.json();
+
+              // Cache the new pattern and schedule
+              setCachedPattern(patternData);
+              setCachedSchedule({
+                scheduleId: activeSchedule.scheduleId,
+                junctionId: activeSchedule.junctionId,
+                patternId: activeSchedule.autoPatternId,
+                startTime: "Auto",
+                endTime: "Auto",
+                isActive: true,
+                pattern: patternData,
+              });
+              setConfigSource("database_auto");
+              console.log(
+                `Cached new auto pattern config for junction ${junctionId}`
+              );
+              return;
+            }
+          } else if (
+            activeSchedule.mode === "schedule" &&
+            activeSchedule.daySchedules
+          ) {
+            // Schedule mode - check day schedules
+            const todaySchedule = activeSchedule.daySchedules.find(
+              (daySchedule: any) =>
+                daySchedule.dayOfWeek === currentDayOfWeek &&
+                daySchedule.isActive === true
+            );
+
+            if (todaySchedule && todaySchedule.timeSlots) {
+              // Find matching time slot
+              let matchingTimeSlot = null;
+
+              for (const timeSlot of todaySchedule.timeSlots) {
+                if (!timeSlot.isActive) continue;
+
+                if (!timeSlot.startTime || !timeSlot.endTime) {
+                  continue;
+                }
+
+                const [startHour, startMinute] = timeSlot.startTime
+                  .split(":")
+                  .map(Number);
+                const [endHour, endMinute] = timeSlot.endTime
+                  .split(":")
+                  .map(Number);
+
+                const startTimeInMinutes = startHour * 60 + startMinute;
+                const endTimeInMinutes = endHour * 60 + endMinute;
+
+                let isInRange = false;
+
+                // Handle time slots that cross midnight
+                if (startTimeInMinutes <= endTimeInMinutes) {
+                  // Normal time slot (same day)
+                  isInRange =
+                    currentTimeInMinutes >= startTimeInMinutes &&
+                    currentTimeInMinutes <= endTimeInMinutes;
+                } else {
+                  // Time slot crosses midnight
+                  isInRange =
+                    currentTimeInMinutes >= startTimeInMinutes ||
+                    currentTimeInMinutes <= endTimeInMinutes;
+                }
+
+                if (isInRange) {
+                  matchingTimeSlot = timeSlot;
+                  break;
+                }
+              }
+
+              if (matchingTimeSlot) {
+                // Fetch the pattern for this time slot
+                const patternResponse = await fetch(
+                  `/api/trafficPatterns/${matchingTimeSlot.patternId}`
+                );
+                if (patternResponse.ok) {
+                  const patternData = await patternResponse.json();
+
+                  // Cache the new pattern and schedule
+                  setCachedPattern(patternData);
+                  setCachedSchedule({
+                    scheduleId: activeSchedule.scheduleId,
+                    junctionId: activeSchedule.junctionId,
+                    patternId: matchingTimeSlot.patternId,
+                    startTime: matchingTimeSlot.startTime,
+                    endTime: matchingTimeSlot.endTime,
+                    isActive: true,
+                    pattern: patternData,
+                  });
+                  setConfigSource("database_schedule");
+                  console.log(
+                    `Cached new schedule pattern config for junction ${junctionId}`
+                  );
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Fallback to default pattern logic if no active schedule found
+      await fetchDefaultPattern(junctionId);
+    } catch (error) {
+      console.error("Error fetching config:", error);
+      await fetchDefaultPattern(junctionId);
+    } finally {
+      setIsUpdatingConfig(false);
+    }
+  };
+
+  // Helper function to fetch default pattern as fallback
+  const fetchDefaultPattern = async (junctionId: string) => {
+    try {
+      const response = await fetch(
+        `/api/trafficPatterns?junctionId=${junctionId}`
+      );
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+
+      const currentHour = new Date().getHours();
+
+      const matchingPattern = data.find((pattern: TrafficPattern) => {
+        if (
+          pattern.timingConfiguration?.activeTime?.startHour !== undefined &&
+          pattern.timingConfiguration?.activeTime?.endHour !== undefined
+        ) {
+          const { startHour, endHour } = pattern.timingConfiguration.activeTime;
+          return currentHour >= startHour && currentHour < endHour;
+        }
+        return false;
+      });
+
+      const selectedPattern = matchingPattern || data[0] || null;
+      if (selectedPattern) {
+        setCachedPattern(selectedPattern);
+        setCachedSchedule(null);
+        setConfigSource("database_fallback");
+        console.log(
+          `Cached fallback pattern config for junction ${junctionId}`
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching default pattern:", error);
+      setConfigSource("error");
+    }
+  };
+
+  // Function to apply cached config (similar to Python's update_config)
+  const applyCachedConfig = () => {
+    if (cachedPattern || cachedSchedule) {
+      console.log(`Applying cached config from source: ${configSource}`);
+
+      if (cachedPattern) {
+        setActivePattern(cachedPattern);
+        setCachedPattern(null); // Clear cache after applying
+      }
+
+      if (cachedSchedule) {
+        setActiveSchedule(cachedSchedule);
+        setCachedSchedule(null); // Clear cache after applying
+      } else if (cachedPattern && !cachedSchedule) {
+        setActiveSchedule(null);
+      }
+
+      // Update chart refresh key to trigger re-render
+      setChartRefreshKey((prev) => prev + 1);
+    }
+  };
 
   // Handle junction selection
   const handleJunctionSelect = (junction: Junction) => {
@@ -42,6 +266,13 @@ export default function JunctionMap() {
     setActivePattern(null);
     setActiveSchedule(null);
     setCurrentPhaseInfo(null);
+
+    // Reset cache variables when selecting new junction
+    setCachedPattern(null);
+    setCachedSchedule(null);
+    setLastConfigUpdate(0);
+    setConfigSource("unknown");
+    setIsUpdatingConfig(false);
   };
 
   // Fetch junctions on component mount
@@ -124,6 +355,8 @@ export default function JunctionMap() {
                   isActive: true,
                   pattern: patternData,
                 });
+                setConfigSource("initial_auto");
+                setLastConfigUpdate(0); // Initialize for cycle tracking
                 return;
               }
             } else if (
@@ -196,6 +429,8 @@ export default function JunctionMap() {
                       isActive: true,
                       pattern: patternData,
                     });
+                    setConfigSource("initial_schedule");
+                    setLastConfigUpdate(0); // Initialize for cycle tracking
                     return;
                   }
                 }
@@ -239,13 +474,61 @@ export default function JunctionMap() {
         const selectedPattern = matchingPattern || data[0] || null;
         setActivePattern(selectedPattern);
         setActiveSchedule(null);
+        setConfigSource("initial_fallback");
+        setLastConfigUpdate(0); // Initialize for cycle tracking
       } catch (error) {
         // Silent error handling
+        setConfigSource("error");
       }
     };
 
     fetchActiveScheduleData();
   }, [selectedJunction]);
+
+  // Main logic for half-cycle checking and config caching (similar to Python simulator)
+  useEffect(() => {
+    if (!selectedJunction || !activePattern || !trafficLightState) {
+      return;
+    }
+
+    const config = activePattern.timingConfiguration;
+    if (!config) return;
+
+    const cycleDuration = config.cycleDuration || config.cycleTime || 120;
+    const currentTime = trafficLightState.current_time;
+    const cycleTime = currentTime % cycleDuration;
+
+    // Check if we've passed half cycle since last update (similar to Python logic)
+    const halfCycle = Math.floor(cycleDuration / 2);
+    const timeSinceLastUpdate =
+      (cycleTime - lastConfigUpdate + cycleDuration) % cycleDuration;
+
+    // If this is our first time or we've passed half cycle, check for config update
+    if (lastConfigUpdate === 0 || timeSinceLastUpdate >= halfCycle) {
+      console.log(
+        `Half-cycle reached (${halfCycle}s) at cycle time=${cycleTime}. Fetching new config...`
+      );
+
+      // Fetch new config asynchronously and cache it
+      fetchAndCacheConfig(selectedJunction.junctionId, currentTime);
+      setLastConfigUpdate(cycleTime);
+    }
+
+    // Apply cached config when we reach the start of a new cycle (currentTime = 0 or very small)
+    if (cycleTime <= 2 && (cachedPattern || cachedSchedule)) {
+      console.log(
+        `New cycle started at time ${currentTime}, applying cached config`
+      );
+      applyCachedConfig();
+    }
+  }, [
+    selectedJunction,
+    activePattern,
+    trafficLightState,
+    lastConfigUpdate,
+    cachedPattern,
+    cachedSchedule,
+  ]);
 
   // Calculate current phase info based on traffic light state and active pattern
   useEffect(() => {
@@ -356,19 +639,13 @@ export default function JunctionMap() {
     setCurrentPhaseInfo(phaseInfo);
   }, [activePattern, trafficLightState]);
 
-  // Refresh chart every 5 minutes
+  // Real-time chart refresh based on traffic light state updates (removed fixed 5-minute interval)
   useEffect(() => {
-    if (!selectedJunction) return;
+    if (!selectedJunction || !trafficLightState) return;
 
-    const refreshChart = () => {
-      setChartRefreshKey((prev) => prev + 1);
-    };
-
-    refreshChart();
-    const chartInterval = setInterval(refreshChart, 300000);
-
-    return () => clearInterval(chartInterval);
-  }, [selectedJunction]);
+    // Refresh chart when traffic light state updates to ensure real-time display
+    setChartRefreshKey((prev) => prev + 1);
+  }, [selectedJunction, trafficLightState, activePattern, configSource]);
 
   // Fetch traffic light state from Python API
   useEffect(() => {
@@ -419,6 +696,18 @@ export default function JunctionMap() {
 
   return (
     <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+      {/* Debug info in console */}
+      {process.env.NODE_ENV === "development" &&
+        selectedJunction &&
+        activePattern && (
+          <>
+            {console.log(`Current config source: ${configSource}`)}
+            {console.log(`Last config update: ${lastConfigUpdate}`)}
+            {console.log(`Has cached pattern: ${!!cachedPattern}`)}
+            {console.log(`Has cached schedule: ${!!cachedSchedule}`)}
+          </>
+        )}
+
       {/* Main Content */}
       <div className="flex h-[68vh] bg-gray-100 dark:bg-gray-800">
         {/* Mapbox Map Section (Left Side) */}
@@ -480,6 +769,7 @@ export default function JunctionMap() {
           activeSchedule={activeSchedule}
           trafficLightState={trafficLightState}
           currentPhaseInfo={currentPhaseInfo}
+          configSource={configSource}
         />
       </div>
 

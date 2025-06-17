@@ -8,6 +8,7 @@ interface Props {
   activeSchedule: ActiveSchedule | null;
   trafficLightState: TrafficLightState | null;
   currentPhaseInfo: any;
+  configSource?: string;
 }
 
 export default function JunctionDetails({
@@ -16,6 +17,7 @@ export default function JunctionDetails({
   activeSchedule,
   trafficLightState,
   currentPhaseInfo,
+  configSource,
 }: Props) {
   // Determine the current phase based on current_time
   const getCurrentPhase = () => {
@@ -83,6 +85,41 @@ export default function JunctionDetails({
               <strong className="text-gray-900 dark:text-white">Vĩ độ: </strong>
               {selectedJunction.latitude}
             </p>
+            {/* Config Source Information */}
+            {configSource && (
+              <p>
+                <strong className="text-gray-900 dark:text-white">
+                  Nguồn cấu hình:{" "}
+                </strong>
+                <span
+                  className={`
+                  ${
+                    configSource.includes("database")
+                      ? "text-green-600 dark:text-green-400"
+                      : configSource.includes("cache")
+                      ? "text-blue-600 dark:text-blue-400"
+                      : configSource.includes("error")
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-gray-600 dark:text-gray-400"
+                  }
+                `}
+                >
+                  {configSource.includes("database_auto")
+                    ? "Database (Auto)"
+                    : configSource.includes("database_schedule")
+                    ? "Database (Schedule)"
+                    : configSource.includes("database_fallback")
+                    ? "Database (Fallback)"
+                    : configSource.includes("initial")
+                    ? "Initial Load"
+                    : configSource.includes("cache")
+                    ? "Cache"
+                    : configSource.includes("error")
+                    ? "Error"
+                    : configSource}
+                </span>
+              </p>
+            )}
             {/* Current Traffic Light Phase Information */}
             <div className="mt-2">
               <p>

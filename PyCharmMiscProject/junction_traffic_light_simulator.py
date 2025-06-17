@@ -16,22 +16,36 @@ load_dotenv()
 # Khởi tạo Pygame
 pygame.init()
 
-# Cấu hình cửa sổ
-WINDOW_WIDTH = 1600  # Tăng từ 1200 lên 1600
-WINDOW_HEIGHT = 900  # Tăng từ 700 lên 900
-WINDOW = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+# Cấu hình cửa sổ gốc
+BASE_WIDTH = 1600
+BASE_HEIGHT = 900
+WINDOW_WIDTH = BASE_WIDTH
+WINDOW_HEIGHT = BASE_HEIGHT
+WINDOW = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("Mô phỏng đèn giao thông 4 pha")
 
-# Cấu hình layout
-MENU_WIDTH = 450  # Tăng từ 350 lên 450 (tỷ lệ 1.29)
-SIMULATION_WIDTH = WINDOW_WIDTH - MENU_WIDTH
-SIMULATION_HEIGHT = WINDOW_HEIGHT
+# Scale factor để điều chỉnh kích thước
+scale_factor = 1.0
+
+# Cấu hình layout gốc (sẽ được scale)
+BASE_MENU_WIDTH = 450
+BASE_SIMULATION_WIDTH = BASE_WIDTH - BASE_MENU_WIDTH
+BASE_SIMULATION_HEIGHT = BASE_HEIGHT
 
 # Layout chia đôi theo tỉ lệ 65:35
-LEFT_TOP_HEIGHT = int(WINDOW_HEIGHT * 0.65)  # Nửa trên bên trái: danh sách nút giao (65%)
-LEFT_BOTTOM_HEIGHT = int(WINDOW_HEIGHT * 0.35)  # Nửa dưới bên trái: thông tin chi tiết (35%)
-RIGHT_TOP_HEIGHT = int(WINDOW_HEIGHT * 0.65)  # Nửa trên bên phải: giả lập đèn (65%)
-RIGHT_BOTTOM_HEIGHT = int(WINDOW_HEIGHT * 0.35)  # Nửa dưới bên phải: biểu đồ (35%)
+BASE_LEFT_TOP_HEIGHT = int(BASE_HEIGHT * 0.65)
+BASE_LEFT_BOTTOM_HEIGHT = int(BASE_HEIGHT * 0.35)
+BASE_RIGHT_TOP_HEIGHT = int(BASE_HEIGHT * 0.65)
+BASE_RIGHT_BOTTOM_HEIGHT = int(BASE_HEIGHT * 0.35)
+
+# Current scaled values
+MENU_WIDTH = BASE_MENU_WIDTH
+SIMULATION_WIDTH = BASE_SIMULATION_WIDTH
+SIMULATION_HEIGHT = BASE_SIMULATION_HEIGHT
+LEFT_TOP_HEIGHT = BASE_LEFT_TOP_HEIGHT
+LEFT_BOTTOM_HEIGHT = BASE_LEFT_BOTTOM_HEIGHT
+RIGHT_TOP_HEIGHT = BASE_RIGHT_TOP_HEIGHT
+RIGHT_BOTTOM_HEIGHT = BASE_RIGHT_BOTTOM_HEIGHT
 
 # Màu sắc
 RED = (255, 0, 0)
@@ -87,9 +101,13 @@ search_text = ""
 search_active = False
 show_info_panel = False  # Show detailed info panel
 
-# Search input box (positioned in top half) - Scale up
-search_box = pygame.Rect(10, 50, MENU_WIDTH - 20, 35)  # Tăng height từ 25 lên 35
-stop_button = pygame.Rect(10, 90, 100, 35)  # Tăng từ 80x25 lên 100x35
+# Search input box (positioned in top half) - Will be scaled
+BASE_SEARCH_BOX = pygame.Rect(10, 50, BASE_MENU_WIDTH - 20, 35)
+BASE_STOP_BUTTON = pygame.Rect(10, 90, 100, 35)
+
+# Current scaled UI elements
+search_box = BASE_SEARCH_BOX.copy()
+stop_button = BASE_STOP_BUTTON.copy()
 
 # Khởi tạo FastAPI
 app = FastAPI()
@@ -408,7 +426,7 @@ def load_config_from_db(sync=True):
                     with config_lock:
                         new_config = cached_config.copy()
                         new_config["CONFIG_SOURCE"] = "cache"
-                    print(f"Worker thread - Đã áp dụng cấu hình từ cache. CYCLE_TIME: {cached_config['CYCLE_TIME']}s")
+                    print(f"Worker thread - ĐÃ CACHE cấu hình từ file cache (sẽ áp dụng khi hết chu kỳ hiện tại). CYCLE_TIME: {cached_config['CYCLE_TIME']}s")
                 return
             else:
                 return load_minimal_config(sync)
@@ -436,7 +454,7 @@ def load_config_from_db(sync=True):
                     with config_lock:
                         new_config = cached_config.copy()
                         new_config["CONFIG_SOURCE"] = "cache"
-                    print(f"Worker thread - Đã áp dụng cấu hình từ cache. CYCLE_TIME: {cached_config['CYCLE_TIME']}s")
+                    print(f"Worker thread - ĐÃ CACHE cấu hình từ file cache (sẽ áp dụng khi hết chu kỳ hiện tại). CYCLE_TIME: {cached_config['CYCLE_TIME']}s")
                 return
             else:
                 return load_minimal_config(sync)
@@ -491,9 +509,9 @@ def load_config_from_db(sync=True):
                     light_color = light_states[light_name_to_id[light_name]]
                 elif "Xanh" in phase_name:
                     light_color = "green"
-                    elif "Vàng" in phase_name:
+                elif "Vàng" in phase_name:
                     light_color = "yellow"
-                    elif "Đỏ" in phase_name:
+                elif "Đỏ" in phase_name:
                     light_color = "red"
                 
                 if light_name:  # Chỉ thêm phase nếu xác định được tên đèn
@@ -589,7 +607,7 @@ def load_config_from_db(sync=True):
             with config_lock:
                 new_config = config_data.copy()
                 new_config["CONFIG_SOURCE"] = "database"
-            print(f"Worker thread - Đã đọc cấu hình từ schedule active. CYCLE_TIME: {new_config['CYCLE_TIME']}s, Phases: {len(new_config['PHASES'])}")
+            print(f"Worker thread - ĐÃ CACHE cấu hình từ schedule active (sẽ áp dụng khi hết chu kỳ hiện tại). CYCLE_TIME: {new_config['CYCLE_TIME']}s, Phases: {len(new_config['PHASES'])}")
             print(f"  Traffic Lights: {[light['lightName'] for light in new_config['TRAFFIC_LIGHTS']]}")
             print(f"  Light Order: {new_config['LIGHT_ORDER']}")
             # In thông tin chi tiết về phases
@@ -619,7 +637,7 @@ def load_config_from_db(sync=True):
                 with config_lock:
                     new_config = cached_config.copy()
                     new_config["CONFIG_SOURCE"] = "cache"
-                print(f"Worker thread - Đã áp dụng cấu hình từ cache. CYCLE_TIME: {cached_config['CYCLE_TIME']}s, Phases: {len(cached_config['PHASES'])}")
+                print(f"Worker thread - ĐÃ CACHE cấu hình từ file cache (sẽ áp dụng khi hết chu kỳ hiện tại). CYCLE_TIME: {cached_config['CYCLE_TIME']}s, Phases: {len(cached_config['PHASES'])}")
         else:
             # Không có cache, dùng cấu hình minimal
             load_minimal_config(sync)
@@ -711,7 +729,7 @@ def load_minimal_config(sync=True):
         with config_lock:
             new_config = config_data.copy()
             new_config["CONFIG_SOURCE"] = "minimal_fallback"
-        print(f"Worker thread - Sử dụng cấu hình minimal ({len(new_config['LIGHT_ORDER'])} đèn). CYCLE_TIME: {new_config['CYCLE_TIME']}s, Phases: {len(new_config['PHASES'])}")
+        print(f"Worker thread - ĐÃ CACHE cấu hình minimal (sẽ áp dụng khi hết chu kỳ hiện tại) ({len(new_config['LIGHT_ORDER'])} đèn). CYCLE_TIME: {new_config['CYCLE_TIME']}s, Phases: {len(new_config['PHASES'])}")
 
 # Hàm test cấu hình với 2 đèn
 def load_two_lights_config():
@@ -767,7 +785,7 @@ def update_config():
                 elif JUNCTION_NAME:
                     pygame.display.set_caption(f"Mô phỏng đèn giao thông - {JUNCTION_NAME}")
                 
-            print(f"Main thread - Cập nhật cấu hình mới từ {CONFIG_SOURCE}. CYCLE_TIME: {CYCLE_TIME}s, Đèn: {len(LIGHT_ORDER)}")
+            print(f"Main thread - ÁP DỤNG cấu hình mới từ {CONFIG_SOURCE} khi bắt đầu chu kỳ mới. CYCLE_TIME: {CYCLE_TIME}s, Đèn: {len(LIGHT_ORDER)}")
             # Reset new_config để tránh cập nhật lại
             new_config = None
 
@@ -845,11 +863,17 @@ def initialize_junction():
 # print("Đang khởi tạo cấu hình đèn giao thông...")
 # load_config_from_db(sync=True)
 
-# Vị trí và kích thước đèn (điều chỉnh cho nửa trên bên phải) - Scale up
-LIGHT_RADIUS = 25  # Tăng từ 20 lên 25
-SIM_OFFSET_X = MENU_WIDTH  # Bắt đầu từ sau menu
-SIM_CENTER_X = SIM_OFFSET_X + SIMULATION_WIDTH // 2
-SIM_CENTER_Y = RIGHT_TOP_HEIGHT // 2  # Center of top right area
+# Vị trí và kích thước đèn gốc (sẽ được scale)
+BASE_LIGHT_RADIUS = 25
+BASE_SIM_OFFSET_X = BASE_MENU_WIDTH
+BASE_SIM_CENTER_X = BASE_SIM_OFFSET_X + BASE_SIMULATION_WIDTH // 2
+BASE_SIM_CENTER_Y = BASE_RIGHT_TOP_HEIGHT // 2
+
+# Current scaled values
+LIGHT_RADIUS = BASE_LIGHT_RADIUS
+SIM_OFFSET_X = BASE_SIM_OFFSET_X
+SIM_CENTER_X = BASE_SIM_CENTER_X
+SIM_CENTER_Y = BASE_SIM_CENTER_Y
 
 # Hàm tính toán vị trí đèn theo chiều kim đồng hồ
 def calculate_light_positions(num_lights):
@@ -860,14 +884,15 @@ def calculate_light_positions(num_lights):
     countdown_positions = {}
     label_positions = {}
     
-    # Bán kính vòng tròn để đặt đèn - điều chỉnh theo số lượng đèn và scale up + dãn thêm 20px
+    # Bán kính vòng tròn để đặt đèn - điều chỉnh theo số lượng đèn và scale
     base_radius = min(SIMULATION_WIDTH, RIGHT_TOP_HEIGHT) // 3
+    extra_spacing = int(20 * scale_factor)  # Scale the extra spacing
     if num_lights <= 2:
-        circle_radius = base_radius // 1.3 + 20  # Gần trung tâm hơn cho 2 đèn + dãn 20px
+        circle_radius = base_radius // 1.3 + extra_spacing  # Gần trung tâm hơn cho 2 đèn
     elif num_lights == 3:
-        circle_radius = base_radius // 1.1 + 20  # Vừa phải cho 3 đèn + dãn 20px
+        circle_radius = base_radius // 1.1 + extra_spacing  # Vừa phải cho 3 đèn
     else:
-        circle_radius = base_radius + 20  # Khoảng cách tiêu chuẩn cho 4+ đèn + dãn 20px
+        circle_radius = base_radius + extra_spacing  # Khoảng cách tiêu chuẩn cho 4+ đèn
     
     for i in range(num_lights):
         # Góc theo chiều kim đồng hồ, bắt đầu từ 12h (270 độ)
@@ -881,11 +906,9 @@ def calculate_light_positions(num_lights):
         # Tạo key cho đèn thứ i
         light_key = f"light_{i}"
         
-        # Khoảng cách giữa các đèn con - điều chỉnh theo số lượng đèn và scale up + dãn thêm
-        if num_lights <= 3:
-            light_spacing = 50  # Tăng từ 45 lên 50 (+5px)
-        else:
-            light_spacing = 50  # Tăng từ 60 lên 65 (+5px)
+        # Khoảng cách giữa các đèn con - điều chỉnh theo số lượng đèn và scale
+        base_light_spacing = 50 if num_lights <= 3 else 50
+        light_spacing = int(base_light_spacing * scale_factor)
         
         # Vị trí các đèn con (đỏ, vàng, xanh) theo hướng
         if angle <= 45 or angle >= 315:  # Top area
@@ -894,32 +917,32 @@ def calculate_light_positions(num_lights):
                 "yellow": (center_x, center_y),
                 "green": (center_x + light_spacing, center_y)
             }
-            countdown_positions[light_key] = (center_x + light_spacing + 45, center_y)  # Tăng từ 35 lên 45 (+10px)
-            label_positions[light_key] = (center_x, center_y - 55)  # Tăng từ 45 lên 55 (+10px)
+            countdown_positions[light_key] = (center_x + light_spacing + int(45 * scale_factor), center_y)
+            label_positions[light_key] = (center_x, center_y - int(55 * scale_factor))
         elif 45 < angle <= 135:  # Right area
             positions[light_key] = {
                 "red": (center_x, center_y - light_spacing - 40),
                 "yellow": (center_x, center_y - 40),
                 "green": (center_x, center_y + light_spacing - 40)
             }
-            countdown_positions[light_key] = (center_x - 50, center_y)  # Tăng từ 40 lên 50 (+10px)
-            label_positions[light_key] = (center_x + 70, center_y)  # Tăng từ 60 lên 70 (+10px)
+            countdown_positions[light_key] = (center_x - int(50 * scale_factor), center_y)
+            label_positions[light_key] = (center_x + int(70 * scale_factor), center_y)
         elif 135 < angle <= 225:  # Bottom area
             positions[light_key] = {
                 "red": (center_x + light_spacing, center_y),
                 "yellow": (center_x, center_y),
                 "green": (center_x - light_spacing, center_y)
             }
-            countdown_positions[light_key] = (center_x - light_spacing - 45, center_y)  # Tăng từ 35 lên 45 (+10px)
-            label_positions[light_key] = (center_x, center_y + 55)  # Tăng từ 45 lên 55 (+10px)
+            countdown_positions[light_key] = (center_x - light_spacing - int(45 * scale_factor), center_y)
+            label_positions[light_key] = (center_x, center_y + int(55 * scale_factor))
         else:  # Left area
             positions[light_key] = {
                 "red": (center_x, center_y + light_spacing + 40),
                 "yellow": (center_x, center_y + 40),
                 "green": (center_x, center_y - light_spacing + 40)
             }
-            countdown_positions[light_key] = (center_x + 50, center_y)  # Tăng từ 40 lên 50 (+10px)
-            label_positions[light_key] = (center_x - 70, center_y)  # Tăng từ 60 lên 70 (+10px)
+            countdown_positions[light_key] = (center_x + int(50 * scale_factor), center_y)
+            label_positions[light_key] = (center_x - int(70 * scale_factor), center_y)
     
     return positions, countdown_positions, label_positions
 
@@ -928,10 +951,86 @@ LIGHT_POSITIONS = {}
 COUNTDOWN_POSITIONS = {}
 LABEL_POSITIONS = {}
 
-# Font chữ cho thời gian và nhãn (regular, không italic) - Scale up cho kích thước cửa sổ mới
-FONT_LARGE = pygame.font.SysFont("Verdana", 32)  # Tăng từ 24 lên 32
-FONT_MEDIUM = pygame.font.SysFont("Verdana", 24)  # Tăng từ 18 lên 24
-FONT_SMALL = pygame.font.SysFont("Verdana", 18)  # Tăng từ 14 lên 18
+# Font chữ gốc (sẽ được scale)
+BASE_FONT_LARGE_SIZE = 32
+BASE_FONT_MEDIUM_SIZE = 24
+BASE_FONT_SMALL_SIZE = 18
+
+# Current scaled fonts
+FONT_LARGE = pygame.font.SysFont("Verdana", BASE_FONT_LARGE_SIZE)
+FONT_MEDIUM = pygame.font.SysFont("Verdana", BASE_FONT_MEDIUM_SIZE)
+FONT_SMALL = pygame.font.SysFont("Verdana", BASE_FONT_SMALL_SIZE)
+
+# Hàm cập nhật scale factor và tất cả elements
+def update_scale():
+    global scale_factor, WINDOW_WIDTH, WINDOW_HEIGHT
+    global MENU_WIDTH, SIMULATION_WIDTH, SIMULATION_HEIGHT
+    global LEFT_TOP_HEIGHT, LEFT_BOTTOM_HEIGHT, RIGHT_TOP_HEIGHT, RIGHT_BOTTOM_HEIGHT
+    global LIGHT_RADIUS, SIM_OFFSET_X, SIM_CENTER_X, SIM_CENTER_Y
+    global search_box, stop_button
+    global FONT_LARGE, FONT_MEDIUM, FONT_SMALL
+    
+    # Tính scale factor dựa trên tỷ lệ thay đổi kích thước
+    scale_x = WINDOW_WIDTH / BASE_WIDTH
+    scale_y = WINDOW_HEIGHT / BASE_HEIGHT
+    scale_factor = min(scale_x, scale_y)  # Giữ tỷ lệ khung hình
+    
+    # Cập nhật layout values
+    MENU_WIDTH = int(BASE_MENU_WIDTH * scale_factor)
+    SIMULATION_WIDTH = WINDOW_WIDTH - MENU_WIDTH
+    SIMULATION_HEIGHT = WINDOW_HEIGHT
+    
+    LEFT_TOP_HEIGHT = int(BASE_LEFT_TOP_HEIGHT * scale_factor)
+    LEFT_BOTTOM_HEIGHT = int(BASE_LEFT_BOTTOM_HEIGHT * scale_factor)
+    RIGHT_TOP_HEIGHT = int(BASE_RIGHT_TOP_HEIGHT * scale_factor)
+    RIGHT_BOTTOM_HEIGHT = int(BASE_RIGHT_BOTTOM_HEIGHT * scale_factor)
+    
+    # Cập nhật simulation area
+    LIGHT_RADIUS = max(10, int(BASE_LIGHT_RADIUS * scale_factor))
+    SIM_OFFSET_X = MENU_WIDTH
+    SIM_CENTER_X = SIM_OFFSET_X + SIMULATION_WIDTH // 2
+    SIM_CENTER_Y = RIGHT_TOP_HEIGHT // 2
+    
+    # Cập nhật UI elements
+    search_box = pygame.Rect(
+        int(BASE_SEARCH_BOX.x * scale_factor),
+        int(BASE_SEARCH_BOX.y * scale_factor),
+        int((BASE_MENU_WIDTH - 20) * scale_factor),
+        int(BASE_SEARCH_BOX.height * scale_factor)
+    )
+    
+    stop_button = pygame.Rect(
+        int(BASE_STOP_BUTTON.x * scale_factor),
+        int(BASE_STOP_BUTTON.y * scale_factor),
+        int(BASE_STOP_BUTTON.width * scale_factor),
+        int(BASE_STOP_BUTTON.height * scale_factor)
+    )
+    
+    # Cập nhật fonts
+    FONT_LARGE = pygame.font.SysFont("Verdana", max(12, int(BASE_FONT_LARGE_SIZE * scale_factor)))
+    FONT_MEDIUM = pygame.font.SysFont("Verdana", max(10, int(BASE_FONT_MEDIUM_SIZE * scale_factor)))
+    FONT_SMALL = pygame.font.SysFont("Verdana", max(8, int(BASE_FONT_SMALL_SIZE * scale_factor)))
+    
+    # Cập nhật light positions nếu có đèn
+    if LIGHT_ORDER:
+        update_light_positions()
+
+# Hàm xử lý resize cửa sổ
+def handle_resize(new_width, new_height):
+    global WINDOW, WINDOW_WIDTH, WINDOW_HEIGHT
+    
+    # Giới hạn kích thước tối thiểu
+    min_width = 800
+    min_height = 600
+    new_width = max(min_width, new_width)
+    new_height = max(min_height, new_height)
+    
+    WINDOW_WIDTH = new_width
+    WINDOW_HEIGHT = new_height
+    WINDOW = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+    
+    # Cập nhật scale
+    update_scale()
 
 # Hàm vẽ đèn giao thông
 def draw_traffic_light(positions, active_color):
@@ -961,6 +1060,9 @@ def main_gui():
     clock = pygame.time.Clock()
     current_time = 0
     
+    # Initialize scale
+    update_scale()
+    
     # Load junctions list in background
     threading.Thread(target=load_junctions_async, daemon=True).start()
 
@@ -969,7 +1071,9 @@ def main_gui():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == pygame.KEYDOWN:
+            elif event.type == pygame.VIDEORESIZE:
+                handle_resize(event.w, event.h)
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
@@ -1016,8 +1120,9 @@ def main_gui():
                     threading.Thread(target=lambda: load_config_from_db(sync=False), daemon=True).start()
                     last_config_update = current_time
 
-            # Kiểm tra và cập nhật cấu hình mới nếu có
-            update_config()
+            # Chỉ cập nhật cấu hình mới khi hết chu kỳ hiện tại (current_time == 0)
+            if current_time == 0:
+                update_config()
 
             # Cập nhật trạng thái đèn và đếm ngược trong một khối khóa
             with state_lock:
@@ -1027,16 +1132,16 @@ def main_gui():
                     countdowns = {light_name: None for light_name in LIGHT_ORDER}
 
                     # Tìm phase đang active cho mỗi đèn
-                for phase in PHASES:
+                    for phase in PHASES:
                         light_name = phase.get("lightName", "")
-                    start_time = phase["startTime"]
-                    duration = phase["duration"]
-                    phase_end = start_time + duration
-                    color = phase.get("color", "red")
-                    
-                    # Kiểm tra nếu current_time nằm trong phase này
+                        start_time = phase["startTime"]
+                        duration = phase["duration"]
+                        phase_end = start_time + duration
+                        color = phase.get("color", "red")
+                        
+                        # Kiểm tra nếu current_time nằm trong phase này
                         if start_time <= current_time < phase_end and light_name in lights_state:
-                        # Phase này đang active
+                            # Phase này đang active
                             lights_state[light_name] = color
                             countdowns[light_name] = phase_end - current_time
                     
@@ -1044,28 +1149,28 @@ def main_gui():
                     for light_name in LIGHT_ORDER:
                         if lights_state[light_name] == "red":
                             # Tìm phase tiếp theo gần nhất cho đèn này
-                        next_phase_start = None
-                        
-                        # Tìm trong các phase sau current_time
-                        for phase in PHASES:
-                                if phase.get("lightName", "") == light_name and phase["startTime"] > current_time:
-                                if next_phase_start is None or phase["startTime"] < next_phase_start:
-                                    next_phase_start = phase["startTime"]
-                        
-                        if next_phase_start is not None:
-                            # Có phase trong chu kỳ hiện tại
-                                countdowns[light_name] = next_phase_start - current_time
-                        else:
-                            # Không có phase nào sau current_time, tìm phase đầu tiên của chu kỳ tiếp theo
-                            earliest_phase_start = None
-                            for phase in PHASES:
-                                    if phase.get("lightName", "") == light_name:
-                                    if earliest_phase_start is None or phase["startTime"] < earliest_phase_start:
-                                        earliest_phase_start = phase["startTime"]
+                            next_phase_start = None
                             
-                            if earliest_phase_start is not None:
-                                    countdowns[light_name] = CYCLE_TIME - current_time + earliest_phase_start
+                            # Tìm trong các phase sau current_time
+                            for phase in PHASES:
+                                if phase.get("lightName", "") == light_name and phase["startTime"] > current_time:
+                                    if next_phase_start is None or phase["startTime"] < next_phase_start:
+                                        next_phase_start = phase["startTime"]
+                            
+                            if next_phase_start is not None:
+                                # Có phase trong chu kỳ hiện tại
+                                countdowns[light_name] = next_phase_start - current_time
                             else:
+                                # Không có phase nào sau current_time, tìm phase đầu tiên của chu kỳ tiếp theo
+                                earliest_phase_start = None
+                                for phase in PHASES:
+                                    if phase.get("lightName", "") == light_name:
+                                        if earliest_phase_start is None or phase["startTime"] < earliest_phase_start:
+                                            earliest_phase_start = phase["startTime"]
+                                
+                                if earliest_phase_start is not None:
+                                    countdowns[light_name] = CYCLE_TIME - current_time + earliest_phase_start
+                                else:
                                     countdowns[light_name] = CYCLE_TIME  # Fallback
 
         # Vẽ giao diện
@@ -1116,7 +1221,7 @@ def draw_search_box():
     search_display = search_text if search_text else "Tìm kiếm..."
     text_color = BLACK if search_text else GRAY
     search_text_surface = FONT_SMALL.render(search_display, True, text_color)
-    text_rect = search_text_surface.get_rect(left=search_box.left + 5, centery=search_box.centery)
+    text_rect = search_text_surface.get_rect(left=search_box.left + int(5 * scale_factor), centery=search_box.centery)
     WINDOW.blit(search_text_surface, text_rect)
 
 def draw_stop_button():
@@ -1144,7 +1249,7 @@ def draw_menu():
     
     # Draw title
     title_text = FONT_MEDIUM.render("Danh sách nút giao", True, BLACK)
-    title_rect = title_text.get_rect(center=(MENU_WIDTH // 2, 25))
+    title_rect = title_text.get_rect(center=(MENU_WIDTH // 2, int(25 * scale_factor)))
     WINDOW.blit(title_text, title_rect)
     
     # Draw search box
@@ -1160,9 +1265,10 @@ def draw_menu():
         WINDOW.blit(loading_text, loading_rect)
     else:
         # Draw junction list (more space available with 65% height)
-        y_start = 140  # Scale từ 110 lên 140
-        item_height = 65  # Scale từ 50 lên 65
-        visible_items = (LEFT_TOP_HEIGHT - y_start - 10) // item_height
+        y_start = int(140 * scale_factor)
+        item_height = int(65 * scale_factor)
+        margin = int(10 * scale_factor)
+        visible_items = (LEFT_TOP_HEIGHT - y_start - margin) // item_height
         
 
         
@@ -1177,7 +1283,7 @@ def draw_menu():
                 break
                 
             # Draw junction item
-            item_rect = pygame.Rect(10, y_pos, MENU_WIDTH - 20, item_height - 3)
+            item_rect = pygame.Rect(int(10 * scale_factor), y_pos, MENU_WIDTH - int(20 * scale_factor), item_height - int(3 * scale_factor))
             
             # Highlight selected item
             if i == selected_junction_index:
@@ -1191,12 +1297,12 @@ def draw_menu():
             
             # Draw junction name (no ID)
             name_text = FONT_SMALL.render(junction["junctionName"][:100], True, text_color)
-            name_rect = name_text.get_rect(left=item_rect.left + 8, top=item_rect.top + 8)
+            name_rect = name_text.get_rect(left=item_rect.left + int(8 * scale_factor), top=item_rect.top + int(8 * scale_factor))
             WINDOW.blit(name_text, name_rect)
             
             # Draw location
             location_text = FONT_SMALL.render(junction["location"][:32], True, text_color)
-            location_rect = location_text.get_rect(left=item_rect.left + 8, top=item_rect.top + 28)
+            location_rect = location_text.get_rect(left=item_rect.left + int(8 * scale_factor), top=item_rect.top + int(28 * scale_factor))
             WINDOW.blit(location_text, location_rect)
 
 def draw_info_detail():
@@ -1213,30 +1319,31 @@ def draw_info_detail():
         WINDOW.blit(instruction_text, instruction_rect)
         return
     
-    y_offset = LEFT_TOP_HEIGHT + 10
+    y_offset = LEFT_TOP_HEIGHT + int(10 * scale_factor)
+    margin_x = int(10 * scale_factor)
     
     # Title
     title_text = FONT_MEDIUM.render("Thông tin chi tiết", True, BLACK)
-    WINDOW.blit(title_text, (10, y_offset))
-    y_offset += 30
+    WINDOW.blit(title_text, (margin_x, y_offset))
+    y_offset += int(30 * scale_factor)
     
     # Junction name
     name_text = FONT_SMALL.render(f"Tên: {JUNCTION_NAME}", True, BLACK)
-    WINDOW.blit(name_text, (10, y_offset))
-    y_offset += 20
+    WINDOW.blit(name_text, (margin_x, y_offset))
+    y_offset += int(20 * scale_factor)
     
     # Config source
     source_text = FONT_SMALL.render(f"Nguồn: {CONFIG_SOURCE}", True, BLACK)
-    WINDOW.blit(source_text, (10, y_offset))
-    y_offset += 25
+    WINDOW.blit(source_text, (margin_x, y_offset))
+    y_offset += int(25 * scale_factor)
     
     # Traffic lights info
     with state_lock:
         if LIGHT_ORDER:
             lights_title = FONT_SMALL.render(f"Đèn giao thông ({len(LIGHT_ORDER)}):", True, BLACK)
-            WINDOW.blit(lights_title, (10, y_offset))
-    y_offset += 18
-    
+            WINDOW.blit(lights_title, (margin_x, y_offset))
+            y_offset += int(18 * scale_factor)
+            
             # Hiển thị trạng thái từng đèn
             max_lights_to_show = 4  # Giới hạn số đèn hiển thị để không tràn màn hình
             for i, light_name in enumerate(LIGHT_ORDER[:max_lights_to_show]):
@@ -1254,8 +1361,8 @@ def draw_info_detail():
                 # Màu sắc cho text dựa trên trạng thái
                 color = GREEN if state == "green" else (YELLOW if state == "yellow" else RED)
                 light_text = FONT_SMALL.render(light_info, True, color)
-                WINDOW.blit(light_text, (15, y_offset))
-                y_offset += 16
+                WINDOW.blit(light_text, (int(15 * scale_factor), y_offset))
+                y_offset += int(16 * scale_factor)
             
             # Hiển thị thông báo nếu có nhiều đèn hơn
             if len(LIGHT_ORDER) > max_lights_to_show:
@@ -1330,7 +1437,7 @@ def draw_simulation():
     
     # Draw junction name
     junction_text = FONT_LARGE.render(f"{JUNCTION_NAME}", True, BLACK)
-    junction_rect = junction_text.get_rect(center=(SIM_CENTER_X, 20))
+    junction_rect = junction_text.get_rect(center=(SIM_CENTER_X, int(20 * scale_factor)))
     WINDOW.blit(junction_text, junction_rect)
     
     # Draw traffic lights and labels
@@ -1339,23 +1446,23 @@ def draw_simulation():
         
         for light_name in LIGHT_ORDER:
             if light_name in LIGHT_POSITIONS and light_name in lights_state:
-        with state_lock:
+                with state_lock:
                     state = lights_state.get(light_name, "red")
                     countdown = countdowns.get(light_name, None)
                 draw_traffic_light(LIGHT_POSITIONS[light_name], state)
                 if countdown is not None and light_name in COUNTDOWN_POSITIONS:
-            countdown_text = FONT_MEDIUM.render(str(countdown), True, BLACK)
+                    countdown_text = FONT_MEDIUM.render(str(countdown), True, BLACK)
                     countdown_rect = countdown_text.get_rect(center=COUNTDOWN_POSITIONS[light_name])
-            WINDOW.blit(countdown_text, countdown_rect)
+                    WINDOW.blit(countdown_text, countdown_rect)
     
     # Draw current time and cycle info
     with state_lock:
         time_text = FONT_MEDIUM.render(f"Thời gian: {current_time}s", True, BLACK)
-        time_rect = time_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y - 10))  # Dịch lên một chút
+        time_rect = time_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y - int(10 * scale_factor)))
         WINDOW.blit(time_text, time_rect)
         
         cycle_text = FONT_MEDIUM.render(f"Chu kỳ: {CYCLE_TIME}s", True, BLACK)
-        cycle_rect = cycle_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y + 25))  # Tăng khoảng cách từ 30 xuống 25
+        cycle_rect = cycle_text.get_rect(center=(SIM_CENTER_X, SIM_CENTER_Y + int(25 * scale_factor)))
         WINDOW.blit(cycle_text, cycle_rect)
 
 def handle_menu_click(mouse_pos):
@@ -1388,9 +1495,10 @@ def handle_menu_click(mouse_pos):
     if mouse_pos[1] >= LEFT_TOP_HEIGHT:
         return
     
-    y_start = 140  # Scale từ 110 lên 140
-    item_height = 65  # Scale từ 50 lên 65
-    visible_items = (LEFT_TOP_HEIGHT - y_start - 10) // item_height
+    y_start = int(140 * scale_factor)
+    item_height = int(65 * scale_factor)
+    margin = int(10 * scale_factor)
+    visible_items = (LEFT_TOP_HEIGHT - y_start - margin) // item_height
     
     if mouse_pos[1] < y_start:
         return
@@ -1428,8 +1536,8 @@ def handle_scroll(event):
     if event.button == 4:  # Scroll up
         scroll_offset = max(0, scroll_offset - 1)
     elif event.button == 5:  # Scroll down
-        available_height = LEFT_TOP_HEIGHT - 140 - 10  # Scale từ 110 lên 140
-        visible_items = available_height // 65  # Scale từ 50 lên 65
+        available_height = LEFT_TOP_HEIGHT - int(140 * scale_factor) - int(10 * scale_factor)
+        visible_items = available_height // int(65 * scale_factor)
         max_scroll = max(0, len(filtered_junctions) - visible_items)
         scroll_offset = min(max_scroll, scroll_offset + 1)
 
@@ -1446,13 +1554,13 @@ def draw_phase_chart():
         WINDOW.blit(no_data_text, no_data_rect)
         return
     
-    # Chart area setup - Scale up margins
-    chart_margin = 30  # Scale từ 20 lên 30
+    # Chart area setup - scaled margins
+    chart_margin = int(30 * scale_factor)
     chart_rect = pygame.Rect(
         MENU_WIDTH + chart_margin, 
-        RIGHT_TOP_HEIGHT + 50,  # Scale từ 40 lên 50
+        RIGHT_TOP_HEIGHT + int(50 * scale_factor),
         SIMULATION_WIDTH - 2 * chart_margin, 
-        RIGHT_BOTTOM_HEIGHT - 100  # Scale từ 80 lên 100
+        RIGHT_BOTTOM_HEIGHT - int(100 * scale_factor)
     )
     
     # Draw chart background
@@ -1465,11 +1573,11 @@ def draw_phase_chart():
     
     # Draw title
     chart_title = FONT_MEDIUM.render("Biểu đồ thời gian các pha", True, BLACK)
-    title_rect = chart_title.get_rect(centerx=SIM_CENTER_X, y=RIGHT_TOP_HEIGHT + 10)
+    title_rect = chart_title.get_rect(centerx=SIM_CENTER_X, y=RIGHT_TOP_HEIGHT + int(10 * scale_factor))
     WINDOW.blit(chart_title, title_rect)
     
-    # Calculate scale - Scale up
-    scale_width = chart_rect.width - 80  # Scale từ 60 lên 80
+    # Calculate scale
+    scale_width = chart_rect.width - int(80 * scale_factor)
     if scale_width <= 0:
         return
     time_per_pixel = CYCLE_TIME / scale_width
@@ -1480,29 +1588,29 @@ def draw_phase_chart():
     if not LIGHT_ORDER:
         return
     
-    row_height = max(25, (chart_rect.height - 25) // len(LIGHT_ORDER))  # Scale từ 20 lên 25
+    row_height = max(int(25 * scale_factor), (chart_rect.height - int(25 * scale_factor)) // len(LIGHT_ORDER))
     
     for light_idx, light_name in enumerate(LIGHT_ORDER):
-        y_pos = chart_rect.top + 15 + light_idx * row_height  # Scale từ 10 lên 15
+        y_pos = chart_rect.top + int(15 * scale_factor) + light_idx * row_height
         
         # Draw light name label (shortened if too long)
-        display_name = light_name[:10] + "..." if len(light_name) > 10 else light_name  # Scale từ 8 lên 10
+        display_name = light_name[:10] + "..." if len(light_name) > 10 else light_name
         light_text = FONT_SMALL.render(display_name, True, BLACK)
-        WINDOW.blit(light_text, (chart_rect.left + 8, y_pos + row_height // 4))  # Scale từ 5 lên 8
+        WINDOW.blit(light_text, (chart_rect.left + int(8 * scale_factor), y_pos + row_height // 4))
         
         # Draw red background for entire cycle first
         red_rect = pygame.Rect(
-            chart_rect.left + 80, y_pos,  # Scale từ 60 lên 80
-            scale_width - 15, row_height - 8  # Scale từ 10 lên 15, từ 5 lên 8
+            chart_rect.left + int(80 * scale_factor), y_pos,
+            scale_width - int(15 * scale_factor), row_height - int(8 * scale_factor)
         )
         pygame.draw.rect(WINDOW, DIM_RED, red_rect)
         
         # Draw active phases on top
         for phase in PHASES:
             if phase.get("lightName", "") == light_name:
-                start_x = chart_rect.left + 80 + int(phase["startTime"] / time_per_pixel)  # Scale từ 60 lên 80
-                width = max(3, int(phase["duration"] / time_per_pixel))  # Scale từ 2 lên 3
-                phase_rect = pygame.Rect(start_x, y_pos, width, row_height - 8)  # Scale từ 5 lên 8
+                start_x = chart_rect.left + int(80 * scale_factor) + int(phase["startTime"] / time_per_pixel)
+                width = max(int(3 * scale_factor), int(phase["duration"] / time_per_pixel))
+                phase_rect = pygame.Rect(start_x, y_pos, width, row_height - int(8 * scale_factor))
                 
                 color = colors.get(phase.get("color", "red"), RED)
                 pygame.draw.rect(WINDOW, color, phase_rect)
@@ -1512,18 +1620,18 @@ def draw_phase_chart():
     
     # Draw current time indicator
     with state_lock:
-        current_x = chart_rect.left + 80 + int(current_time / time_per_pixel)  # Scale từ 60 lên 80
+        current_x = chart_rect.left + int(80 * scale_factor) + int(current_time / time_per_pixel)
         pygame.draw.line(WINDOW, BLACK, 
                         (current_x, chart_rect.top), 
-                        (current_x, chart_rect.bottom), 4)  # Scale từ 3 lên 4
+                        (current_x, chart_rect.bottom), max(1, int(4 * scale_factor)))
     
     # Draw time labels
     time_step = max(5, CYCLE_TIME // 8)
     for i in range(0, CYCLE_TIME + 1, time_step):
-        x_pos = chart_rect.left + 80 + int(i / time_per_pixel)  # Scale từ 60 lên 80
-        if x_pos <= chart_rect.right - 25:  # Scale từ 20 lên 25
+        x_pos = chart_rect.left + int(80 * scale_factor) + int(i / time_per_pixel)
+        if x_pos <= chart_rect.right - int(25 * scale_factor):
             time_text = FONT_SMALL.render(str(i), True, BLACK)
-            time_rect = time_text.get_rect(centerx=x_pos, top=chart_rect.bottom + 8)  # Scale từ 5 lên 8
+            time_rect = time_text.get_rect(centerx=x_pos, top=chart_rect.bottom + int(8 * scale_factor))
             WINDOW.blit(time_text, time_rect)
 
 if __name__ == "__main__":

@@ -37,6 +37,11 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
   const [autoPatternId, setAutoPatternId] = useState<string>("");
   const [daySchedules, setDaySchedules] = useState<DaySchedule[]>([]);
 
+  // Copy functionality state
+  const [showCopyModal, setShowCopyModal] = useState<boolean>(false);
+  const [sourceDayOfWeek, setSourceDayOfWeek] = useState<number | null>(null);
+  const [selectedTargetDays, setSelectedTargetDays] = useState<number[]>([]);
+
   const daysOfWeek = [
     { value: 1, label: "Thứ Hai" },
     { value: 2, label: "Thứ Ba" },
@@ -350,6 +355,64 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
       console.error("Error toggling schedule status:", error);
       alert("Có lỗi xảy ra khi thay đổi trạng thái lịch trình!");
     }
+  };
+
+  // Copy functionality functions
+  const handleCopyDay = (dayOfWeek: number) => {
+    setSourceDayOfWeek(dayOfWeek);
+    setSelectedTargetDays([]);
+    setShowCopyModal(true);
+  };
+
+  const handleTargetDayToggle = (dayOfWeek: number) => {
+    setSelectedTargetDays((prev) =>
+      prev.includes(dayOfWeek)
+        ? prev.filter((day) => day !== dayOfWeek)
+        : [...prev, dayOfWeek]
+    );
+  };
+
+  const executeCopy = () => {
+    if (sourceDayOfWeek === null || selectedTargetDays.length === 0) {
+      return;
+    }
+
+    const sourceSchedule = daySchedules.find(
+      (ds) => ds.dayOfWeek === sourceDayOfWeek
+    );
+    if (!sourceSchedule) {
+      return;
+    }
+
+    setDaySchedules((prev) =>
+      prev.map((ds) => {
+        if (selectedTargetDays.includes(ds.dayOfWeek)) {
+          // Copy time slots with new IDs
+          const copiedTimeSlots = sourceSchedule.timeSlots.map((slot) => ({
+            ...slot,
+            slotId: `${ds.dayOfWeek}_slot_${Date.now()}_${Math.random()}`,
+          }));
+
+          return {
+            ...ds,
+            timeSlots: copiedTimeSlots,
+            isActive: sourceSchedule.isActive,
+          };
+        }
+        return ds;
+      })
+    );
+
+    // Close modal and reset state
+    setShowCopyModal(false);
+    setSourceDayOfWeek(null);
+    setSelectedTargetDays([]);
+  };
+
+  const cancelCopy = () => {
+    setShowCopyModal(false);
+    setSourceDayOfWeek(null);
+    setSelectedTargetDays([]);
   };
 
   return (
@@ -701,20 +764,34 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                           key={day.value}
                           className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600"
                         >
-                          <div className="flex items-center mb-3">
-                            <input
-                              type="checkbox"
-                              checked={daySchedule.isActive}
-                              onChange={(e) =>
-                                updateDaySchedule(day.value, {
-                                  isActive: e.target.checked,
-                                })
-                              }
-                              className="mr-3"
-                            />
-                            <h4 className="text-gray-900 dark:text-white font-medium">
-                              {day.label}
-                            </h4>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={daySchedule.isActive}
+                                onChange={(e) =>
+                                  updateDaySchedule(day.value, {
+                                    isActive: e.target.checked,
+                                  })
+                                }
+                                className="mr-3"
+                              />
+                              <h4 className="text-gray-900 dark:text-white font-medium">
+                                {day.label}
+                              </h4>
+                            </div>
+
+                            {daySchedule.isActive &&
+                              daySchedule.timeSlots.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyDay(day.value)}
+                                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition-colors"
+                                  title="Sao chép cấu hình ngày này"
+                                >
+                                  Sao chép
+                                </button>
+                              )}
                           </div>
 
                           {daySchedule.isActive && (
@@ -850,6 +927,129 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Copy Modal */}
+      {showCopyModal && sourceDayOfWeek !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Sao chép cấu hình lịch trình
+            </h2>
+
+            <div className="space-y-4">
+              {/* Source day info */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+                <h3 className="text-blue-800 dark:text-blue-300 font-medium mb-2">
+                  Ngày nguồn:{" "}
+                  {daysOfWeek.find((d) => d.value === sourceDayOfWeek)?.label}
+                </h3>
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  {(() => {
+                    const sourceSchedule = daySchedules.find(
+                      (ds) => ds.dayOfWeek === sourceDayOfWeek
+                    );
+                    if (
+                      !sourceSchedule ||
+                      sourceSchedule.timeSlots.length === 0
+                    ) {
+                      return (
+                        <span className="text-gray-500">
+                          Không có khung giờ nào
+                        </span>
+                      );
+                    }
+                    return (
+                      <div className="space-y-1">
+                        {sourceSchedule.timeSlots.map((slot, index) => {
+                          const pattern = trafficPatterns.find(
+                            (p) => p.patternId === slot.patternId
+                          );
+                          return (
+                            <div
+                              key={slot.slotId}
+                              className="flex justify-between items-center bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600"
+                            >
+                              <span>
+                                Khung giờ {index + 1}: {slot.startTime} -{" "}
+                                {slot.endTime}
+                              </span>
+                              <span className="text-blue-600 dark:text-blue-400">
+                                {pattern?.patternName || "Không có pattern"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Target days selection */}
+              <div>
+                <label className="block text-gray-900 dark:text-white mb-3 font-medium">
+                  Chọn các ngày để sao chép đến:
+                </label>
+                <div className="space-y-2">
+                  {daysOfWeek.map((day) => (
+                    <label
+                      key={day.value}
+                      className={`flex items-center p-2 rounded border transition-colors ${
+                        day.value === sourceDayOfWeek
+                          ? "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTargetDays.includes(day.value)}
+                        onChange={() => handleTargetDayToggle(day.value)}
+                        disabled={day.value === sourceDayOfWeek}
+                        className="mr-3"
+                      />
+                      <span className="text-gray-900 dark:text-white">
+                        {day.label}
+                        {day.value === sourceDayOfWeek && " (ngày nguồn)"}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {selectedTargetDays.length > 0 && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                  <p className="text-yellow-800 dark:text-yellow-300 text-sm">
+                    ⚠️ Cấu hình hiện tại của các ngày được chọn sẽ bị thay thế
+                    hoàn toàn bởi cấu hình từ ngày nguồn.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex space-x-4 pt-4">
+                <button
+                  type="button"
+                  onClick={executeCopy}
+                  disabled={selectedTargetDays.length === 0}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    selectedTargetDays.length === 0
+                      ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                >
+                  Sao chép ({selectedTargetDays.length} ngày)
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelCopy}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white transition-colors"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

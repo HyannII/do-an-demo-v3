@@ -78,7 +78,7 @@ export const navItems: NavItem[] = [
   },
   {
     type: "link",
-    title: "Quản lí danh mục",
+    title: "Quản lý danh mục",
     href: "/objectManagement",
     icon: <ListTree className="w-5 h-5" />,
   },

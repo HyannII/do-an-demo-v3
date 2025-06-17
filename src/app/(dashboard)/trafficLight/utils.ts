@@ -80,14 +80,19 @@ export const buildLightNameMapping = (
 ): { [key: string]: string } => {
   const lightNameMap: { [key: string]: string } = {};
 
-  // Method 1: Get light names from traffic light state
-  if (trafficLightState) {
+  // Method 1: Get light names from junction traffic lights (most reliable)
+  selectedJunction.trafficLights.forEach((light) => {
+    lightNameMap[light.lightName] = light.lightName;
+  });
+
+  // Method 2: Get light names from traffic light state (if available)
+  if (trafficLightState && Object.keys(lightNameMap).length === 0) {
     Object.keys(trafficLightState.lights_state).forEach((lightName) => {
       lightNameMap[lightName] = lightName;
     });
   }
 
-  // Method 2: Get from pattern phases
+  // Method 3: Get from pattern phases (fallback)
   if (Object.keys(lightNameMap).length === 0) {
     config.phases.forEach((phase: any) => {
       if (phase.lightName && !lightNameMap[phase.lightName]) {
@@ -109,20 +114,14 @@ export const buildLightNameMapping = (
     });
   }
 
-  // Method 3: Fallback to junction traffic lights
-  if (Object.keys(lightNameMap).length === 0) {
-    selectedJunction.trafficLights.forEach((light) => {
-      lightNameMap[light.lightName] = light.lightName;
-    });
-  }
-
   return lightNameMap;
 };
 
 export const getLightTimeline = (
   lightName: string,
   config: any,
-  cycleDuration: number
+  cycleDuration: number,
+  selectedJunction?: Junction
 ): TimelineSegment[] => {
   const sortedPhases = [...config.phases].sort(
     (a: any, b: any) => a.startTime - b.startTime
@@ -131,31 +130,51 @@ export const getLightTimeline = (
   const timeline: TimelineSegment[] = [];
   let currentTime = 0;
 
+  // Create mapping from lightName to lightId if junction is provided
+  let lightNameToId: string | null = null;
+  if (selectedJunction) {
+    const trafficLight = selectedJunction.trafficLights.find(
+      (light) => light.lightName === lightName
+    );
+    lightNameToId = trafficLight?.trafficLightId || null;
+  }
+
   for (const phase of sortedPhases) {
     let phaseAffectsThisLight = false;
     let lightState = "red";
 
-    // Check if phase affects this light
+    // Method 1: Check if phase affects this light by lightName
     if (phase.lightName === lightName) {
       phaseAffectsThisLight = true;
       lightState = phase.color || "green";
-    } else if (phase.lightStates) {
-      const matchingLightId = Object.keys(phase.lightStates).find(
-        (lightId) => lightId === lightName
-      );
-
-      if (matchingLightId && phase.lightStates[matchingLightId]) {
+    }
+    // Method 2: Check lightStates using proper lightId mapping
+    else if (phase.lightStates && lightNameToId) {
+      const stateForThisLight = phase.lightStates[lightNameToId];
+      if (stateForThisLight && stateForThisLight !== "red") {
         phaseAffectsThisLight = true;
-        lightState = phase.lightStates[matchingLightId];
+        lightState = stateForThisLight;
       }
-    } else if (
+    }
+    // Method 3: Check lightStates by direct lightName (fallback)
+    else if (phase.lightStates && phase.lightStates[lightName]) {
+      const stateForThisLight = phase.lightStates[lightName];
+      if (stateForThisLight && stateForThisLight !== "red") {
+        phaseAffectsThisLight = true;
+        lightState = stateForThisLight;
+      }
+    }
+    // Method 4: Check by direction matching
+    else if (
       phase.direction &&
       (lightName.toLowerCase().includes(phase.direction.toLowerCase()) ||
         phase.phaseName?.toLowerCase().includes(lightName.toLowerCase()))
     ) {
       phaseAffectsThisLight = true;
       lightState = "green";
-    } else if (
+    }
+    // Method 5: Check by phase name matching
+    else if (
       phase.phaseName &&
       phase.phaseName.toLowerCase().includes(lightName.toLowerCase())
     ) {

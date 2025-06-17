@@ -1,95 +1,197 @@
 {
-  "junction_id": "a914dfb3-908e-4158-9709-eec94ba83405",
-  "junction_name": "Ngã tư Kim Mã",
-  "timestamp": "2025-06-09T17:03:29.574516",
+  "junction_id": "71862a02-471b-4e77-867d-aa66e8e77c4b",
+  "junction_name": "Ngã tư Quang Trung - Lý Thường Kiệt",
+  "timestamp": "2025-06-17T09:54:45.734604",
   "source": "database",
   "config": {
-    "CYCLE_TIME": 107,
+    "CYCLE_TIME": 184,
     "YELLOW_TIME": 3,
     "ALL_RED_TIME": 2,
     "PHASES": [
       {
         "startTime": 0,
-        "duration": 30,
-        "lightName": "Đèn 1",
+        "duration": 50,
+        "lightName": "Đèn 6",
         "color": "green",
         "lightStates": {
-          "f9ff80a3-ffc2-4276-9c12-68bef2af80b9": "green"
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "green",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
         },
-        "phaseName": "Pha 1"
+        "phaseName": "Đèn 6 - Xanh"
       },
       {
-        "startTime": 30,
+        "startTime": 50,
         "duration": 3,
-        "lightName": "Đèn 1",
+        "lightName": "Đèn 6",
         "color": "yellow",
         "lightStates": {
-          "f9ff80a3-ffc2-4276-9c12-68bef2af80b9": "yellow"
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "yellow",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
         },
-        "phaseName": "Pha 2"
+        "phaseName": "Đèn 6 - Vàng"
       },
       {
-        "startTime": 36,
+        "startTime": 53,
+        "duration": 3,
+        "lightName": "Đèn 6",
+        "color": "red",
+        "lightStates": {
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
+        },
+        "phaseName": "Đèn 6 - Đỏ chung"
+      },
+      {
+        "startTime": 56,
         "duration": 30,
-        "lightName": "Đèn 2",
+        "lightName": "Đèn 7",
         "color": "green",
         "lightStates": {
-          "242b3a6f-b3bf-4084-a9f2-f2e7681fe0ca": "green"
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "green",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
         },
-        "phaseName": "Pha 4"
+        "phaseName": "Đèn 7 - Xanh"
       },
       {
-        "startTime": 66,
+        "startTime": 86,
         "duration": 3,
-        "lightName": "Đèn 2",
+        "lightName": "Đèn 7",
         "color": "yellow",
         "lightStates": {
-          "242b3a6f-b3bf-4084-a9f2-f2e7681fe0ca": "yellow"
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "yellow",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
         },
-        "phaseName": "Pha 5"
+        "phaseName": "Đèn 7 - Vàng"
       },
       {
-        "startTime": 72,
-        "duration": 30,
-        "lightName": "Đèn 10",
+        "startTime": 89,
+        "duration": 3,
+        "lightName": "Đèn 7",
+        "color": "red",
+        "lightStates": {
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
+        },
+        "phaseName": "Đèn 7 - Đỏ chung"
+      },
+      {
+        "startTime": 92,
+        "duration": 50,
+        "lightName": "Đèn 8",
         "color": "green",
         "lightStates": {
-          "c2e159b1-1907-4658-bfed-88f2f0d7fc50": "green"
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "green",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
         },
-        "phaseName": "Pha 7"
+        "phaseName": "Đèn 8 - Xanh"
       },
       {
-        "startTime": 102,
+        "startTime": 142,
         "duration": 3,
-        "lightName": "Đèn 10",
+        "lightName": "Đèn 8",
         "color": "yellow",
         "lightStates": {
-          "c2e159b1-1907-4658-bfed-88f2f0d7fc50": "yellow"
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "yellow",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
         },
-        "phaseName": "Pha 8"
+        "phaseName": "Đèn 8 - Vàng"
+      },
+      {
+        "startTime": 145,
+        "duration": 3,
+        "lightName": "Đèn 8",
+        "color": "red",
+        "lightStates": {
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
+        },
+        "phaseName": "Đèn 8 - Đỏ chung"
+      },
+      {
+        "startTime": 148,
+        "duration": 30,
+        "lightName": "Đèn 9",
+        "color": "green",
+        "lightStates": {
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "green"
+        },
+        "phaseName": "Đèn 9 - Xanh"
+      },
+      {
+        "startTime": 178,
+        "duration": 3,
+        "lightName": "Đèn 9",
+        "color": "yellow",
+        "lightStates": {
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "yellow"
+        },
+        "phaseName": "Đèn 9 - Vàng"
+      },
+      {
+        "startTime": 181,
+        "duration": 3,
+        "lightName": "Đèn 9",
+        "color": "red",
+        "lightStates": {
+          "4edf8f78-f0e7-4475-b522-8c40d0c714c8": "red",
+          "665fcb64-8d34-4711-b7ec-3b085b5b2caf": "red",
+          "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a": "red",
+          "d8727534-af1f-42fd-b784-44ea2aee3445": "red"
+        },
+        "phaseName": "Đèn 9 - Đỏ chung"
       }
     ],
     "TRAFFIC_LIGHTS": [
       {
-        "trafficLightId": "f9ff80a3-ffc2-4276-9c12-68bef2af80b9",
-        "lightName": "Đèn 1",
-        "location": "Ngã tư Kim Mã - Hướng Bắc"
+        "trafficLightId": "bd420a9b-7d3a-4e80-8640-98d6aeda9f1a",
+        "lightName": "Đèn 6",
+        "location": "Ngã tư Quang Trung - Lý Thường Kiệt, hướng Đông"
       },
       {
-        "trafficLightId": "c2e159b1-1907-4658-bfed-88f2f0d7fc50",
-        "lightName": "Đèn 10",
-        "location": "Hướng Bắc "
+        "trafficLightId": "4edf8f78-f0e7-4475-b522-8c40d0c714c8",
+        "lightName": "Đèn 7",
+        "location": "Ngã tư Quang Trung - Lý Thường Kiệt, hướng Nam"
       },
       {
-        "trafficLightId": "242b3a6f-b3bf-4084-a9f2-f2e7681fe0ca",
-        "lightName": "Đèn 2",
-        "location": "Ngã tư Kim Mã - Hướng Nam"
+        "trafficLightId": "665fcb64-8d34-4711-b7ec-3b085b5b2caf",
+        "lightName": "Đèn 8",
+        "location": "Ngã tư Quang Trung - Lý Thường Kiệt, hướng Tây"
+      },
+      {
+        "trafficLightId": "d8727534-af1f-42fd-b784-44ea2aee3445",
+        "lightName": "Đèn 9",
+        "location": "Ngã tư Quang Trung - Lý Thường Kiệt, hướng Bắc"
       }
     ],
     "LIGHT_ORDER": [
-      "Đèn 1",
-      "Đèn 2",
-      "Đèn 10"
+      "Đèn 6",
+      "Đèn 7",
+      "Đèn 8",
+      "Đèn 9"
     ]
   }
 }

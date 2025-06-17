@@ -152,7 +152,7 @@ export default function MapComponent() {
     if (mapRef.current) {
       mapRef.current.flyTo({
         center: [Number(junction.longitude), Number(junction.latitude)],
-        zoom: 14,
+        zoom: 20,
         ...fastAnimationOptions,
       });
     }
@@ -261,12 +261,12 @@ export default function MapComponent() {
   };
 
   const renderJunctionPopup = (junction: Junction) => (
-    <div className="p-2">
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+    <div className="p-3 bg-white rounded shadow-lg border min-w-[200px]">
+      <h3 className="text-lg font-bold text-gray-900 mb-2">
         {junction.junctionName}
       </h3>
-      <p className="text-gray-700 dark:text-gray-300">
-        <strong>Location:</strong> {junction.location}
+      <p className="text-gray-700 mb-3">
+        <strong className="text-gray-900">Vị trí:</strong> {junction.location}
       </p>
       <Link href={`/liveCamera`}>
         <button className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors">
@@ -276,6 +276,67 @@ export default function MapComponent() {
       <Link href={`/trafficLight`}>
         <button className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors">
           Xem đèn giao thông
+        </button>
+      </Link>
+    </div>
+  );
+
+  const renderTrafficLightPopup = (trafficLight: TrafficLight) => (
+    <div className="p-3 bg-white rounded shadow-lg border min-w-[200px]">
+      <h3 className="text-lg font-bold text-gray-900 mb-2">
+        {trafficLight.lightName}
+      </h3>
+      <div className="space-y-1 text-sm">
+        <p className="text-gray-700">
+          <strong className="text-gray-900">Vị trí:</strong>{" "}
+          {trafficLight.location}
+        </p>
+        <p className="text-gray-700">
+          <strong className="text-gray-900">Trạng thái:</strong>
+          <span
+            className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
+              trafficLight.isActive
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {trafficLight.isActive ? "Hoạt động" : "Không hoạt động"}
+          </span>
+        </p>
+      </div>
+      <Link href={`/trafficLight`}>
+        <button className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors">
+          Xem chi tiết
+        </button>
+      </Link>
+    </div>
+  );
+
+  const renderCameraPopup = (camera: Camera) => (
+    <div className="p-3 bg-white rounded shadow-lg border min-w-[200px]">
+      <h3 className="text-lg font-bold text-gray-900 mb-2">
+        {camera.cameraName}
+      </h3>
+      <div className="space-y-1 text-sm">
+        <p className="text-gray-700">
+          <strong className="text-gray-900">Vị trí:</strong> {camera.location}
+        </p>
+        <p className="text-gray-700">
+          <strong className="text-gray-900">Trạng thái:</strong>
+          <span
+            className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
+              camera.isActive
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {camera.isActive ? "Hoạt động" : "Không hoạt động"}
+          </span>
+        </p>
+      </div>
+      <Link href={`/liveCamera`}>
+        <button className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors">
+          Xem camera
         </button>
       </Link>
     </div>
@@ -356,7 +417,7 @@ export default function MapComponent() {
               popupKey="trafficLightId"
               onClick={handleTrafficLightClick}
               onClosePopup={closePopup}
-              renderPopupContent={renderEmptyPopup}
+              renderPopupContent={renderTrafficLightPopup}
             />
           ))}
 
@@ -376,7 +437,7 @@ export default function MapComponent() {
               popupKey="cameraId"
               onClick={handleCameraClick}
               onClosePopup={closePopup}
-              renderPopupContent={renderEmptyPopup}
+              renderPopupContent={renderCameraPopup}
             />
           ))}
 

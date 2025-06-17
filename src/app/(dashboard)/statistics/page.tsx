@@ -712,14 +712,14 @@ export default function StatisticsPage() {
                           "dark"
                         )
                           ? "white"
-                          : "#374151",
+                          : "#6B7280",
                       },
                       ticks: {
                         color: document.documentElement.classList.contains(
                           "dark"
                         )
                           ? "white"
-                          : "#374151",
+                          : "#6B7280",
                         maxRotation: 45,
                         minRotation: 0,
                         autoSkip: true,
@@ -749,14 +749,14 @@ export default function StatisticsPage() {
                           "dark"
                         )
                           ? "white"
-                          : "#374151",
+                          : "#6B7280",
                       },
                       ticks: {
                         color: document.documentElement.classList.contains(
                           "dark"
                         )
                           ? "white"
-                          : "#374151",
+                          : "#6B7280",
                         precision: 0,
                         callback: function (value) {
                           return value.toLocaleString();
@@ -780,7 +780,7 @@ export default function StatisticsPage() {
                           "dark"
                         )
                           ? "white"
-                          : "#374151",
+                          : "#6B7280",
                         usePointStyle: true,
                         boxWidth: 10,
                         boxHeight: 10,

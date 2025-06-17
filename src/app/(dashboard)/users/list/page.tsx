@@ -30,7 +30,7 @@ export default function UserManagementPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [formData, setFormData] = useState<CreateFormData>({
     username: "",
     email: "",
@@ -104,7 +104,7 @@ export default function UserManagementPage() {
     return role?.roleName || "N/A";
   };
 
-  const handleSelectItem = (id: number) => {
+  const handleSelectItem = (id: string) => {
     setSelectedItems((prev) =>
       prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
     );
@@ -115,10 +115,17 @@ export default function UserManagementPage() {
       (currentPage - 1) * itemsPerPage,
       currentPage * itemsPerPage
     );
-    if (selectedItems.length === currentItems.length) {
-      setSelectedItems([]);
+    const currentItemIds = currentItems.map((item) => item.userId);
+    const allCurrentItemsSelected = currentItemIds.every((id) =>
+      selectedItems.includes(id)
+    );
+
+    if (allCurrentItemsSelected && selectedItems.length > 0) {
+      setSelectedItems(
+        selectedItems.filter((id) => !currentItemIds.includes(id))
+      );
     } else {
-      setSelectedItems(currentItems.map((item) => parseInt(item.userId)));
+      setSelectedItems([...new Set([...selectedItems, ...currentItemIds])]);
     }
   };
 
@@ -139,13 +146,10 @@ export default function UserManagementPage() {
   const openEditModal = () => {
     if (selectedItems.length !== 1) return;
 
-    const user = users.find((u) => parseInt(u.userId) === selectedItems[0]);
+    const user = users.find((u) => u.userId === selectedItems[0]);
     if (!user) return;
 
-    if (
-      !isAdmin() &&
-      parseInt(user.userId) !== parseInt(loggedInUser?.userId || "0")
-    ) {
+    if (!isAdmin() && user.userId !== loggedInUser?.userId) {
       alert("Bạn chỉ có thể chỉnh sửa thông tin của chính mình.");
       return;
     }
@@ -166,13 +170,10 @@ export default function UserManagementPage() {
   const openPasswordModal = () => {
     if (selectedItems.length !== 1) return;
 
-    const user = users.find((u) => parseInt(u.userId) === selectedItems[0]);
+    const user = users.find((u) => u.userId === selectedItems[0]);
     if (!user) return;
 
-    if (
-      !isAdmin() &&
-      parseInt(user.userId) !== parseInt(loggedInUser?.userId || "0")
-    ) {
+    if (!isAdmin() && user.userId !== loggedInUser?.userId) {
       alert("Bạn chỉ có thể thay đổi mật khẩu của chính mình.");
       return;
     }
@@ -309,7 +310,7 @@ export default function UserManagementPage() {
       return;
     }
 
-    if (selectedItems.includes(parseInt(loggedInUser?.userId || "0"))) {
+    if (selectedItems.includes(loggedInUser?.userId || "")) {
       alert("Không thể xóa tài khoản đang đăng nhập.");
       return;
     }
@@ -337,9 +338,7 @@ export default function UserManagementPage() {
         })
       );
 
-      setUsers(
-        users.filter((u) => !selectedItems.includes(parseInt(u.userId)))
-      );
+      setUsers(users.filter((u) => !selectedItems.includes(u.userId)));
       setSelectedItems([]);
     } catch (error: any) {
       console.error(`Error deleting users:`, error);
@@ -416,8 +415,10 @@ export default function UserManagementPage() {
                   <input
                     type="checkbox"
                     checked={
-                      selectedItems.length === currentItems.length &&
-                      currentItems.length > 0
+                      currentItems.length > 0 &&
+                      currentItems.every((item) =>
+                        selectedItems.includes(item.userId)
+                      )
                     }
                     onChange={handleSelectAll}
                   />
@@ -461,8 +462,8 @@ export default function UserManagementPage() {
                     <td className="border-2 border-gray-300 dark:border-gray-600 p-2">
                       <input
                         type="checkbox"
-                        checked={selectedItems.includes(parseInt(user.userId))}
-                        onChange={() => handleSelectItem(parseInt(user.userId))}
+                        checked={selectedItems.includes(user.userId)}
+                        onChange={() => handleSelectItem(user.userId)}
                       />
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
@@ -470,8 +471,7 @@ export default function UserManagementPage() {
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.username}
-                      {parseInt(user.userId) ===
-                        parseInt(loggedInUser?.userId || "0") && " (Bạn)"}
+                      {user.userId === loggedInUser?.userId && " (Bạn)"}
                     </td>
                     <td className="border-2 border-gray-300 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-300">
                       {user.fullName}

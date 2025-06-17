@@ -169,7 +169,12 @@ export default function TrafficLightChart({
       <div className="flex-1">
         <div className="h-full w-full">
           {lightNames.map((lightName) => {
-            const timeline = getLightTimeline(lightName, config, cycleDuration);
+            const timeline = getLightTimeline(
+              lightName,
+              config,
+              cycleDuration,
+              selectedJunction
+            );
             const displayName =
               lightName.length > 12
                 ? lightName.substring(0, 12) + "..."

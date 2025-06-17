@@ -20,7 +20,7 @@ export default function TrafficCanvas({
     if (!ctx) return;
 
     // Fixed canvas size
-    const WINDOW_WIDTH = 375;
+    const WINDOW_WIDTH = 600;
     const WINDOW_HEIGHT = 375;
     const LIGHT_RADIUS = 16;
 
@@ -227,7 +227,7 @@ export default function TrafficCanvas({
   return (
     <canvas
       ref={canvasRef}
-      width={375}
+      width={600}
       height={375}
       className="border border-gray-300 dark:border-gray-600 mx-auto max-w-full max-h-full object-contain"
     />
