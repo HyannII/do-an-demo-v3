@@ -5,11 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL") // Used for direct connection
-  relationMode = "prisma"
-  // Add connection pool configuration
-  poolTimeout = 10 // seconds
-  poolSize = 2 // maximum number of connections
 }
 
 model Camera {

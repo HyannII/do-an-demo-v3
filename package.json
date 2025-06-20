@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@prisma/client": "^6.7.0",
+    "@prisma/client": "^6.10.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.17.27",
@@ -45,7 +45,7 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
-    "prisma": "^6.7.0",
+    "prisma": "^6.10.1",
     "tailwindcss": "^4.0.15",
     "ts-node": "^10.9.2",
     "typescript": "^5"

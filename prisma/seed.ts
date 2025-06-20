@@ -645,7 +645,7 @@ async function main() {
   // Seed dữ liệu cho ScheduleConfig
   await prisma.scheduleConfig.create({
     data: {
-      scheduleId: "1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6",
+      scheduleId: "1a2b3c4d-5e6f-4a8b-9b0c-d1e2f3a4b5c6",
       junctionId: junction1.junctionId, // Ngã tư Kim Mã
       scheduleName: "Lịch trình tự động Kim Mã",
       mode: "auto",
@@ -659,7 +659,7 @@ async function main() {
 
   await prisma.scheduleConfig.create({
     data: {
-      scheduleId: "2b3c4d5e-6f7g-8h9i-0j1k-l2m3n4o5p6q7",
+      scheduleId: "2b3c4d5e-6f7a-4b9c-0d1e-f2a3b4c5d6e7",
       junctionId: junction2.junctionId, // Ngã tư Láng Hạ
       scheduleName: "Lịch trình theo tuần Láng Hạ",
       mode: "schedule",
